@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xrand"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -83,8 +84,8 @@ func generateAndWriteDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML,
 }
 
 func generateAdminPasswordHash() (string, error) {
-	defaultPassword := xerror.RandomString(12)
-	hashedPassword, err := xerror.HashPassword(&defaultPassword)
+	defaultPassword := xrand.String(12)
+	hashedPassword, err := passlib.Hash(defaultPassword)
 	if err != nil {
 		return "", xerror.EInternalError("can't generate password hash", err)
 	}
@@ -92,7 +93,7 @@ func generateAdminPasswordHash() (string, error) {
 	// do not rely on zap on any level: it won't work
 	// if the log level set to >= "error".
 	fmt.Printf("WARN: new password generated: `%s`\n", defaultPassword)
-	return *hashedPassword, nil
+	return hashedPassword, nil
 }
 
 // dynamicConfig implements the DynamicConfig interface
