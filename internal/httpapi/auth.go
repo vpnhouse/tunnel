@@ -1,0 +1,67 @@
+package httpapi
+
+import (
+	"net/http"
+
+	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
+	libCommon "github.com/Codename-Uranium/common/common"
+	libToken "github.com/Codename-Uranium/common/token"
+	"github.com/Codename-Uranium/common/xhttp"
+	"github.com/dgrijalva/jwt-go"
+	"go.uber.org/zap"
+)
+
+// AdminDoAuth implements handler for GET /api/tunnel/admin/auth
+func (instance *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
+	zap.L().Debug("AdminAuth", zap.Any("info", xhttp.RequestInfo(r)))
+
+	xhttp.JSONResponse(w, func() (interface{}, error) {
+		authOK := false
+
+		// Check if basic authentication is successful
+		username, password, haveBasic := r.BasicAuth()
+		if haveBasic {
+			zap.L().Debug("found basic authentication")
+			err := instance.adminCheckBasicAuth(username, password)
+			if err != nil {
+				return nil, err
+			}
+			authOK = true
+		}
+
+		if !authOK {
+			// Check if bearer authentication is successful
+			tokenStr, haveBearer := xhttp.ExtractTokenFromRequest(r)
+			if haveBearer {
+				zap.L().Debug("found bearer authentication")
+				err := instance.adminCheckBearerAuth(tokenStr)
+				if err != nil {
+					return nil, err
+				}
+				authOK = true
+			}
+		}
+
+		if !authOK {
+			return nil, libCommon.EUnauthorized("basic or bearer authentication expected", nil)
+		}
+
+		// Create claims
+		issued := libToken.Now().Unix()
+		expires := issued + int64(instance.runtime.Settings.AdminAPI.TokenLifetime)
+		claims := jwt.StandardClaims{
+			IssuedAt:  issued,
+			ExpiresAt: expires,
+		}
+
+		signedToken, err := instance.adminJWT.Token(&claims)
+		if err != nil {
+			return nil, err
+		}
+
+		response := &tunnelAPI.AdminAuthResponse{
+			AccessToken: *signedToken,
+		}
+		return response, nil
+	})
+}
