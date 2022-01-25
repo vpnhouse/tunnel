@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"regexp"
-	"time"
 
 	commonAPI "github.com/Codename-Uranium/api/go/server/common"
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
@@ -196,15 +195,6 @@ func importPeer(oPeer adminAPI.Peer, id *int64) (*types.PeerInfo, error) {
 	}
 
 	return &peer, nil
-}
-
-func importJWTTime(timestamp int64) *time.Time {
-	if timestamp == 0 {
-		return nil
-	}
-
-	ts := time.Unix(timestamp, 0)
-	return &ts
 }
 
 func validateClientIdentifiers(identifiers *commonAPI.ConnectionIdentifiers) error {

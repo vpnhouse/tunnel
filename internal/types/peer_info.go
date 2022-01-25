@@ -110,7 +110,7 @@ func (peer *PeerInfo) Age() time.Duration {
 		return 0
 	}
 
-	return time.Now().Sub(peer.Updated.Time)
+	return time.Since(peer.Updated.Time)
 }
 
 func (peer *PeerInfo) Validate(omit ...string) error {
@@ -146,7 +146,6 @@ func (peer *PeerInfo) Validate(omit ...string) error {
 			if peer.WireguardPublicKey == nil {
 				return xerror.EInvalidArgument("wireguard tunnel must have public key set", nil)
 			}
-			break
 		default:
 			return xerror.EInvalidArgument("unknown tunnel type", nil)
 		}

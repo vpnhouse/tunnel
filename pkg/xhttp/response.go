@@ -44,14 +44,12 @@ func WriteData(w http.ResponseWriter, data []byte) {
 }
 
 func WriteJsonError(w http.ResponseWriter, err error) {
-	code := http.StatusInternalServerError
-	message := []byte(http.StatusText(code))
-
 	if err == nil {
 		zap.L().Error("writeError: nil error passed")
+		return
 	}
 
-	code, message = xerror.ErrorToHttpResponse(err)
+	code, message := xerror.ErrorToHttpResponse(err)
 	w.WriteHeader(code)
 	w.Header().Set("content-type", "application/json")
 	if _, err = w.Write(message); err != nil {
