@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	libAuthorizer "github.com/Codename-Uranium/tunnel/internal/authorizer"
+	"github.com/Codename-Uranium/tunnel/internal/authorizer"
 	"github.com/Codename-Uranium/tunnel/internal/eventlog"
 	"github.com/Codename-Uranium/tunnel/internal/federation_keys"
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
@@ -15,7 +15,7 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/settings"
 	"github.com/Codename-Uranium/tunnel/internal/storage"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
-	libControl "github.com/Codename-Uranium/tunnel/pkg/control"
+	"github.com/Codename-Uranium/tunnel/pkg/control"
 	"github.com/Codename-Uranium/tunnel/pkg/ippool"
 	"github.com/Codename-Uranium/tunnel/pkg/rapidoc"
 	"github.com/Codename-Uranium/tunnel/pkg/sentry"
@@ -61,7 +61,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		eventLog = eventlog.NewDummy()
 	}
 
-	jwtAuthorizer, err := libAuthorizer.NewJWT(dataStorage.AsKeystore())
+	jwtAuthorizer, err := authorizer.NewJWT(dataStorage.AsKeystore())
 	if err != nil {
 		return err
 	}
@@ -161,5 +161,5 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 	r := runtime.New(staticConf, dynamicConf, initServices)
-	libControl.Exec(r)
+	control.Exec(r)
 }
