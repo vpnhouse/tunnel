@@ -9,7 +9,6 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/xtime"
 	"github.com/Codename-Uranium/tunnel/proto"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 const (
@@ -152,45 +151,4 @@ func (peer *PeerInfo) Validate(omit ...string) error {
 	}
 
 	return nil
-}
-
-func (peer *PeerInfo) ToFieldsAndValues(omitFields ...string) (map[string]interface{}, map[string]struct{}) {
-	peerFieldsToValues := map[string]interface{}{
-		"id":              xerror.StorageToValue(peer.Id),
-		"label":           xerror.StorageToValue(peer.Label),
-		"type":            xerror.StorageToValue(peer.Type),
-		"wireguard_key":   xerror.StorageToValue(peer.WireguardPublicKey),
-		"ipv4":            xerror.StorageToValue(peer.Ipv4),
-		"created":         xerror.StorageToValue(peer.Created),
-		"updated":         xerror.StorageToValue(peer.Updated),
-		"expires":         xerror.StorageToValue(peer.Expires),
-		"claims":          xerror.StorageToValue(peer.Claims),
-		"user_id":         xerror.StorageToValue(peer.UserId),
-		"installation_id": xerror.StorageToValue(peer.InstallationId),
-		"session_id":      xerror.StorageToValue(peer.SessionId),
-	}
-
-	zap.L().Debug("peerFieldsToValues", zap.Any("peerFieldsToValues", peerFieldsToValues))
-
-	fieldsWithValues := make(map[string]interface{}, len(peerFieldsToValues))
-	skippedFields := make(map[string]struct{}, len(peerFieldsToValues))
-	omitFieldsLookup := make(map[string]struct{}, len(omitFields))
-	for _, omitField := range omitFields {
-		omitFieldsLookup[omitField] = struct{}{}
-	}
-
-	for fieldName, fieldVal := range peerFieldsToValues {
-		if _, ok := omitFieldsLookup[fieldName]; ok {
-			continue
-		}
-		if fieldVal == nil {
-			skippedFields[fieldName] = struct{}{}
-			continue
-		}
-		fieldsWithValues[fieldName] = fieldVal
-	}
-
-	zap.L().Debug("ToFieldsAndValues", zap.Any("peer", peer), zap.Any("fields", peerFieldsToValues), zap.Any("fieldsWithValues", fieldsWithValues), zap.Any("skipped", skippedFields))
-
-	return fieldsWithValues, skippedFields
 }
