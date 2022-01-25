@@ -7,7 +7,7 @@ import (
 
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/settings"
-	libControl "github.com/Codename-Uranium/tunnel/pkg/control"
+	"github.com/Codename-Uranium/tunnel/pkg/control"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/asaskevich/govalidator"
@@ -52,7 +52,7 @@ func (instance *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Re
 				err, zap.String("path", static.GetPath()))
 		}
 
-		instance.runtime.Events.EmitEvent(libControl.EventNeedRestart)
+		instance.runtime.Events.EmitEvent(control.EventNeedRestart)
 		return nil, nil
 	})
 }
