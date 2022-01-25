@@ -1,0 +1,30 @@
+name: "on merge: build the main branch"
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build and push the image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: build and push image
+        # Note: we don't have buildx enabled here,
+        #  so the job will produce the regular linux/amd64 image.
+        # See https://github.com/docker/build-push-action/blob/master/docs/advanced/multi-platform.md
+        #  for more platforms.
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: docker/tunnel/Dockerfile
+          push: true
+          tags: codenameuranium/tunnel:main
