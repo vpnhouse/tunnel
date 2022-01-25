@@ -4,22 +4,18 @@ import (
 	"errors"
 	"time"
 
-	libCommon "github.com/Codename-Uranium/common/common"
-	"github.com/Codename-Uranium/common/proto"
-	"github.com/Codename-Uranium/common/xnet"
-	"github.com/Codename-Uranium/common/xtime"
-	"github.com/Codename-Uranium/tunnel/internal/ippool"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/ippool"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
+	"github.com/Codename-Uranium/tunnel/pkg/xtime"
+	"github.com/Codename-Uranium/tunnel/proto"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-func (manager *Manager) peers(criteria *types.PeerInfo) ([]types.PeerInfo, error) {
-	if criteria == nil {
-		criteria = &types.PeerInfo{}
-	}
-
-	return manager.storage.SearchPeers(criteria)
+func (manager *Manager) peers(_ *types.PeerInfo) ([]types.PeerInfo, error) {
+	return manager.storage.SearchPeers(&types.PeerInfo{})
 }
 
 // restore peers on startup
@@ -67,7 +63,7 @@ func (manager *Manager) restorePeers() {
 
 func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
 	if peer == nil {
-		return libCommon.EInternalError("peer info is nil", nil)
+		return xerror.EInternalError("peer info is nil", nil)
 	}
 
 	errManager := manager.storage.DeletePeer(*peer.Id)
@@ -94,7 +90,7 @@ func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
 func (manager *Manager) setPeer(peer *types.PeerInfo) (*int64, error) {
 	id, ipv4, err := func() (*int64, *xnet.IP, error) {
 		if peer.Expired() {
-			return nil, nil, libCommon.EInvalidArgument("peer already expired", nil)
+			return nil, nil, xerror.EInvalidArgument("peer already expired", nil)
 		}
 
 		if peer.Ipv4 == nil {
@@ -155,16 +151,16 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		if err != nil {
 			return err
 		} else {
-			return libCommon.EEntryNotFound("peer not found", nil, zap.Any("newPeer", newPeer))
+			return xerror.EEntryNotFound("peer not found", nil, zap.Any("newPeer", newPeer))
 		}
 	}
 
 	if *oldPeer.Type != *newPeer.Type {
-		return libCommon.EInvalidArgument("changing peer type is not allowed", nil, zap.Any("newPeer", newPeer), zap.Any("oldPeer", oldPeer))
+		return xerror.EInvalidArgument("changing peer type is not allowed", nil, zap.Any("newPeer", newPeer), zap.Any("oldPeer", oldPeer))
 	}
 
 	if *newPeer.Type != types.TunnelWireguard {
-		return libCommon.EInvalidArgument("updating this tunnel type is not supported yet", nil, zap.Any("newPeer", newPeer))
+		return xerror.EInvalidArgument("updating this tunnel type is not supported yet", nil, zap.Any("newPeer", newPeer))
 	}
 
 	ipOK, dbOK, wgOK, err := func() (ipOK bool, dbOK bool, wgOK bool, err error) {
@@ -256,7 +252,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 
 func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers) (*types.PeerInfo, error) {
 	if identifiers == nil {
-		return nil, libCommon.EInvalidArgument("no identifiers", nil)
+		return nil, xerror.EInvalidArgument("no identifiers", nil)
 	}
 
 	peerQuery := types.PeerInfo{
@@ -269,11 +265,11 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 	}
 
 	if len(peers) == 0 {
-		return nil, libCommon.EEntryNotFound("peer not found", nil)
+		return nil, xerror.EEntryNotFound("peer not found", nil)
 	}
 
 	if len(peers) > 1 {
-		return nil, libCommon.EInvalidArgument("not enough identifiers to update peer", nil)
+		return nil, xerror.EInvalidArgument("not enough identifiers to update peer", nil)
 	}
 
 	return &peers[0], nil
@@ -283,7 +279,7 @@ func (manager *Manager) lock() error {
 	manager.mutex.Lock()
 	if !manager.running {
 		manager.mutex.Unlock()
-		return libCommon.EUnavailable("server is shutting down", nil)
+		return xerror.EUnavailable("server is shutting down", nil)
 	}
 
 	return nil

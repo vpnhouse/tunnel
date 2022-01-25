@@ -9,11 +9,11 @@ import (
 	commonAPI "github.com/Codename-Uranium/api/go/server/common"
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	libCommon "github.com/Codename-Uranium/common/common"
-	libToken "github.com/Codename-Uranium/common/token"
-	"github.com/Codename-Uranium/common/xhttp"
-	"github.com/Codename-Uranium/common/xtime"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	"github.com/Codename-Uranium/tunnel/pkg/xtime"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -31,11 +31,11 @@ func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request)
 		// Extract JWT
 		userToken, ok := xhttp.ExtractTokenFromRequest(r)
 		if !ok {
-			return nil, libCommon.EAuthenticationFailed("no auth token", nil)
+			return nil, xerror.EAuthenticationFailed("no auth token", nil)
 		}
 
 		// Verify JWT, get JWT claims
-		claims, err := instance.authorizer.Authenticate(userToken, libToken.AudienceTunnel)
+		claims, err := instance.authorizer.Authenticate(userToken, xcrypto.AudienceTunnel)
 		if err != nil {
 			return nil, err
 		}
@@ -110,11 +110,11 @@ func (instance *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Re
 		// Extract JWT
 		userToken, ok := xhttp.ExtractTokenFromRequest(r)
 		if !ok {
-			return nil, libCommon.EAuthenticationFailed("no auth token", nil)
+			return nil, xerror.EAuthenticationFailed("no auth token", nil)
 		}
 
 		// Verify JWT, get JWT claims
-		claims, err := instance.authorizer.Authenticate(userToken, libToken.AudienceTunnel)
+		claims, err := instance.authorizer.Authenticate(userToken, xcrypto.AudienceTunnel)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +125,7 @@ func (instance *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Re
 
 		privateKey, err := wgtypes.GeneratePrivateKey()
 		if err != nil {
-			return nil, libCommon.EInternalError("can't generate private key", err)
+			return nil, xerror.EInternalError("can't generate private key", err)
 		}
 
 		publicKey := privateKey.PublicKey()
@@ -236,7 +236,7 @@ func (instance *TunnelAPI) ClientPing(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func constructPeerIdentifiers(request interface{}, claims *libToken.ClientClaims) (*commonAPI.ConnectionIdentifiers, error) {
+func constructPeerIdentifiers(request interface{}, claims *xcrypto.ClientClaims) (*commonAPI.ConnectionIdentifiers, error) {
 	var identifiers commonAPI.ConnectionIdentifiers
 
 	switch t := request.(type) {
@@ -249,7 +249,7 @@ func constructPeerIdentifiers(request interface{}, claims *libToken.ClientClaims
 	case *commonAPI.ConnectionIdentifiers:
 		identifiers = *t
 	default:
-		return nil, libCommon.EInvalidArgument("unexpected identifiers source type", nil, zap.Any("request", request))
+		return nil, xerror.EInvalidArgument("unexpected identifiers source type", nil, zap.Any("request", request))
 	}
 
 	identifiers.UserId = &claims.Subject
@@ -267,19 +267,19 @@ func (instance *TunnelAPI) extractConnectRequest(r *http.Request) (*tunnelAPI.Cl
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&request); err != nil {
-		return nil, libCommon.EInvalidArgument("invalid client connect request", err)
+		return nil, xerror.EInvalidArgument("invalid client connect request", err)
 	}
 
 	return &request, nil
 }
 
-func (instance *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerIdentifiers, *libToken.ClientClaims, error) {
+func (instance *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerIdentifiers, *xcrypto.ClientClaims, error) {
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
-		return nil, nil, libCommon.EAuthenticationFailed("no auth token", nil)
+		return nil, nil, xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
-	claims, err := instance.authorizer.Authenticate(userToken, libToken.AudienceTunnel)
+	claims, err := instance.authorizer.Authenticate(userToken, xcrypto.AudienceTunnel)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -289,7 +289,7 @@ func (instance *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerId
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&bodyIdentifiers); err != nil {
-		return nil, nil, libCommon.EInvalidArgument("invalid peer identifiers", err)
+		return nil, nil, xerror.EInvalidArgument("invalid peer identifiers", err)
 	}
 
 	oIdentifiers, err := constructPeerIdentifiers(bodyIdentifiers, claims)

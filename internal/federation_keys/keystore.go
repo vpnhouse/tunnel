@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/Codename-Uranium/common/common"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/fsnotify/fsnotify"
 	"go.uber.org/zap"
 )
@@ -52,11 +52,11 @@ func (fss *fsStore) Authorize(key string) (string, bool) {
 func (fss *fsStore) watchDir(root string) error {
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {
-		return common.EInternalError("failed to allocate fs watcher", err, zap.String("root", root))
+		return xerror.EInternalError("failed to allocate fs watcher", err, zap.String("root", root))
 	}
 
 	if err := watch.Add(root); err != nil {
-		return common.EInternalError("failed to watch the root dir", err, zap.String("root", root))
+		return xerror.EInternalError("failed to watch the root dir", err, zap.String("root", root))
 	}
 
 	go func() {
@@ -109,14 +109,14 @@ func loadKeys(root string) (map[string]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, common.EInternalError("failed to walk keystore root", err, zap.String("root", root))
+		return nil, xerror.EInternalError("failed to walk keystore root", err, zap.String("root", root))
 	}
 
 	keys := make(map[string]string, len(keyPaths))
 	for _, keyPath := range keyPaths {
 		bs, err := os.ReadFile(keyPath)
 		if err != nil {
-			return nil, common.EInternalError("failed to read the key file", err, zap.String("path", keyPath))
+			return nil, xerror.EInternalError("failed to read the key file", err, zap.String("path", keyPath))
 		}
 
 		if len(bs) == 0 {

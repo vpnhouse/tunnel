@@ -4,11 +4,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Codename-Uranium/common/common"
-	"github.com/Codename-Uranium/common/eventlog"
-	"github.com/Codename-Uranium/common/sentry"
+	"github.com/Codename-Uranium/tunnel/eventlog"
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
+	"github.com/Codename-Uranium/tunnel/pkg/sentry"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
 )
@@ -65,7 +65,7 @@ func staticConfigFromFS(fs afero.Fs, configDir string) (StaticConfig, error) {
 	case err == nil:
 		return loadStaticConfig(fs, pathToStatic)
 	default:
-		return StaticConfig{}, common.EInternalError("failed to stat the static config path", err, zap.String("path", pathToStatic))
+		return StaticConfig{}, xerror.EInternalError("failed to stat the static config path", err, zap.String("path", pathToStatic))
 	}
 }
 

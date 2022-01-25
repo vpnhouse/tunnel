@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/common/common"
-	"github.com/Codename-Uranium/common/token"
-	"github.com/Codename-Uranium/common/xhttp"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -27,11 +27,11 @@ func (instance *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.R
 		for i, k := range keys {
 			keyInfo, err := k.Unwrap()
 			if err != nil {
-				return nil, common.EInternalError("failed to unwrap authorizer key", err)
+				return nil, xerror.EInternalError("failed to unwrap authorizer key", err)
 			}
 
 			// dont have to check the error if unwrap was successful
-			keyBytes, _ := token.MarshalPublicKey(keyInfo.Key)
+			keyBytes, _ := xcrypto.MarshalPublicKey(keyInfo.Key)
 
 			result[i].Id = k.ID
 			result[i].Key = adminAPI.TrustedKey(keyBytes)
@@ -45,7 +45,7 @@ func (instance *TunnelAPI) AdminDeleteTrustedKey(w http.ResponseWriter, r *http.
 	zap.L().Debug("DeleteTrustedKey", zap.String("id", id), zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		if _, err := uuid.Parse(id); err != nil {
-			return nil, common.EInvalidArgument("invalid key id", err)
+			return nil, xerror.EInvalidArgument("invalid key id", err)
 		}
 
 		if err := instance.storage.DeleteAuthorizerKey(id); err != nil {
@@ -61,7 +61,7 @@ func (instance *TunnelAPI) AdminGetTrustedKey(w http.ResponseWriter, r *http.Req
 	zap.L().Debug("GetTrustedKey", zap.String("id", id), zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		if _, err := uuid.Parse(id); err != nil {
-			return nil, common.EInvalidArgument("invalid key id", err)
+			return nil, xerror.EInvalidArgument("invalid key id", err)
 		}
 
 		key, err := instance.storage.GetAuthorizerKeyByID(id)
@@ -74,7 +74,7 @@ func (instance *TunnelAPI) AdminGetTrustedKey(w http.ResponseWriter, r *http.Req
 			return nil, err
 		}
 
-		keyBytes, _ := token.MarshalPublicKey(keyInfo.Key)
+		keyBytes, _ := xcrypto.MarshalPublicKey(keyInfo.Key)
 		return string(keyBytes), nil
 	})
 }
@@ -97,7 +97,7 @@ func (instance *TunnelAPI) AdminUpdateTrustedKey(w http.ResponseWriter, r *http.
 
 func (instance *TunnelAPI) upsertAuthorizerKey(id string, r *http.Request) (string, error) {
 	if _, err := uuid.Parse(id); err != nil {
-		return "", common.EInvalidArgument("invalid key id", nil)
+		return "", xerror.EInvalidArgument("invalid key id", nil)
 	}
 
 	source := r.Context().Value(contextKeyAuthkeyOwner).(string)
@@ -109,14 +109,14 @@ func (instance *TunnelAPI) upsertAuthorizerKey(id string, r *http.Request) (stri
 	key := types.AuthorizerKey{
 		ID:     id,
 		Source: source,
-		Key:    token.KeyToBase64(pubkey),
+		Key:    xcrypto.KeyToBase64(pubkey),
 	}
 
 	if err := instance.storage.UpdateAuthorizerKeys([]types.AuthorizerKey{key}); err != nil {
 		return "", err
 	}
 
-	keyBytes, _ := token.MarshalPublicKey(pubkey)
+	keyBytes, _ := xcrypto.MarshalPublicKey(pubkey)
 	return string(keyBytes), nil
 }
 
@@ -128,5 +128,5 @@ func extractTrustedKey(r *http.Request) (*rsa.PublicKey, error) {
 		return nil, err
 	}
 
-	return token.UnmarshalPublicKey(pem)
+	return xcrypto.UnmarshalPublicKey(pem)
 }

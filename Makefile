@@ -70,3 +70,9 @@ fmt:
 vet:
 	@echo "+ $@"
 	@go vet ./...
+
+.PHONY: proto
+proto:
+	@protoc -I proto/ --go_out=./proto/ --go-grpc_out=./proto/ proto/*.proto
+	@mv ./proto/github.com/Codename-Uranium/tunnel/proto/*.pb.go ./proto
+	@rm -rf ./proto/github.com

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/common/xhttp"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"go.uber.org/zap"
 )
 

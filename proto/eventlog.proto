@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package proto;
+option go_package = "github.com/Codename-Uranium/tunnel/proto";
+
+
+service EventLogService {
+  // FetchEvents streams back events to a caller
+  rpc FetchEvents (FetchEventsRequest) returns (stream FetchEventsResponse) {}
+}
+
+
+message FetchEventsRequest {
+  // Empty logID means the beginning of the whole journal.
+  string logID = 1;
+  // Zero offset means the beginning of the file.
+  int64 offset = 2;
+  // Labels gives a server some idea who called the method.
+  // More like a debug/tracing tool. Optional.
+  map<string, string> labels = 3;
+  // EventTypes contains the list of events client interested in.
+  // Empty list means all events. Optional.
+  repeated uint32 eventTypes = 4;
+}
+
+// FetchEventsResponse is a mirror of eventlog.Event struct.
+message FetchEventsResponse {
+  uint32 eventType = 1;
+  int64 timestamp = 2;
+  string logID = 3;
+  int64 offset = 4;
+  bytes data = 5;
+}

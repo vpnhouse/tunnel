@@ -3,8 +3,8 @@ package httpapi
 import (
 	"net/http"
 
-	libControl "github.com/Codename-Uranium/common/control"
-	"github.com/Codename-Uranium/common/xhttp"
+	"github.com/Codename-Uranium/tunnel/pkg/control"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"go.uber.org/zap"
 )
 
@@ -15,5 +15,5 @@ func (instance *TunnelAPI) AdminReloadService(w http.ResponseWriter, r *http.Req
 	// ask the default wrapper to write OK string to the client conn
 	xhttp.JSONResponse(w, func() (interface{}, error) { return nil, nil })
 	w.(http.Flusher).Flush()
-	instance.runtime.Events.EmitEvent(libControl.EventRestart)
+	instance.runtime.Events.EmitEvent(control.EventRestart)
 }

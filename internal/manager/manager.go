@@ -3,11 +3,11 @@ package manager
 import (
 	"sync"
 
-	"github.com/Codename-Uranium/common/eventlog"
-	"github.com/Codename-Uranium/tunnel/internal/ippool"
+	"github.com/Codename-Uranium/tunnel/eventlog"
 	"github.com/Codename-Uranium/tunnel/internal/runtime"
 	"github.com/Codename-Uranium/tunnel/internal/storage"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
+	"github.com/Codename-Uranium/tunnel/pkg/ippool"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/zap"
 )
