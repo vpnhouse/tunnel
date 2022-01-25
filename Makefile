@@ -26,21 +26,21 @@ DOCKER_BUILD_ARGS = --progress=plain --platform=linux/amd64
 
 run:
 	@echo "+ $@ $(DESCRIPTION)"
-	@go build -ldflags="$(GO_LDFLAGS)" -trimpath -o tunnel-node ./cmd/vpn-node/main.go
+	@go build -ldflags="$(GO_LDFLAGS)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
 	@./tunnel-node
 
 run/personal:
 	@echo "+ $@ $(DESCRIPTION) (personal)"
-	@go build -ldflags="$(GO_LDFLAGS_PERSONAL)" -trimpath -o tunnel-node ./cmd/vpn-node/main.go
+	@go build -ldflags="$(GO_LDFLAGS_PERSONAL)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
 	@./tunnel-node
 
 build/linux:
 	@echo "+ $@ $(DESCRIPTION)"
-	@GOOS=linux GOARCH=amd64 go build -ldflags="$(GO_LDFLAGS)" -trimpath -o tunnel-node ./cmd/vpn-node/main.go
+	@GOOS=linux GOARCH=amd64 go build -ldflags="$(GO_LDFLAGS)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
 
 build/linux/personal:
 	@echo "+ $@ $(DESCRIPTION) (personal)"
-	@GOOS=linux GOARCH=amd64 go build -ldflags="$(GO_LDFLAGS_PERSONAL)" -trimpath -o tunnel-node ./cmd/vpn-node/main.go
+	@GOOS=linux GOARCH=amd64 go build -ldflags="$(GO_LDFLAGS_PERSONAL)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
 
 docker/build:
 	@echo "+ $@ $(DOCKER_IMAGE)"
@@ -76,4 +76,3 @@ proto:
 	@protoc -I proto/ --go_out=./proto/ --go-grpc_out=./proto/ proto/*.proto
 	@mv ./proto/github.com/Codename-Uranium/tunnel/proto/*.pb.go ./proto
 	@rm -rf ./proto/github.com
-
