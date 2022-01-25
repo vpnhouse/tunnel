@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/Codename-Uranium/common/xnet"
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"github.com/stretchr/testify/assert"
 )
 

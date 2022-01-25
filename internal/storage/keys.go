@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/Codename-Uranium/common/common"
-	"github.com/Codename-Uranium/common/token"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -17,12 +17,12 @@ import (
 func (storage *Storage) UpdateAuthorizerKeys(keys []types.AuthorizerKey) error {
 	if len(keys) == 0 {
 		// grumble about the api misuse
-		return common.EInvalidArgument("empty key list given", nil)
+		return xerror.EInvalidArgument("empty key list given", nil)
 	}
 
 	tx, err := storage.db.Begin()
 	if err != nil {
-		return common.EStorageError("failed to start transaction", err)
+		return xerror.EStorageError("failed to start transaction", err)
 	}
 
 	const q = `insert into authorizer_keys(id, source, key) values ($1, $2, $3)
@@ -31,7 +31,7 @@ func (storage *Storage) UpdateAuthorizerKeys(keys []types.AuthorizerKey) error {
 	for _, key := range keys {
 		if _, err := tx.Exec(q, key.ID, key.Source, key.Key); err != nil {
 			_ = tx.Rollback()
-			return common.EStorageError("failed to insert key", err,
+			return xerror.EStorageError("failed to insert key", err,
 				zap.String("id", key.ID), zap.String("source", key.Source))
 		}
 	}
@@ -44,9 +44,9 @@ func (storage *Storage) GetAuthorizerKeyByID(id string) (types.AuthorizerKey, er
 	const q = `select id, source, key from authorizer_keys where id = $1`
 	if err := storage.db.QueryRow(q, id).Scan(&key.ID, &key.Source, &key.Key); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return types.AuthorizerKey{}, common.EEntryNotFound("no such key", nil)
+			return types.AuthorizerKey{}, xerror.EEntryNotFound("no such key", nil)
 		}
-		return types.AuthorizerKey{}, common.EStorageError("failed to query for a key with a given id", err)
+		return types.AuthorizerKey{}, xerror.EStorageError("failed to query for a key with a given id", err)
 	}
 	return key, nil
 }
@@ -55,7 +55,7 @@ func (storage *Storage) ListAuthorizerKeys() ([]types.AuthorizerKey, error) {
 	const q = `select id, source, key from authorizer_keys`
 	rows, err := storage.db.Query(q)
 	if err != nil {
-		return nil, common.EStorageError("failed to query authorizer keys", err)
+		return nil, xerror.EStorageError("failed to query authorizer keys", err)
 	}
 
 	defer rows.Close()
@@ -64,7 +64,7 @@ func (storage *Storage) ListAuthorizerKeys() ([]types.AuthorizerKey, error) {
 	for rows.Next() {
 		var key types.AuthorizerKey
 		if err := rows.Scan(&key.ID, &key.Source, &key.Key); err != nil {
-			return nil, common.EStorageError("failed to scan into the types.AuthorizerKey", err)
+			return nil, xerror.EStorageError("failed to scan into the types.AuthorizerKey", err)
 		}
 		keys = append(keys, key)
 	}
@@ -74,19 +74,19 @@ func (storage *Storage) ListAuthorizerKeys() ([]types.AuthorizerKey, error) {
 
 func (storage *Storage) DeleteAuthorizerKey(id string) error {
 	if len(id) == 0 {
-		return common.EInvalidArgument("empty id given", nil)
+		return xerror.EInvalidArgument("empty id given", nil)
 	}
 
 	const q = `delete from authorizer_keys where id = $1`
 	if _, err := storage.db.Exec(q, id); err != nil {
-		return common.EStorageError("failed to delete authorizer key", nil)
+		return xerror.EStorageError("failed to delete authorizer key", nil)
 	}
 
 	return nil
 }
 
-func (storage *Storage) AsKeystore() token.KeyStore {
-	return &token.KeyStoreWrapper{
+func (storage *Storage) AsKeystore() xcrypto.KeyStore {
+	return &xcrypto.KeyStoreWrapper{
 		Fn: func(keyUUID uuid.UUID) (*rsa.PublicKey, error) {
 			key, err := storage.GetAuthorizerKeyByID(keyUUID.String())
 			if err != nil {

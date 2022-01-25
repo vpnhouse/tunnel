@@ -3,24 +3,23 @@ package storage
 import (
 	"fmt"
 
-	libCommon "github.com/Codename-Uranium/common/common"
-	libDB "github.com/Codename-Uranium/common/db"
-	"github.com/Codename-Uranium/common/xtime"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xtime"
 	"go.uber.org/zap"
 )
 
 func (storage *Storage) SearchPeers(peer *types.PeerInfo) ([]types.PeerInfo, error) {
-	query, err := libDB.GetSelectRequest("peers", peer)
+	query, err := getSelectRequest("peers", peer)
 	if err != nil {
-		return nil, libCommon.EStorageError("can't get peer select query", err, zap.Any("peer", peer))
+		return nil, xerror.EStorageError("can't get peer select query", err, zap.Any("peer", peer))
 	}
 
 	zap.L().Debug("search peers", zap.Any("peer", peer), zap.String("query", query))
 
 	rows, err := storage.db.NamedQuery(query, peer)
 	if err != nil {
-		return nil, libCommon.EStorageError("can't lookup peers", err, zap.Any("peer", peer))
+		return nil, xerror.EStorageError("can't lookup peers", err, zap.Any("peer", peer))
 	}
 
 	var peers []types.PeerInfo
@@ -57,21 +56,21 @@ func (storage *Storage) CreatePeer(peer *types.PeerInfo) (*int64, error) {
 		peer.Updated = &now
 	}
 
-	query, err := libDB.GetInsertRequest("peers", peer)
+	query, err := getInsertRequest("peers", peer)
 	if err != nil {
-		return nil, libCommon.EStorageError("can't insert peer", err, zap.Any("peer", peer))
+		return nil, xerror.EStorageError("can't insert peer", err, zap.Any("peer", peer))
 	}
 
 	zap.L().Debug("Create peer", zap.Any("peer", peer), zap.String("query", query))
 
 	res, err := storage.db.NamedExec(query, peer)
 	if err != nil {
-		return nil, libCommon.EStorageError("can't insert peer to sqlite", err, zap.Any("peer", peer), zap.String("query", query))
+		return nil, xerror.EStorageError("can't insert peer to sqlite", err, zap.Any("peer", peer), zap.String("query", query))
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return nil, libCommon.EStorageError("can't get peer id after insert", err, zap.Any("peer", peer), zap.String("query", query))
+		return nil, xerror.EStorageError("can't get peer id after insert", err, zap.Any("peer", peer), zap.String("query", query))
 	}
 
 	peer.Id = &id
@@ -88,18 +87,18 @@ func (storage *Storage) UpdatePeer(peer *types.PeerInfo) (*int64, error) {
 	now := xtime.Now()
 	peer.Updated = &now
 
-	query, err := libDB.GetUpdateRequest("peers", "id", peer, []string{"created"})
+	query, err := getUpdateRequest("peers", "id", peer, []string{"created"})
 	zap.L().Debug("Update peer", zap.Any("peer", peer), zap.String("query", query))
 
 	if err != nil {
-		return nil, libCommon.EStorageError("can't insert peer", err, zap.Any("peer", peer))
+		return nil, xerror.EStorageError("can't insert peer", err, zap.Any("peer", peer))
 	}
 
 	zap.L().Debug("Update peer", zap.Any("peer", peer), zap.String("query", query))
 
 	_, err = storage.db.NamedExec(query, peer)
 	if err != nil {
-		return nil, libCommon.EStorageError("can't update peer in sqlite", err, zap.Any("peer", peer), zap.String("query", query))
+		return nil, xerror.EStorageError("can't update peer in sqlite", err, zap.Any("peer", peer), zap.String("query", query))
 	}
 
 	return peer.Id, nil
@@ -121,7 +120,7 @@ func (storage *Storage) GetPeer(id int64) (*types.PeerInfo, error) {
 	}
 
 	if len(peers) > 1 {
-		return nil, libCommon.EStorageError("too many entries in request by ID", nil, zap.Int64("id", id))
+		return nil, xerror.EStorageError("too many entries in request by ID", nil, zap.Int64("id", id))
 	}
 
 	err = peers[0].Validate()
@@ -139,7 +138,7 @@ func (storage *Storage) DeletePeer(id int64) error {
 
 	_, err := storage.db.Exec(query)
 	if err != nil {
-		return libCommon.EStorageError("can't execute delete sql request", err, zap.Int64("id", id), zap.String("query", query))
+		return xerror.EStorageError("can't execute delete sql request", err, zap.Int64("id", id), zap.String("query", query))
 	}
 
 	return nil

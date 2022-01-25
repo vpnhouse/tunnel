@@ -8,8 +8,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/Codename-Uranium/common/eventlog"
-	"github.com/Codename-Uranium/common/proto"
+	"github.com/Codename-Uranium/tunnel/eventlog"
+	"github.com/Codename-Uranium/tunnel/proto"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

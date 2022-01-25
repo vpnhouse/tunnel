@@ -2,11 +2,11 @@ package httpapi
 
 import (
 	"net/http"
+	"time"
 
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	libCommon "github.com/Codename-Uranium/common/common"
-	libToken "github.com/Codename-Uranium/common/token"
-	"github.com/Codename-Uranium/common/xhttp"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/dgrijalva/jwt-go"
 	"go.uber.org/zap"
 )
@@ -43,11 +43,11 @@ func (instance *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !authOK {
-			return nil, libCommon.EUnauthorized("basic or bearer authentication expected", nil)
+			return nil, xerror.EUnauthorized("basic or bearer authentication expected", nil)
 		}
 
 		// Create claims
-		issued := libToken.Now().Unix()
+		issued := time.Now().Unix()
 		expires := issued + int64(instance.runtime.Settings.AdminAPI.TokenLifetime)
 		claims := jwt.StandardClaims{
 			IssuedAt:  issued,

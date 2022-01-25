@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/Codename-Uranium/common/token"
+	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
 	"github.com/google/uuid"
 )
 
@@ -27,22 +27,22 @@ func (key *AuthorizerKey) Validate() error {
 		return fmt.Errorf("source: required field")
 	}
 
-	if _, err := token.Base64toKey(key.Key); err != nil {
+	if _, err := xcrypto.Base64toKey(key.Key); err != nil {
 		return fmt.Errorf("key: %v", err)
 	}
 	return nil
 }
 
-func (key *AuthorizerKey) Unwrap() (token.KeyInfo, error) {
+func (key *AuthorizerKey) Unwrap() (xcrypto.KeyInfo, error) {
 	id, err := uuid.Parse(key.ID)
 	if err != nil {
-		return token.KeyInfo{}, fmt.Errorf("id: %v", err)
+		return xcrypto.KeyInfo{}, fmt.Errorf("id: %v", err)
 	}
 
-	pubkey, err := token.Base64toKey(key.Key)
+	pubkey, err := xcrypto.Base64toKey(key.Key)
 	if err != nil {
-		return token.KeyInfo{}, fmt.Errorf("key: %v", err)
+		return xcrypto.KeyInfo{}, fmt.Errorf("key: %v", err)
 	}
 
-	return token.KeyInfo{Id: id, Key: pubkey}, nil
+	return xcrypto.KeyInfo{Id: id, Key: pubkey}, nil
 }

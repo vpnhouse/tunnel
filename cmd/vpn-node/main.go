@@ -4,24 +4,24 @@ import (
 	"flag"
 	"time"
 
-	libAuthorizer "github.com/Codename-Uranium/common/authorizer"
-	libCommon "github.com/Codename-Uranium/common/common"
-	libControl "github.com/Codename-Uranium/common/control"
-	"github.com/Codename-Uranium/common/eventlog"
-	"github.com/Codename-Uranium/common/rapidoc"
-	"github.com/Codename-Uranium/common/sentry"
-	"github.com/Codename-Uranium/common/token"
-	"github.com/Codename-Uranium/common/version"
-	"github.com/Codename-Uranium/common/xhttp"
+	libAuthorizer "github.com/Codename-Uranium/tunnel/authorizer"
+	"github.com/Codename-Uranium/tunnel/eventlog"
 	"github.com/Codename-Uranium/tunnel/internal/federation_keys"
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
 	"github.com/Codename-Uranium/tunnel/internal/httpapi"
-	"github.com/Codename-Uranium/tunnel/internal/ippool"
 	"github.com/Codename-Uranium/tunnel/internal/manager"
 	"github.com/Codename-Uranium/tunnel/internal/runtime"
 	"github.com/Codename-Uranium/tunnel/internal/settings"
 	"github.com/Codename-Uranium/tunnel/internal/storage"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
+	libControl "github.com/Codename-Uranium/tunnel/pkg/control"
+	"github.com/Codename-Uranium/tunnel/pkg/ippool"
+	"github.com/Codename-Uranium/tunnel/pkg/rapidoc"
+	"github.com/Codename-Uranium/tunnel/pkg/sentry"
+	"github.com/Codename-Uranium/tunnel/pkg/version"
+	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	sentryio "github.com/getsentry/sentry-go"
 	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
@@ -94,7 +94,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		keystore = federation_keys.DenyAllKeystore{}
 	}
 
-	adminJWT, err := token.NewJWTMaster(nil, nil)
+	adminJWT, err := xcrypto.NewJWTMaster(nil, nil)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,8 @@ func main() {
 		panic(err)
 	}
 
-	libCommon.RandomInit()
+	// fixme: wat?
+	xerror.RandomInit()
 	r := runtime.New(staticConf, dynamicConf, initServices)
 	libControl.Exec(r)
 }

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/Codename-Uranium/common/common"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -40,7 +40,7 @@ func loadDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
 
 	pkey, err := wgtypes.ParseKey(conf.WireguardPrivateKey)
 	if err != nil {
-		return dynamicConfigYAML{}, common.EInternalError("failed to parse wireguard's private key", err)
+		return dynamicConfigYAML{}, xerror.EInternalError("failed to parse wireguard's private key", err)
 	}
 
 	conf.wgPrivate = pkey.PublicKey()
@@ -50,7 +50,7 @@ func loadDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
 
 func generateAndWriteDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
 	if err := fs.MkdirAll(filepath.Dir(path), 0600); err != nil {
-		return dynamicConfigYAML{}, common.EInternalError("failed to create directory for the dynamic config", err, zap.String("path", path))
+		return dynamicConfigYAML{}, xerror.EInternalError("failed to create directory for the dynamic config", err, zap.String("path", path))
 	}
 
 	cfg := dynamicConfigYAML{}
@@ -62,20 +62,20 @@ func generateAndWriteDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML,
 
 	pkey, err := wgtypes.GenerateKey()
 	if err != nil {
-		return dynamicConfigYAML{}, common.EInternalError("failed to generate WG key", err)
+		return dynamicConfigYAML{}, xerror.EInternalError("failed to generate WG key", err)
 	}
 	cfg.wgPrivate = pkey
 	cfg.WireguardPrivateKey = pkey.String()
 
 	fd, err := fs.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
-		return dynamicConfigYAML{}, common.EInternalError("failed to open the dynamic config for writing",
+		return dynamicConfigYAML{}, xerror.EInternalError("failed to open the dynamic config for writing",
 			err, zap.String("path", path))
 	}
 	defer fd.Close()
 
 	if err := yaml.NewEncoder(fd).Encode(cfg); err != nil {
-		return dynamicConfigYAML{}, common.EInternalError("failed to write to a dynamic config",
+		return dynamicConfigYAML{}, xerror.EInternalError("failed to write to a dynamic config",
 			err, zap.String("path", path))
 	}
 
@@ -83,10 +83,10 @@ func generateAndWriteDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML,
 }
 
 func generateAdminPasswordHash() (string, error) {
-	defaultPassword := common.RandomString(12)
-	hashedPassword, err := common.HashPassword(&defaultPassword)
+	defaultPassword := xerror.RandomString(12)
+	hashedPassword, err := xerror.HashPassword(&defaultPassword)
 	if err != nil {
-		return "", common.EInternalError("can't generate password hash", err)
+		return "", xerror.EInternalError("can't generate password hash", err)
 	}
 
 	// do not rely on zap on any level: it won't work
@@ -129,7 +129,7 @@ func dynamicConfigFromFS(fs afero.Fs, configDir string) (*dynamicConfig, error) 
 			return nil, err
 		}
 	default:
-		return nil, common.EInternalError("failed to stat the dynamic config path", err, zap.String("path", pathToDynamic))
+		return nil, xerror.EInternalError("failed to stat the dynamic config path", err, zap.String("path", pathToDynamic))
 	}
 
 	return &dynamicConfig{
@@ -144,18 +144,18 @@ func dynamicConfigFromFS(fs afero.Fs, configDir string) (*dynamicConfig, error) 
 func (dc *dynamicConfig) flush() {
 	bs, _ := yaml.Marshal(dc.conf)
 	if err := os.WriteFile(dc.path, bs, 0600); err != nil {
-		_ = common.EInternalError("failed to flush the underlying config", err, zap.String("path", dc.path))
+		_ = xerror.EInternalError("failed to flush the underlying config", err, zap.String("path", dc.path))
 	}
 }
 
 func (dc *dynamicConfig) SetAdminPassword(plain string) error {
 	if len(plain) < 6 {
-		return common.EInvalidArgument("too short password given", nil)
+		return xerror.EInvalidArgument("too short password given", nil)
 	}
 
 	hash, err := passlib.Hash(plain)
 	if err != nil {
-		return common.EInternalError("failed to hash password", err)
+		return xerror.EInternalError("failed to hash password", err)
 	}
 
 	dc.mu.Lock()
@@ -168,7 +168,7 @@ func (dc *dynamicConfig) SetAdminPassword(plain string) error {
 
 func (dc *dynamicConfig) VerifyAdminPassword(given string) error {
 	if err := passlib.VerifyNoUpgrade(given, dc.conf.AdminPasswordHash); err != nil {
-		return common.EInternalError("admin credentails verification failed", err)
+		return xerror.EInternalError("admin credentails verification failed", err)
 	}
 	return nil
 }
