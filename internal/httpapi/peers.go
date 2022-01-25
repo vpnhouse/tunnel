@@ -101,6 +101,10 @@ func (instance *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Reques
 		}
 
 		insertedPeer, err := instance.manager.GetPeer(*id)
+		if err != nil {
+			return nil, err
+		}
+
 		oPeer, err := exportPeer(insertedPeer)
 		if err != nil {
 			return nil, err
