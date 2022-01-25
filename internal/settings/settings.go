@@ -14,11 +14,8 @@ package settings
 */
 
 import (
-	"path/filepath"
-	"strconv"
-
-	"github.com/Codename-Uranium/common/common"
-	"github.com/asaskevich/govalidator"
+	"github.com/Codename-Uranium/tunnel/pkg/validator"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
@@ -39,48 +36,18 @@ const (
 func loadAndValidateYAML(fs afero.Fs, path string, t interface{}) error {
 	fd, err := fs.Open(path)
 	if err != nil {
-		return common.EInternalError("failed to open config file "+path, err)
+		return xerror.EInternalError("failed to open config file "+path, err)
 	}
 
 	defer fd.Close()
 
 	if err := yaml.NewDecoder(fd).Decode(t); err != nil {
-		return common.EInternalError("failed to unmarshal config", err)
+		return xerror.EInternalError("failed to unmarshal config", err)
 	}
 
-	if ok, err := govalidator.ValidateStruct(t); !ok {
-		return common.EInternalError("config validation failed", err)
+	if err := validator.ValidateStruct(t); err != nil {
+		return xerror.EInternalError("config validation failed", err)
 	}
 
 	return nil
-}
-
-// TODO(nikonov): this must be the part of the `common` package,
-//  but keep it here now for testing/debugging.
-func init() {
-	govalidator.TagMap["natural"] = func(str string) bool {
-		v, err := strconv.ParseUint(str, 10, 64)
-		if err != nil {
-			return false
-		}
-		return v > 0
-	}
-	govalidator.TagMap["path"] = func(str string) bool {
-		if len(str) == 0 {
-			return false
-		}
-		if c := filepath.Clean(str); c == "." {
-			return false
-		}
-		return true
-	}
-	govalidator.TagMap["ipv4list"] = func(str string) bool {
-		return true
-	}
-	govalidator.TagMap["cidr"] = func(str string) bool {
-		return true
-	}
-	govalidator.TagMap["dialstring"] = func(str string) bool {
-		return true
-	}
 }

@@ -4,13 +4,11 @@ import (
 	"strings"
 	"time"
 
-	libCommon "github.com/Codename-Uranium/common/common"
-	"github.com/Codename-Uranium/common/proto"
-	libToken "github.com/Codename-Uranium/common/token"
-	"github.com/Codename-Uranium/common/xnet"
-	"github.com/Codename-Uranium/common/xtime"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
+	"github.com/Codename-Uranium/tunnel/pkg/xtime"
+	"github.com/Codename-Uranium/tunnel/proto"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 const (
@@ -103,7 +101,7 @@ func (peer *PeerInfo) Expired() bool {
 		return false
 	}
 
-	return peer.Expires.Time.Before(libToken.Now())
+	return peer.Expires.Time.Before(time.Now())
 }
 
 func (peer *PeerInfo) Age() time.Duration {
@@ -111,33 +109,33 @@ func (peer *PeerInfo) Age() time.Duration {
 		return 0
 	}
 
-	return time.Now().Sub(peer.Updated.Time)
+	return time.Since(peer.Updated.Time)
 }
 
 func (peer *PeerInfo) Validate(omit ...string) error {
 	// Check peer presence
 	if peer == nil {
-		return libCommon.EInvalidArgument("empty peer", nil)
+		return xerror.EInvalidArgument("empty peer", nil)
 	}
 
 	// Check auto-generated fields with ability to omit in validation
 	if !in("Id", omit) && peer.Id == nil {
-		return libCommon.EInvalidArgument("empty peer id", nil)
+		return xerror.EInvalidArgument("empty peer id", nil)
 	}
 
 	if !in("Ipv4", omit) {
 		if peer.Ipv4 == nil {
-			return libCommon.EInvalidField("empty peer ipv4", "ipv4", nil)
+			return xerror.EInvalidField("empty peer ipv4", "ipv4", nil)
 		}
 
 		if !peer.Ipv4.Isv4() {
-			return libCommon.EInvalidField("ipv4 format is invalid", "ipv4", nil)
+			return xerror.EInvalidField("ipv4 format is invalid", "ipv4", nil)
 		}
 	}
 
 	// Check mandatory fields
 	if peer.Type == nil {
-		return libCommon.EInvalidArgument("empty peer type", nil)
+		return xerror.EInvalidArgument("empty peer type", nil)
 	}
 
 	// Check tunnel information match
@@ -145,54 +143,12 @@ func (peer *PeerInfo) Validate(omit ...string) error {
 		switch *peer.Type {
 		case TunnelWireguard:
 			if peer.WireguardPublicKey == nil {
-				return libCommon.EInvalidArgument("wireguard tunnel must have public key set", nil)
+				return xerror.EInvalidArgument("wireguard tunnel must have public key set", nil)
 			}
-			break
 		default:
-			return libCommon.EInvalidArgument("unknown tunnel type", nil)
+			return xerror.EInvalidArgument("unknown tunnel type", nil)
 		}
 	}
 
 	return nil
-}
-
-func (peer *PeerInfo) ToFieldsAndValues(omitFields ...string) (map[string]interface{}, map[string]struct{}) {
-	peerFieldsToValues := map[string]interface{}{
-		"id":              libCommon.StorageToValue(peer.Id),
-		"label":           libCommon.StorageToValue(peer.Label),
-		"type":            libCommon.StorageToValue(peer.Type),
-		"wireguard_key":   libCommon.StorageToValue(peer.WireguardPublicKey),
-		"ipv4":            libCommon.StorageToValue(peer.Ipv4),
-		"created":         libCommon.StorageToValue(peer.Created),
-		"updated":         libCommon.StorageToValue(peer.Updated),
-		"expires":         libCommon.StorageToValue(peer.Expires),
-		"claims":          libCommon.StorageToValue(peer.Claims),
-		"user_id":         libCommon.StorageToValue(peer.UserId),
-		"installation_id": libCommon.StorageToValue(peer.InstallationId),
-		"session_id":      libCommon.StorageToValue(peer.SessionId),
-	}
-
-	zap.L().Debug("peerFieldsToValues", zap.Any("peerFieldsToValues", peerFieldsToValues))
-
-	fieldsWithValues := make(map[string]interface{}, len(peerFieldsToValues))
-	skippedFields := make(map[string]struct{}, len(peerFieldsToValues))
-	omitFieldsLookup := make(map[string]struct{}, len(omitFields))
-	for _, omitField := range omitFields {
-		omitFieldsLookup[omitField] = struct{}{}
-	}
-
-	for fieldName, fieldVal := range peerFieldsToValues {
-		if _, ok := omitFieldsLookup[fieldName]; ok {
-			continue
-		}
-		if fieldVal == nil {
-			skippedFields[fieldName] = struct{}{}
-			continue
-		}
-		fieldsWithValues[fieldName] = fieldVal
-	}
-
-	zap.L().Debug("ToFieldsAndValues", zap.Any("peer", peer), zap.Any("fields", peerFieldsToValues), zap.Any("fieldsWithValues", fieldsWithValues), zap.Any("skipped", skippedFields))
-
-	return fieldsWithValues, skippedFields
 }

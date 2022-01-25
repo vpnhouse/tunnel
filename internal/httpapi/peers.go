@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	libCommon "github.com/Codename-Uranium/common/common"
-	"github.com/Codename-Uranium/common/xhttp"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +19,7 @@ func getPeerInfo(r *http.Request, id *int64) (*types.PeerInfo, error) {
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&oPeer); err != nil {
-		return nil, libCommon.EInvalidArgument("invalid peer info", err)
+		return nil, xerror.EInvalidArgument("invalid peer info", err)
 	}
 
 	return importPeer(oPeer, id)
@@ -69,7 +69,7 @@ func (instance *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, 
 		}
 
 		if peer == nil {
-			return nil, libCommon.EEntryNotFound("entry not found", nil)
+			return nil, xerror.EEntryNotFound("entry not found", nil)
 		}
 
 		oPeer, err := exportPeer(peer)
@@ -101,6 +101,10 @@ func (instance *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Reques
 		}
 
 		insertedPeer, err := instance.manager.GetPeer(*id)
+		if err != nil {
+			return nil, err
+		}
+
 		oPeer, err := exportPeer(insertedPeer)
 		if err != nil {
 			return nil, err

@@ -2,26 +2,26 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"time"
 
-	libAuthorizer "github.com/Codename-Uranium/common/authorizer"
-	libCommon "github.com/Codename-Uranium/common/common"
-	libControl "github.com/Codename-Uranium/common/control"
-	"github.com/Codename-Uranium/common/eventlog"
-	"github.com/Codename-Uranium/common/rapidoc"
-	"github.com/Codename-Uranium/common/sentry"
-	"github.com/Codename-Uranium/common/token"
-	"github.com/Codename-Uranium/common/version"
-	"github.com/Codename-Uranium/common/xhttp"
+	"github.com/Codename-Uranium/tunnel/internal/authorizer"
+	"github.com/Codename-Uranium/tunnel/internal/eventlog"
 	"github.com/Codename-Uranium/tunnel/internal/federation_keys"
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
 	"github.com/Codename-Uranium/tunnel/internal/httpapi"
-	"github.com/Codename-Uranium/tunnel/internal/ippool"
 	"github.com/Codename-Uranium/tunnel/internal/manager"
 	"github.com/Codename-Uranium/tunnel/internal/runtime"
 	"github.com/Codename-Uranium/tunnel/internal/settings"
 	"github.com/Codename-Uranium/tunnel/internal/storage"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
+	"github.com/Codename-Uranium/tunnel/pkg/control"
+	"github.com/Codename-Uranium/tunnel/pkg/ippool"
+	"github.com/Codename-Uranium/tunnel/pkg/rapidoc"
+	"github.com/Codename-Uranium/tunnel/pkg/sentry"
+	"github.com/Codename-Uranium/tunnel/pkg/version"
+	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	sentryio "github.com/getsentry/sentry-go"
 	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
@@ -61,12 +61,11 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		eventLog = eventlog.NewDummy()
 	}
 
-	// Initialize internal authorizer
-	dynamicAuthorizer, err := libAuthorizer.NewInternalAuthorizer(dataStorage.AsKeystore())
+	jwtAuthorizer, err := authorizer.NewJWT(dataStorage.AsKeystore())
 	if err != nil {
 		return err
 	}
-	runtime.Services.RegisterService("authorizer", dynamicAuthorizer)
+	runtime.Services.RegisterService("authorizer", jwtAuthorizer)
 
 	// Initialize IP pool
 	ipv4Pool, err := ippool.NewIPv4(runtime.Settings.Wireguard.Subnet)
@@ -94,7 +93,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		keystore = federation_keys.DenyAllKeystore{}
 	}
 
-	adminJWT, err := token.NewJWTMaster(nil, nil)
+	adminJWT, err := xcrypto.NewJWTMaster(nil, nil)
 	if err != nil {
 		return err
 	}
@@ -105,7 +104,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		sessionManager,
 		adminJWT,
 		wireguardController,
-		dynamicAuthorizer,
+		jwtAuthorizer,
 		dataStorage,
 		keystore,
 	)
@@ -160,7 +159,7 @@ func main() {
 		panic(err)
 	}
 
-	libCommon.RandomInit()
+	rand.Seed(time.Now().UnixNano())
 	r := runtime.New(staticConf, dynamicConf, initServices)
-	libControl.Exec(r)
+	control.Exec(r)
 }

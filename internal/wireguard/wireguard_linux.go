@@ -1,8 +1,8 @@
 package wireguard
 
 import (
-	"github.com/Codename-Uranium/common/common"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl"
@@ -34,7 +34,7 @@ func New(config Config, privateKey wgtypes.Key) (*Wireguard, error) {
 	linkAttrs := wireguardLink{name: config.Interface}
 	client, err := wgctrl.New()
 	if err != nil {
-		return nil, common.ETunnelError("can't create wireguard controller", err)
+		return nil, xerror.ETunnelError("can't create wireguard controller", err)
 	}
 
 	wgConfig := wgtypes.Config{
@@ -50,7 +50,7 @@ func New(config Config, privateKey wgtypes.Key) (*Wireguard, error) {
 
 	err = netlink.LinkAdd(wg.link)
 	if err != nil {
-		return nil, common.ETunnelError("can't add link", err, zap.Any("iface", wg.link.name))
+		return nil, xerror.ETunnelError("can't add link", err, zap.Any("iface", wg.link.name))
 	}
 
 	defer func() {
@@ -62,22 +62,22 @@ func New(config Config, privateKey wgtypes.Key) (*Wireguard, error) {
 
 	addr, err := netlink.ParseAddr(config.Subnet)
 	if err != nil {
-		return nil, common.EInvalidArgument("can't parse wireguard subnet", err, zap.String("subnet", config.Subnet))
+		return nil, xerror.EInvalidArgument("can't parse wireguard subnet", err, zap.String("subnet", config.Subnet))
 	}
 
 	err = netlink.AddrAdd(wg.link, addr)
 	if err != nil {
-		return nil, common.ETunnelError("can't add address", err, zap.Any("addr", addr))
+		return nil, xerror.ETunnelError("can't add address", err, zap.Any("addr", addr))
 	}
 
 	err = wg.client.ConfigureDevice(config.Interface, wg.config)
 	if err != nil {
-		return nil, common.ETunnelError("can't configure wireguard interface", err, zap.Any("config", wg.config))
+		return nil, xerror.ETunnelError("can't configure wireguard interface", err, zap.Any("config", wg.config))
 	}
 
 	err = netlink.LinkSetUp(wg.link)
 	if err != nil {
-		return nil, common.ETunnelError("can't set link up", err, zap.Any("iface", wg.link.name), zap.Stringer("addr", addr))
+		return nil, xerror.ETunnelError("can't set link up", err, zap.Any("iface", wg.link.name), zap.Stringer("addr", addr))
 	}
 
 	wg.running = true
@@ -88,7 +88,7 @@ func (wg *Wireguard) Shutdown() error {
 	zap.L().Info("Removing wireguard interface")
 	err := netlink.LinkDel(wg.link)
 	if err != nil {
-		return common.ETunnelError("can't remove wireguard interface", err)
+		return xerror.ETunnelError("can't remove wireguard interface", err)
 	}
 
 	wg.running = false
@@ -111,7 +111,7 @@ func (wg *Wireguard) SetPeer(info *types.PeerInfo) error {
 
 	err = wg.client.ConfigureDevice(wg.link.name, *config)
 	if err != nil {
-		return common.ETunnelError("can't set peer", err, zap.Any("peer", info), zap.Any("config", config))
+		return xerror.ETunnelError("can't set peer", err, zap.Any("peer", info), zap.Any("config", config))
 	}
 
 	return nil
@@ -129,7 +129,7 @@ func (wg *Wireguard) UnsetPeer(info *types.PeerInfo) error {
 
 	err = wg.client.ConfigureDevice(wg.link.name, *config)
 	if err != nil {
-		return common.ETunnelError("can't unset peer", err, zap.Any("peer", info), zap.Any("config", config))
+		return xerror.ETunnelError("can't unset peer", err, zap.Any("peer", info), zap.Any("config", config))
 	}
 
 	return nil
@@ -140,7 +140,7 @@ func (wg *Wireguard) UnsetPeer(info *types.PeerInfo) error {
 func (wg *Wireguard) GetPeers() (map[string]wgtypes.Peer, error) {
 	dev, err := wg.client.Device(wg.link.name)
 	if err != nil {
-		return nil, common.ETunnelError("failed to get wireguard device", err, zap.String("iface", wg.link.name))
+		return nil, xerror.ETunnelError("failed to get wireguard device", err, zap.String("iface", wg.link.name))
 	}
 
 	peers := make(map[string]wgtypes.Peer, len(dev.Peers))
@@ -154,7 +154,7 @@ func (wg *Wireguard) GetPeers() (map[string]wgtypes.Peer, error) {
 func (wg *Wireguard) GetLinkStatistic() (*netlink.LinkStatistics, error) {
 	link, err := netlink.LinkByName(wg.link.name)
 	if err != nil {
-		return nil, common.EInternalError("failed to get wg link by name", err, zap.String("iface", wg.link.name))
+		return nil, xerror.EInternalError("failed to get wg link by name", err, zap.String("iface", wg.link.name))
 	}
 
 	return link.Attrs().Statistics, nil

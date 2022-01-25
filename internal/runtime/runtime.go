@@ -1,8 +1,8 @@
 package runtime
 
 import (
-	libControl "github.com/Codename-Uranium/common/control"
 	"github.com/Codename-Uranium/tunnel/internal/settings"
+	"github.com/Codename-Uranium/tunnel/pkg/control"
 	"go.uber.org/zap"
 )
 
@@ -13,38 +13,38 @@ type Flags struct {
 type ServicesInitFunc func(runtime *TunnelRuntime) error
 
 type TunnelRuntime struct {
-	SetLogLevel     libControl.ChangeLevelFunc
-	Events          *libControl.EventManager
-	Services        *libControl.ServiceMap
+	SetLogLevel     control.ChangeLevelFunc
+	Events          *control.EventManager
+	Services        *control.ServiceMap
 	Settings        settings.StaticConfig
 	DynamicSettings settings.DynamicConfig
 	Flags           Flags
 	starter         ServicesInitFunc
 }
 
-func (runtime *TunnelRuntime) EventChannel() chan libControl.Event {
+func (runtime *TunnelRuntime) EventChannel() chan control.Event {
 	return runtime.Events.EventChannel()
 }
 
 func New(static settings.StaticConfig, dynamic settings.DynamicConfig, starter ServicesInitFunc) *TunnelRuntime {
-	updateLogLevelFn := libControl.InitLogger(static.LogLevel)
+	updateLogLevelFn := control.InitLogger(static.LogLevel)
 	return &TunnelRuntime{
 		Settings:        static,
 		DynamicSettings: dynamic,
 		SetLogLevel:     updateLogLevelFn,
-		Events:          libControl.NewEventManager(),
-		Services:        libControl.NewServiceMap(),
+		Events:          control.NewEventManager(),
+		Services:        control.NewServiceMap(),
 		starter:         starter,
 	}
 }
 
-func (runtime *TunnelRuntime) ProcessEvents(event libControl.Event) {
+func (runtime *TunnelRuntime) ProcessEvents(event control.Event) {
 	switch event.EventType {
-	case libControl.EventNeedRestart:
+	case control.EventNeedRestart:
 		runtime.Flags.RestartRequired = true
-	case libControl.EventSetLogLevel:
+	case control.EventSetLogLevel:
 		_ = runtime.SetLogLevel(event.Info.(string))
-	case libControl.EventRestart:
+	case control.EventRestart:
 		if err := runtime.Restart(); err != nil {
 			zap.L().Fatal("service restart failed", zap.Error(err))
 		}

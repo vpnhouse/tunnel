@@ -3,17 +3,18 @@ package httpapi
 import (
 	"context"
 	"net/http"
-	"time"
+	"regexp"
 
 	commonAPI "github.com/Codename-Uranium/api/go/server/common"
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	libCommon "github.com/Codename-Uranium/common/common"
-	"github.com/Codename-Uranium/common/xhttp"
-	"github.com/Codename-Uranium/common/xnet"
-	"github.com/Codename-Uranium/common/xtime"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
+	"github.com/Codename-Uranium/tunnel/pkg/xtime"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -55,7 +56,7 @@ func wrap404ToIndex(h http.Handler) http.HandlerFunc {
 // adminCheckBasicAuth only checks if basic authentication is successful
 func (instance *TunnelAPI) adminCheckBasicAuth(username string, password string) error {
 	if username != instance.runtime.Settings.AdminAPI.UserName {
-		return libCommon.EAuthenticationFailed("invalid credentials", nil)
+		return xerror.EAuthenticationFailed("invalid credentials", nil)
 	}
 
 	if err := instance.runtime.DynamicSettings.VerifyAdminPassword(password); err != nil {
@@ -118,18 +119,18 @@ func importIdentifiers(oIdentifiers *commonAPI.ConnectionIdentifiers) (*types.Pe
 		return nil, nil
 	}
 
-	installationIdPtr, err := libCommon.StringToUUIDPtrWithErr(oIdentifiers.InstallationId)
+	installationIdPtr, err := parseIdentifierUUID(oIdentifiers.InstallationId)
 	if err != nil {
-		return nil, libCommon.EInvalidArgument("can't parse installation id", err)
+		return nil, xerror.EInvalidArgument("can't parse installation id", err)
 	}
 
-	sessionIdPtr, err := libCommon.StringToUUIDPtrWithErr(oIdentifiers.SessionId)
+	sessionIdPtr, err := parseIdentifierUUID(oIdentifiers.SessionId)
 	if err != nil {
-		return nil, libCommon.EInvalidArgument("can't parse session id", err)
+		return nil, xerror.EInvalidArgument("can't parse session id", err)
 	}
 
 	if oIdentifiers.UserId != nil {
-		if _, _, _, err := libCommon.ParseUserID(*oIdentifiers.UserId); err != nil {
+		if _, _, _, err := parseUserID(*oIdentifiers.UserId); err != nil {
 			return nil, err
 		}
 	}
@@ -157,7 +158,7 @@ func importPeer(oPeer adminAPI.Peer, id *int64) (*types.PeerInfo, error) {
 			tunnelTypePtr = &tunnelType
 		} else {
 			// Unknown tunnel type
-			return nil, libCommon.EInvalidArgument("invalid tunnel type", nil, zap.Any("oPeer", oPeer))
+			return nil, xerror.EInvalidArgument("invalid tunnel type", nil, zap.Any("oPeer", oPeer))
 		}
 	}
 
@@ -173,7 +174,7 @@ func importPeer(oPeer adminAPI.Peer, id *int64) (*types.PeerInfo, error) {
 	if oPeer.Ipv4 != nil {
 		ip = xnet.ParseIP(*oPeer.Ipv4)
 		if ip == nil || !ip.Isv4() {
-			return nil, libCommon.EInvalidArgument("invalid ipv4 format", nil, zap.Any("oPeer", oPeer))
+			return nil, xerror.EInvalidArgument("invalid ipv4 format", nil, zap.Any("oPeer", oPeer))
 		}
 	}
 
@@ -196,22 +197,13 @@ func importPeer(oPeer adminAPI.Peer, id *int64) (*types.PeerInfo, error) {
 	return &peer, nil
 }
 
-func importJWTTime(timestamp int64) *time.Time {
-	if timestamp == 0 {
-		return nil
-	}
-
-	ts := time.Unix(timestamp, 0)
-	return &ts
-}
-
 func validateClientIdentifiers(identifiers *commonAPI.ConnectionIdentifiers) error {
 	if identifiers == nil {
-		return libCommon.EInvalidArgument("identifiers are not set", nil)
+		return xerror.EInvalidArgument("identifiers are not set", nil)
 	}
 
 	if identifiers.UserId == nil || identifiers.InstallationId == nil || identifiers.SessionId == nil {
-		return libCommon.EInvalidArgument("not enough identification info", nil, zap.Any("identifiers", identifiers))
+		return xerror.EInvalidArgument("not enough identification info", nil, zap.Any("identifiers", identifiers))
 	}
 
 	return nil
@@ -254,7 +246,7 @@ func exportPeer(peer *types.PeerInfo) (*adminAPI.Peer, error) {
 	// Handle tunnel type
 	tunnelType := types.TunnelTypeToName(peer.Type)
 	if tunnelType == nil {
-		return nil, libCommon.EInvalidArgument("unknown tunnel type", nil)
+		return nil, xerror.EInvalidArgument("unknown tunnel type", nil)
 	}
 	peerType := tunnelAPI.PeerType(*tunnelType)
 
@@ -283,4 +275,35 @@ func exportPeer(peer *types.PeerInfo) (*adminAPI.Peer, error) {
 	}
 
 	return &oPeer, nil
+}
+
+func parseIdentifierUUID(v *string) (*uuid.UUID, error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	u, err := uuid.Parse(*v)
+	if err != nil {
+		return nil, xerror.EInvalidArgument("invalid UUID", err)
+	}
+
+	return &u, nil
+}
+
+var (
+	userIDRegexp = regexp.MustCompile("^([^/]*)/([^/]*)/(.*)$")
+	nParts       = 3
+)
+
+func parseUserID(v string) (project, auth, userID string, err error) {
+	matches := userIDRegexp.FindStringSubmatch(v)
+	if len(matches) != nParts+1 {
+		err = xerror.EInvalidArgument("invalid user id format", nil)
+		return
+	}
+
+	project = matches[1]
+	auth = matches[2]
+	userID = matches[3]
+	return
 }

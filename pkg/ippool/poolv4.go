@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"sync"
 
-	libCommon "github.com/Codename-Uranium/common/common"
-	"github.com/Codename-Uranium/common/xnet"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"go.uber.org/zap"
 )
 
@@ -36,17 +36,17 @@ func NewIPv4(subnetAddr string) (*IPv4pool, error) {
 
 	serverIP, subnet, err := xnet.ParseCIDR(subnetAddr)
 	if err != nil {
-		return nil, libCommon.EInvalidArgument("can't parse subnet address", nil, zap.String("subnet", subnetAddr))
+		return nil, xerror.EInvalidArgument("can't parse subnet address", nil, zap.String("subnet", subnetAddr))
 	}
 
 	// Check if subnet is IPV4
 	if !serverIP.Isv4() {
-		return nil, libCommon.EInvalidArgument("can't start pool with non-ipv4 subnet", nil, zap.String("subnet", subnetAddr))
+		return nil, xerror.EInvalidArgument("can't start pool with non-ipv4 subnet", nil, zap.String("subnet", subnetAddr))
 	}
 
 	// Check if we have enough space to allocate
 	if ones, _ := subnet.Mask().Size(); ones > 30 {
-		return nil, libCommon.EInvalidArgument("need at least /30 subnet to operate", nil, zap.String("subnet", subnetAddr))
+		return nil, xerror.EInvalidArgument("need at least /30 subnet to operate", nil, zap.String("subnet", subnetAddr))
 	}
 
 	// Take minimum and maximum addresses
@@ -54,7 +54,7 @@ func NewIPv4(subnetAddr string) (*IPv4pool, error) {
 	maxIP := subnet.LastUsable()
 
 	if serverIP.ToUint32() < minIP.ToUint32() {
-		return nil, libCommon.EInvalidArgument(fmt.Sprintf("server ip must be in range from %v to %v", minIP.String(), maxIP.String()), nil, zap.String("subnet", subnetAddr))
+		return nil, xerror.EInvalidArgument(fmt.Sprintf("server ip must be in range from %v to %v", minIP.String(), maxIP.String()), nil, zap.String("subnet", subnetAddr))
 	}
 
 	return &IPv4pool{
@@ -99,7 +99,7 @@ func (pool *IPv4pool) Alloc() (*xnet.IP, error) {
 	pool.checkRunning()
 
 	if pool.free() == 0 {
-		return nil, libCommon.ENotEnoughSpace("ipv4pool", ErrNotEnoughSpace)
+		return nil, xerror.ENotEnoughSpace("ipv4pool", ErrNotEnoughSpace)
 	}
 
 	// Initialize variables
@@ -124,12 +124,12 @@ func (pool *IPv4pool) Alloc() (*xnet.IP, error) {
 	}
 
 	zap.L().Fatal("expected to have some space in ipv4 pool, but free IP was not found", zap.Int("free", pool.free()))
-	return nil, libCommon.ENotEnoughSpace("no space in ipv4 pool", nil)
+	return nil, xerror.ENotEnoughSpace("no space in ipv4 pool", nil)
 }
 
 func (pool *IPv4pool) Set(ip xnet.IP) error {
 	if !ip.Isv4() {
-		return libCommon.EInvalidArgument("ipv4pool", ErrInvalidAddress)
+		return xerror.EInvalidArgument("ipv4pool", ErrInvalidAddress)
 	}
 
 	// Get uint32 representation
@@ -137,7 +137,7 @@ func (pool *IPv4pool) Set(ip xnet.IP) error {
 
 	// Check if address fits configured range
 	if uip < pool.min || uip > pool.max {
-		return libCommon.EInvalidArgument("ipv4pool", ErrNotInRange)
+		return xerror.EInvalidArgument("ipv4pool", ErrNotInRange)
 	}
 
 	// Lock pool
@@ -148,7 +148,7 @@ func (pool *IPv4pool) Set(ip xnet.IP) error {
 
 	// Try to set IP as used
 	if pool.isUsed(uip) {
-		return libCommon.EExists("ipv4pool", ErrAddressInUse)
+		return xerror.EExists("ipv4pool", ErrAddressInUse)
 	}
 	pool.used[uip] = true
 	pool.logFunc("registered IPv4 address: %s", ip.String())
@@ -158,7 +158,7 @@ func (pool *IPv4pool) Set(ip xnet.IP) error {
 
 func (pool *IPv4pool) Unset(ip xnet.IP) error {
 	if !ip.Isv4() {
-		return libCommon.EInvalidArgument("non-ipv4 address given", nil)
+		return xerror.EInvalidArgument("non-ipv4 address given", nil)
 	}
 
 	// Get uint32 representation
@@ -172,7 +172,7 @@ func (pool *IPv4pool) Unset(ip xnet.IP) error {
 
 	// Try to remove IP from used
 	if !pool.isUsed(uip) {
-		return libCommon.EEntryNotFound("ip address is not used", nil)
+		return xerror.EEntryNotFound("ip address is not used", nil)
 	}
 
 	delete(pool.used, uip)
