@@ -5,7 +5,7 @@ import (
 	"time"
 
 	libAuthorizer "github.com/Codename-Uranium/tunnel/authorizer"
-	"github.com/Codename-Uranium/tunnel/eventlog"
+	"github.com/Codename-Uranium/tunnel/internal/eventlog"
 	"github.com/Codename-Uranium/tunnel/internal/federation_keys"
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
 	"github.com/Codename-Uranium/tunnel/internal/httpapi"

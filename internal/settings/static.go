@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Codename-Uranium/tunnel/eventlog"
+	"github.com/Codename-Uranium/tunnel/internal/eventlog"
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
 	"github.com/Codename-Uranium/tunnel/pkg/sentry"
