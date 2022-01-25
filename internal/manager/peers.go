@@ -3,9 +3,9 @@ package manager
 import (
 	"time"
 
-	libCommon "github.com/Codename-Uranium/common/common"
-	"github.com/Codename-Uranium/common/xtime"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xtime"
 	"go.uber.org/zap"
 )
 
@@ -46,7 +46,7 @@ func (manager *Manager) UnsetPeer(id int64) error {
 	}
 
 	if info == nil {
-		return libCommon.EEntryNotFound("entry not found", nil, zap.Int64("id", id))
+		return xerror.EEntryNotFound("entry not found", nil, zap.Int64("id", id))
 	}
 
 	return manager.unsetPeer(info)
@@ -64,7 +64,7 @@ func (manager *Manager) UnsetPeerByIdentifiers(identifiers *types.PeerIdentifier
 	}
 
 	if info == nil {
-		return libCommon.EEntryNotFound("entry not found", nil, zap.Any("identifiers", identifiers))
+		return xerror.EEntryNotFound("entry not found", nil, zap.Any("identifiers", identifiers))
 	}
 
 	return manager.unsetPeer(info)
@@ -104,7 +104,7 @@ func (manager *Manager) ConnectPeer(info *types.PeerInfo) (*int64, error) {
 	}
 
 	if len(oldPeers) > 1 {
-		return nil, libCommon.EInternalError("too many peers for identifiers", nil)
+		return nil, xerror.EInternalError("too many peers for identifiers", nil)
 	}
 
 	info.Id = oldPeers[0].Id
@@ -114,7 +114,7 @@ func (manager *Manager) ConnectPeer(info *types.PeerInfo) (*int64, error) {
 
 func (manager *Manager) UpdatePeerExpiration(identifiers *types.PeerIdentifiers, expires *time.Time) error {
 	if identifiers == nil {
-		return libCommon.EInvalidArgument("no identifiers", nil)
+		return xerror.EInvalidArgument("no identifiers", nil)
 	}
 
 	if err := manager.lock(); err != nil {
@@ -132,11 +132,11 @@ func (manager *Manager) UpdatePeerExpiration(identifiers *types.PeerIdentifiers,
 	}
 
 	if len(peers) == 0 {
-		return libCommon.EEntryNotFound("peer not found", nil)
+		return xerror.EEntryNotFound("peer not found", nil)
 	}
 
 	if len(peers) > 1 {
-		return libCommon.EInvalidArgument("not enough identifiers to update peer", nil)
+		return xerror.EInvalidArgument("not enough identifiers to update peer", nil)
 	}
 
 	peers[0].Expires = xtime.FromTimePtr(expires)

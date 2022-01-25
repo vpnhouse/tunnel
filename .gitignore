@@ -1,5 +1,5 @@
 .idea
 api/update.sh
-./tunnel-node
+tunnel-node
 ./dynamic.yaml
 

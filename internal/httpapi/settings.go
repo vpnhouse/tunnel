@@ -6,10 +6,10 @@ import (
 	"os"
 
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/common/common"
-	libControl "github.com/Codename-Uranium/common/control"
-	"github.com/Codename-Uranium/common/xhttp"
 	"github.com/Codename-Uranium/tunnel/internal/settings"
+	"github.com/Codename-Uranium/tunnel/pkg/control"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/asaskevich/govalidator"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -40,19 +40,19 @@ func (instance *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Re
 		static := mergeStaticSettings(instance.runtime.Settings, newSettings)
 		ok, err := govalidator.ValidateStruct(static)
 		if err != nil {
-			return nil, common.EInvalidArgument("failed to validate static config", err)
+			return nil, xerror.EInvalidArgument("failed to validate static config", err)
 		}
 		if !ok {
-			return nil, common.EInvalidArgument("failed to validate static config", nil)
+			return nil, xerror.EInvalidArgument("failed to validate static config", nil)
 		}
 
 		bs, _ := yaml.Marshal(static)
 		if err := os.WriteFile(static.GetPath(), bs, 0600); err != nil {
-			return nil, common.WInternalError("config", "failed to write static config",
+			return nil, xerror.WInternalError("config", "failed to write static config",
 				err, zap.String("path", static.GetPath()))
 		}
 
-		instance.runtime.Events.EmitEvent(libControl.EventNeedRestart)
+		instance.runtime.Events.EmitEvent(control.EventNeedRestart)
 		return nil, nil
 	})
 }
@@ -125,7 +125,7 @@ func openApiSettingsFromRequest(r *http.Request) (adminAPI.Settings, error) {
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&oSettings); err != nil {
-		return adminAPI.Settings{}, common.EInvalidArgument("invalid settings", err)
+		return adminAPI.Settings{}, xerror.EInvalidArgument("invalid settings", err)
 	}
 
 	return oSettings, nil
