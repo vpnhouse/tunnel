@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	libAuthorizer "github.com/Codename-Uranium/tunnel/authorizer"
+	libAuthorizer "github.com/Codename-Uranium/tunnel/internal/authorizer"
 	"github.com/Codename-Uranium/tunnel/internal/eventlog"
 	"github.com/Codename-Uranium/tunnel/internal/federation_keys"
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
@@ -61,8 +61,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		eventLog = eventlog.NewDummy()
 	}
 
-	// Initialize internal authorizer
-	jwtAuthorizer, err := libAuthorizer.NewInternalAuthorizer(dataStorage.AsKeystore())
+	jwtAuthorizer, err := libAuthorizer.NewJWT(dataStorage.AsKeystore())
 	if err != nil {
 		return err
 	}

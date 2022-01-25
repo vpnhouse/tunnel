@@ -6,7 +6,7 @@ import (
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	mgmtAPI "github.com/Codename-Uranium/api/go/server/tunnel_mgmt"
-	"github.com/Codename-Uranium/tunnel/authorizer"
+	"github.com/Codename-Uranium/tunnel/internal/authorizer"
 	"github.com/Codename-Uranium/tunnel/internal/federation_keys"
 	"github.com/Codename-Uranium/tunnel/internal/manager"
 	"github.com/Codename-Uranium/tunnel/internal/runtime"
@@ -21,7 +21,7 @@ type TunnelAPI struct {
 	manager    *manager.Manager
 	adminJWT   *xcrypto.JWTMaster // todo: JWT master must be the part of tunnel/authorizer package
 	wireguard  *wireguard.Wireguard
-	authorizer *authorizer.InternalAuthorizer
+	authorizer *authorizer.JWTAuthorizer
 	storage    *storage.Storage
 	keystore   federation_keys.Keystore
 	handlers   xhttp.Handlers
@@ -33,7 +33,7 @@ func NewTunnelHandlers(
 	manager *manager.Manager,
 	adminJWT *xcrypto.JWTMaster,
 	wireguard *wireguard.Wireguard,
-	authorizer *authorizer.InternalAuthorizer,
+	authorizer *authorizer.JWTAuthorizer,
 	storage *storage.Storage,
 	keystore federation_keys.Keystore,
 ) (*TunnelAPI, error) {
