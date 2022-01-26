@@ -11,20 +11,17 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/manager"
 	"github.com/Codename-Uranium/tunnel/internal/runtime"
 	"github.com/Codename-Uranium/tunnel/internal/storage"
-	"github.com/Codename-Uranium/tunnel/internal/wireguard"
 	"github.com/Codename-Uranium/tunnel/pkg/auth"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	"github.com/go-chi/chi/v5"
 )
 
 type TunnelAPI struct {
 	runtime    *runtime.TunnelRuntime
 	manager    *manager.Manager
 	adminJWT   *auth.JWTMaster
-	wireguard  *wireguard.Wireguard
 	authorizer *authorizer.JWTAuthorizer
 	storage    *storage.Storage
 	keystore   federation_keys.Keystore
-	handlers   xhttp.Handlers
 	running    bool
 }
 
@@ -32,54 +29,46 @@ func NewTunnelHandlers(
 	runtime *runtime.TunnelRuntime,
 	manager *manager.Manager,
 	adminJWT *auth.JWTMaster,
-	wireguard *wireguard.Wireguard,
 	authorizer *authorizer.JWTAuthorizer,
 	storage *storage.Storage,
 	keystore federation_keys.Keystore,
-) (*TunnelAPI, error) {
+) *TunnelAPI {
 	instance := &TunnelAPI{
 		runtime:    runtime,
 		manager:    manager,
 		adminJWT:   adminJWT,
-		wireguard:  wireguard,
 		authorizer: authorizer,
 		storage:    storage,
 		keystore:   keystore,
+		running:    true,
 	}
 
-	publicRoutes := tunnelAPI.Handler(instance)
-	adminRoutes := adminAPI.HandlerWithOptions(instance, adminAPI.ChiServerOptions{
+	return instance
+}
+
+func (instance *TunnelAPI) RegisterHandlers(r chi.Router) {
+	// handle frontend redirects
+	root := instance.runtime.Settings.AdminAPI.StaticRoot
+	r.HandleFunc("/", wrap404ToIndex(http.FileServer(http.Dir(root))))
+
+	// public API
+	tunnelAPI.HandlerWithOptions(instance, tunnelAPI.ChiServerOptions{
+		BaseRouter: r,
+	})
+
+	// admin API
+	adminAPI.HandlerWithOptions(instance, adminAPI.ChiServerOptions{
+		BaseRouter: r,
 		Middlewares: []adminAPI.MiddlewareFunc{
 			instance.adminAuthMiddleware,
 		},
 	})
 
-	federationRoutes := mgmtAPI.HandlerWithOptions(instance, mgmtAPI.ChiServerOptions{
+	// federation API
+	mgmtAPI.HandlerWithOptions(instance, mgmtAPI.ChiServerOptions{
+		BaseRouter: r,
 		Middlewares: []mgmtAPI.MiddlewareFunc{
 			instance.federationAuthMiddleware,
 		},
 	})
-
-	instance.handlers = xhttp.Handlers{
-		"/":                       wrap404ToIndex(http.FileServer(http.Dir(runtime.Settings.AdminAPI.StaticRoot))),
-		"/api/client/":            publicRoutes,
-		"/api/tunnel/admin/":      adminRoutes,
-		"/api/tunnel/federation/": federationRoutes,
-	}
-
-	instance.running = true
-	return instance, nil
-}
-
-func (instance *TunnelAPI) Handlers() xhttp.Handlers {
-	return instance.handlers
-}
-
-func (instance *TunnelAPI) Shutdown() error {
-	instance.running = false
-	return nil
-}
-
-func (instance *TunnelAPI) Running() bool {
-	return instance.running
 }

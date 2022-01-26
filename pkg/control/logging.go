@@ -1,6 +1,7 @@
 package control
 
 import (
+	"github.com/Codename-Uranium/tunnel/pkg/xap"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -16,9 +17,9 @@ func InitLogger(initialLevel string) ChangeLevelFunc {
 
 	var z *zap.Logger
 	if logLevel.Level() == zapcore.DebugLevel {
-		z = zapDevelopment()
+		z = xap.Development()
 	} else {
-		z = zapProduction(logLevel)
+		z = xap.Production(logLevel)
 	}
 
 	zap.ReplaceGlobals(z)
@@ -30,38 +31,4 @@ func InitLogger(initialLevel string) ChangeLevelFunc {
 
 		return nil
 	}
-}
-
-// TODO(nikonov): extract into Exportable functions on the pkg/ level
-func zapProduction(lvl zap.AtomicLevel) *zap.Logger {
-	loggerConfig := zap.NewProductionConfig()
-	loggerConfig.Level = lvl
-	z, err := loggerConfig.Build()
-	if err != nil {
-		panic(err)
-	}
-
-	return z
-}
-
-func zapDevelopment() *zap.Logger {
-	encoder := zap.NewDevelopmentEncoderConfig()
-	encoder.EncodeLevel = zapcore.CapitalColorLevelEncoder
-
-	loggerConfig := zap.Config{
-		Development:       false,
-		Level:             zap.NewAtomicLevelAt(zapcore.DebugLevel),
-		OutputPaths:       []string{"stdout"},
-		ErrorOutputPaths:  []string{"stderr"},
-		Encoding:          "console",
-		EncoderConfig:     encoder,
-		DisableStacktrace: false,
-	}
-
-	z, err := loggerConfig.Build()
-	if err != nil {
-		panic(err)
-	}
-
-	return z
 }

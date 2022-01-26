@@ -5,14 +5,13 @@ go 1.16
 require (
 	github.com/Codename-Uranium/api v0.0.0-20220125084926-65bb226c592e
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
-	github.com/deepmap/oapi-codegen v1.9.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/getsentry/sentry-go v0.12.0
+	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/jmoiron/sqlx v1.3.4
-	github.com/marcw/cachecontrol v0.0.0-20140722115028-30341fe9a7d5
 	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/prometheus/client_golang v1.12.0
 	github.com/rubenv/sql-migrate v1.0.0
