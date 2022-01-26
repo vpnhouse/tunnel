@@ -1,14 +1,41 @@
-package xcrypto
+package auth
 
 import (
 	"crypto/rsa"
 	"fmt"
 
+	"github.com/Codename-Uranium/tunnel/pkg/xap"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
+
+const (
+	AudienceAuth     = "auth"
+	AudienceDiscover = "discover"
+	AudienceTunnel   = "tunnel"
+
+	jwtSigningMethod = "RS256"
+	jwtKeyID         = "kid"
+)
+
+type StringList []string
+
+func (l StringList) Has(entry string) bool {
+	for _, e := range l {
+		if e == entry {
+			return true
+		}
+	}
+
+	return false
+}
+
+type ClientClaims struct {
+	Audience StringList `json:"aud,omitempty"`
+	jwt.StandardClaims
+}
 
 // KeyStoreWrapper wraps any type into its closure func `fn`
 // and provides the KeyStore interface.
@@ -29,6 +56,7 @@ type JWTChecker struct {
 	method jwt.SigningMethod
 }
 
+// NewJWTChecker creates new JWT validator that uses keys from a given keystore
 func NewJWTChecker(keyKeeper KeyStore) (*JWTChecker, error) {
 	method := jwt.GetSigningMethod(jwtSigningMethod)
 	if method == nil {
@@ -42,26 +70,24 @@ func NewJWTChecker(keyKeeper KeyStore) (*JWTChecker, error) {
 }
 
 func (instance *JWTChecker) keyHelper(token *jwt.Token) (interface{}, error) {
-	keyIdValue, ok := token.Header["kid"]
+	keyIdValue, ok := token.Header[jwtKeyID]
 	if !ok {
 		return nil, xerror.EAuthenticationFailed("invalid token", nil)
 	}
 	zap.L().Debug("Got key id", zap.Any("keyIdValue", keyIdValue))
 
-	var keyIdStr string
-	switch v := keyIdValue.(type) {
-	case string:
-		keyIdStr = v
-	default:
-		return nil, xerror.EAuthenticationFailed("invalid token", fmt.Errorf("unsupported key id type"))
+	keyID, ok := keyIdValue.(string)
+	if !ok {
+		return nil, xerror.EAuthenticationFailed("got unexpected key value instead of string",
+			nil, xap.ZapType(keyIdValue))
 	}
 
-	keyId, err := uuid.Parse(keyIdStr)
+	keyUUID, err := uuid.Parse(keyID)
 	if err != nil {
 		return nil, xerror.EAuthenticationFailed("invalid token", err)
 	}
 
-	key, err := instance.keys.GetKey(keyId)
+	key, err := instance.keys.GetKey(keyUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +97,6 @@ func (instance *JWTChecker) keyHelper(token *jwt.Token) (interface{}, error) {
 }
 
 func (instance *JWTChecker) Parse(tokenString string, claims jwt.Claims) error {
-	// Check if we have private key
-
 	token, err := jwt.ParseWithClaims(tokenString, claims, instance.keyHelper)
 	if err != nil {
 		return xerror.EAuthenticationFailed("invalid token", err)

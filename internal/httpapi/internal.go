@@ -3,12 +3,12 @@ package httpapi
 import (
 	"context"
 	"net/http"
-	"regexp"
 
 	commonAPI "github.com/Codename-Uranium/api/go/server/common"
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/auth"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/Codename-Uranium/tunnel/pkg/xnet"
@@ -130,7 +130,7 @@ func importIdentifiers(oIdentifiers *commonAPI.ConnectionIdentifiers) (*types.Pe
 	}
 
 	if oIdentifiers.UserId != nil {
-		if _, _, _, err := parseUserID(*oIdentifiers.UserId); err != nil {
+		if _, _, _, err := auth.ParseUserID(*oIdentifiers.UserId); err != nil {
 			return nil, err
 		}
 	}
@@ -288,22 +288,4 @@ func parseIdentifierUUID(v *string) (*uuid.UUID, error) {
 	}
 
 	return &u, nil
-}
-
-var (
-	userIDRegexp = regexp.MustCompile("^([^/]*)/([^/]*)/(.*)$")
-	nParts       = 3
-)
-
-func parseUserID(v string) (project, auth, userID string, err error) {
-	matches := userIDRegexp.FindStringSubmatch(v)
-	if len(matches) != nParts+1 {
-		err = xerror.EInvalidArgument("invalid user id format", nil)
-		return
-	}
-
-	project = matches[1]
-	auth = matches[2]
-	userID = matches[3]
-	return
 }

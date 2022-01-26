@@ -1,22 +1,19 @@
-package xcrypto
+package auth
 
 import (
-	"crypto/rand"
 	"crypto/rsa"
 
+	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-const jwtSigningMethod = "RS256"
-
 type JWTMaster struct {
-	private   *rsa.PrivateKey
-	privateId *uuid.UUID
-	public    *rsa.PublicKey
-	method    jwt.SigningMethod
+	keyID   *uuid.UUID
+	private *rsa.PrivateKey
+	method  jwt.SigningMethod
 }
 
 func NewJWTMaster(private *rsa.PrivateKey, privateId *uuid.UUID) (*JWTMaster, error) {
@@ -34,7 +31,7 @@ func NewJWTMaster(private *rsa.PrivateKey, privateId *uuid.UUID) (*JWTMaster, er
 		privateId = &vPrivateId
 
 		zap.L().Info("generating keys for JWT")
-		private, err = rsa.GenerateKey(rand.Reader, 2048)
+		private, err = xcrypto.GenerateKey()
 		if err != nil {
 			return nil, xerror.EInternalError("can't generate JWT key pair", err)
 		}
@@ -44,29 +41,22 @@ func NewJWTMaster(private *rsa.PrivateKey, privateId *uuid.UUID) (*JWTMaster, er
 		}
 	}
 
-	public := &private.PublicKey
 	method := jwt.GetSigningMethod(jwtSigningMethod)
 	if method == nil {
 		return nil, xerror.EInvalidArgument("signing method is not supported", nil, zap.String("method", jwtSigningMethod))
 	}
 
 	return &JWTMaster{
-		private:   private,
-		privateId: privateId,
-		public:    public,
-		method:    method,
+		private: private,
+		keyID:   privateId,
+		method:  method,
 	}, nil
 }
 
 func (instance *JWTMaster) Token(claims jwt.Claims) (*string, error) {
-	// Check if we have private key
-	if instance.private == nil {
-		zap.L().Fatal("can't produce token, private key is not set")
-	}
-
 	// Create token
 	token := jwt.NewWithClaims(instance.method, claims)
-	token.Header["kid"] = instance.privateId
+	token.Header["kid"] = instance.keyID
 
 	// Sign token
 	signedToken, err := token.SignedString(instance.private)
@@ -79,13 +69,8 @@ func (instance *JWTMaster) Token(claims jwt.Claims) (*string, error) {
 }
 
 func (instance *JWTMaster) Parse(tokenString string, claims jwt.Claims) error {
-	// Check if we have private key
-	if instance.public == nil {
-		zap.L().Fatal("can't verify token, public key is not set")
-	}
-
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return instance.public, nil
+		return instance.private.Public(), nil
 	})
 
 	if err != nil || token == nil {

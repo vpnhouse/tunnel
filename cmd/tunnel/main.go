@@ -15,12 +15,12 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/settings"
 	"github.com/Codename-Uranium/tunnel/internal/storage"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
+	"github.com/Codename-Uranium/tunnel/pkg/auth"
 	"github.com/Codename-Uranium/tunnel/pkg/control"
 	"github.com/Codename-Uranium/tunnel/pkg/ippool"
 	"github.com/Codename-Uranium/tunnel/pkg/rapidoc"
 	"github.com/Codename-Uranium/tunnel/pkg/sentry"
 	"github.com/Codename-Uranium/tunnel/pkg/version"
-	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	sentryio "github.com/getsentry/sentry-go"
 	_ "github.com/mattn/go-sqlite3"
@@ -93,7 +93,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		keystore = federation_keys.DenyAllKeystore{}
 	}
 
-	adminJWT, err := xcrypto.NewJWTMaster(nil, nil)
+	adminJWT, err := auth.NewJWTMaster(nil, nil)
 	if err != nil {
 		return err
 	}

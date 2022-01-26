@@ -10,7 +10,7 @@ import (
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/Codename-Uranium/tunnel/pkg/auth"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/Codename-Uranium/tunnel/pkg/xtime"
@@ -35,7 +35,7 @@ func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request)
 		}
 
 		// Verify JWT, get JWT claims
-		claims, err := instance.authorizer.Authenticate(userToken, xcrypto.AudienceTunnel)
+		claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +114,7 @@ func (instance *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Re
 		}
 
 		// Verify JWT, get JWT claims
-		claims, err := instance.authorizer.Authenticate(userToken, xcrypto.AudienceTunnel)
+		claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 		if err != nil {
 			return nil, err
 		}
@@ -236,7 +236,7 @@ func (instance *TunnelAPI) ClientPing(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func constructPeerIdentifiers(request interface{}, claims *xcrypto.ClientClaims) (*commonAPI.ConnectionIdentifiers, error) {
+func constructPeerIdentifiers(request interface{}, claims *auth.ClientClaims) (*commonAPI.ConnectionIdentifiers, error) {
 	var identifiers commonAPI.ConnectionIdentifiers
 
 	switch t := request.(type) {
@@ -273,13 +273,13 @@ func (instance *TunnelAPI) extractConnectRequest(r *http.Request) (*tunnelAPI.Cl
 	return &request, nil
 }
 
-func (instance *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerIdentifiers, *xcrypto.ClientClaims, error) {
+func (instance *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerIdentifiers, *auth.ClientClaims, error) {
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
 		return nil, nil, xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
-	claims, err := instance.authorizer.Authenticate(userToken, xcrypto.AudienceTunnel)
+	claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
 		return nil, nil, err
 	}

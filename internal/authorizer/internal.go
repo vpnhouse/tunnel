@@ -1,17 +1,17 @@
 package authorizer
 
 import (
-	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/Codename-Uranium/tunnel/pkg/auth"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 )
 
 type JWTAuthorizer struct {
-	checker *xcrypto.JWTChecker
+	checker *auth.JWTChecker
 	running bool
 }
 
-func NewJWT(keyKeeper xcrypto.KeyStore) (*JWTAuthorizer, error) {
-	checker, err := xcrypto.NewJWTChecker(keyKeeper)
+func NewJWT(keyKeeper auth.KeyStore) (*JWTAuthorizer, error) {
+	checker, err := auth.NewJWTChecker(keyKeeper)
 
 	if err != nil {
 		return nil, err
@@ -32,8 +32,8 @@ func (d *JWTAuthorizer) Running() bool {
 	return d.running
 }
 
-func (d *JWTAuthorizer) Authenticate(tokenString string, myAudience string) (*xcrypto.ClientClaims, error) {
-	var claims xcrypto.ClientClaims
+func (d *JWTAuthorizer) Authenticate(tokenString string, myAudience string) (*auth.ClientClaims, error) {
+	var claims auth.ClientClaims
 
 	err := d.checker.Parse(tokenString, &claims)
 	if err != nil {
