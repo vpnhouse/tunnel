@@ -8,7 +8,6 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"go.uber.org/zap"
 )
 
 // getPeerInfo parses peer information from request body.
@@ -27,7 +26,6 @@ func getPeerInfo(r *http.Request, id *int64) (*types.PeerInfo, error) {
 
 // AdminListPeers implements GET method on /api/admin/peers endpoint
 func (instance *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("ListPeers", zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		peers, err := instance.manager.ListPeers()
 		if err != nil {
@@ -50,7 +48,6 @@ func (instance *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request
 
 // AdminDeletePeer implements DELETE method on /api/admin/peers/{id} endpoint
 func (instance *TunnelAPI) AdminDeletePeer(w http.ResponseWriter, r *http.Request, id int64) {
-	zap.L().Debug("DeletePeer", zap.Int64("id", id), zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		if err := instance.manager.UnsetPeer(id); err != nil {
 			return nil, err
@@ -61,7 +58,6 @@ func (instance *TunnelAPI) AdminDeletePeer(w http.ResponseWriter, r *http.Reques
 
 // AdminGetPeer implements GET method on /api/admin/peers/{id} endpoint
 func (instance *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, id int64) {
-	zap.L().Debug("GetPeer", zap.Int64("id", id), zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		peer, err := instance.manager.GetPeer(id)
 		if err != nil {
@@ -83,7 +79,6 @@ func (instance *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, 
 
 // AdminCreatePeer implements POST method on /api/admin/peers/{id} endpoint
 func (instance *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("AddPeer", zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		peer, err := getPeerInfo(r, nil)
 		if err != nil {
@@ -121,7 +116,6 @@ func (instance *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Reques
 
 // AdminUpdatePeer implements PUT method on /api/admin/peers/{id} endpoint
 func (instance *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id int64) {
-	zap.L().Debug("ChangePeer", zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		peer, err := getPeerInfo(r, &id)
 		if err != nil {

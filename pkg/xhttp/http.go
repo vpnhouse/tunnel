@@ -2,93 +2,120 @@ package xhttp
 
 import (
 	"context"
-	"net"
+	"encoding/json"
 	"net/http"
 	"time"
 
-	"github.com/Codename-Uranium/tunnel/pkg/control"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	openapi "github.com/Codename-Uranium/api/go/server/common"
+	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	middlewarestd "github.com/slok/go-http-metrics/middleware/std"
-	"go.uber.org/zap"
 )
 
-type Handlers map[string]http.Handler
+type Middleware = func(http.Handler) http.Handler
 
-type Service struct {
-	server      *http.Server
-	muxer       *http.ServeMux
-	httpMetrics middleware.Middleware
-	running     bool
+type Option func(w *wrapper)
+
+func WithMiddleware(mw Middleware) Option {
+	return func(w *wrapper) {
+		w.router.Middlewares()
+		w.router.Use(mw)
+	}
 }
 
-func New(listenAddr string, eventManager *control.EventManager, handlers ...Handlers) (*Service, error) {
-	muxer := http.NewServeMux()
+func WithMetrics() Option {
+	measureMW := middleware.New(middleware.Config{
+		Recorder:      metrics.NewRecorder(metrics.Config{}),
+		GroupedStatus: true,
+	})
+	return func(w *wrapper) {
+		// the measurement middleware
+		w.router.Use(func(handler http.Handler) http.Handler {
+			return middlewarestd.Handler("", measureMW, handler)
+		})
+		// route to obtain metrics
+		w.router.Handle("/metrics", promhttp.Handler())
+	}
+}
 
-	// Create instance
-	instance := &Service{
-		server: &http.Server{
-			Handler: muxer,
-		},
-		muxer: muxer,
-		httpMetrics: middleware.New(middleware.Config{
-			Recorder:      metrics.NewRecorder(metrics.Config{}),
-			GroupedStatus: true,
-		}),
+func WithLogger() Option {
+	return func(w *wrapper) {
+		w.router.Use(requestLogger)
+	}
+}
+
+type wrapper struct {
+	srv    *http.Server
+	router chi.Router
+}
+
+// Run starts the http server and blocks
+func (w *wrapper) Run(addr string) error {
+	w.srv = &http.Server{
+		Handler: w.router,
+		Addr:    addr,
 	}
 
-	// Listen to port
-	listener, err := net.Listen("tcp", listenAddr)
-	if err != nil {
-		return nil, xerror.EInternalError("can't listen port", err, zap.String("address", listenAddr))
-	}
+	return w.srv.ListenAndServe()
+}
 
-	// Register metrics handler
-	muxer.Handle("/metrics", promhttp.Handler())
+// Router exposes chi.Router for the external registration of handlers.
+// usage:
+// 		h.Router().Get("/apt/path", myHandler)
+// 		h.Router().Post("/apt/verb", myOtherHandler)
+func (w *wrapper) Router() chi.Router {
+	return w.router
+}
 
-	// Register initial handlers
-	for _, handlerList := range handlers {
-		for path, handler := range handlerList {
-			zap.L().Debug("registering handler", zap.String("path", path))
-			instance.Handle(path, handler)
+func New(opts ...Option) *wrapper {
+	r := chi.NewRouter()
+	// always respond with JSON by using the custom error handlers
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		txt := "Not found"
+		err := openapi.Error{
+			Result: "404",
+			Error:  &txt,
 		}
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(err)
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		txt := "Method not allowed"
+		err := openapi.Error{
+			Result: "405",
+			Error:  &txt,
+		}
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		_ = json.NewEncoder(w).Encode(err)
+	})
+
+	h := &wrapper{router: r}
+	for _, o := range opts {
+		o(h)
 	}
 
-	// Start HTTP API
-	go func() {
-		instance.running = true
-		if err := instance.server.Serve(listener); err != nil && err != http.ErrServerClosed {
-			eventManager.EmitEventWithInfo(control.EventCriticalError,
-				xerror.EInternalError("can't server HTTP", err),
-			)
-		}
-	}()
-
-	return instance, nil
+	return h
 }
 
-func (m *Service) Handle(pattern string, handler http.Handler) {
-	h := middlewarestd.Handler("", m.httpMetrics, handler)
-	m.muxer.Handle(pattern, h)
+func NewDefault() *wrapper {
+	return New(
+		WithLogger(),
+		WithMetrics(),
+	)
 }
 
-func (m *Service) Shutdown() error {
+func (w *wrapper) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer func() {
-		cancel()
-	}()
+	defer cancel()
 
-	if err := m.server.Shutdown(ctx); err != nil {
-		return xerror.EInternalError("HTTP server shutdown failed", err)
-	}
+	err := w.srv.Shutdown(ctx)
+	w.srv = nil
 
-	m.running = false
-	zap.L().Debug("HTTP Server Exited Properly")
-	return nil
+	return err
 }
 
-func (m *Service) Running() bool {
-	return m.running
+func (w *wrapper) Running() bool {
+	return w.srv != nil
 }

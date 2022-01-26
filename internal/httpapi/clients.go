@@ -25,8 +25,6 @@ var (
 
 // ClientConnect implements endpoint for POST /api/client/connect
 func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("ClientConnect", zap.Any("info", xhttp.RequestInfo(r)))
-
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		// Extract JWT
 		userToken, ok := xhttp.ExtractTokenFromRequest(r)
@@ -104,8 +102,6 @@ func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request)
 
 // ClientConnectUnsafe implements endpoint for POST /api/client/connect_unsafe
 func (instance *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("ClientConnectUnsafe", zap.Any("info", xhttp.RequestInfo(r)))
-
 	response, err := func() ([]byte, error) {
 		// Extract JWT
 		userToken, ok := xhttp.ExtractTokenFromRequest(r)
@@ -202,8 +198,6 @@ PersistentKeepalive = %d
 
 // ClientDisconnect implements endpoint for POST /api/client/disconnect
 func (instance *TunnelAPI) ClientDisconnect(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("ClientDisconnect", zap.Any("info", xhttp.RequestInfo(r)))
-
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		identifiers, _, err := instance.extractPeerActionInfo(r)
 		if err != nil {
@@ -220,8 +214,6 @@ func (instance *TunnelAPI) ClientDisconnect(w http.ResponseWriter, r *http.Reque
 
 // ClientPing implements endpoint for POST /api/client/ping
 func (instance *TunnelAPI) ClientPing(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("ClientPing", zap.Any("info", xhttp.RequestInfo(r)))
-
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		identifiers, _, err := instance.extractPeerActionInfo(r)
 		if err != nil {

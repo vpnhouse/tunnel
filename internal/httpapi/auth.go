@@ -13,8 +13,6 @@ import (
 
 // AdminDoAuth implements handler for GET /api/tunnel/admin/auth
 func (instance *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("AdminAuth", zap.Any("info", xhttp.RequestInfo(r)))
-
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		authOK := false
 
