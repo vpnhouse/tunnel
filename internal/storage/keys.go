@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/Codename-Uranium/tunnel/pkg/auth"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -85,8 +85,8 @@ func (storage *Storage) DeleteAuthorizerKey(id string) error {
 	return nil
 }
 
-func (storage *Storage) AsKeystore() xcrypto.KeyStore {
-	return &xcrypto.KeyStoreWrapper{
+func (storage *Storage) AsKeystore() auth.KeyStore {
+	return &auth.KeyStoreWrapper{
 		Fn: func(keyUUID uuid.UUID) (*rsa.PublicKey, error) {
 			key, err := storage.GetAuthorizerKeyByID(keyUUID.String())
 			if err != nil {

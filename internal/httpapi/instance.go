@@ -12,14 +12,14 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/runtime"
 	"github.com/Codename-Uranium/tunnel/internal/storage"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
-	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/Codename-Uranium/tunnel/pkg/auth"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 )
 
 type TunnelAPI struct {
 	runtime    *runtime.TunnelRuntime
 	manager    *manager.Manager
-	adminJWT   *xcrypto.JWTMaster // todo: JWT master must be the part of tunnel/authorizer package
+	adminJWT   *auth.JWTMaster
 	wireguard  *wireguard.Wireguard
 	authorizer *authorizer.JWTAuthorizer
 	storage    *storage.Storage
@@ -31,7 +31,7 @@ type TunnelAPI struct {
 func NewTunnelHandlers(
 	runtime *runtime.TunnelRuntime,
 	manager *manager.Manager,
-	adminJWT *xcrypto.JWTMaster,
+	adminJWT *auth.JWTMaster,
 	wireguard *wireguard.Wireguard,
 	authorizer *authorizer.JWTAuthorizer,
 	storage *storage.Storage,
