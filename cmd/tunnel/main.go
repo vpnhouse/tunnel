@@ -99,34 +99,18 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	// Prepare tunneling HTTP API
-	tunnelAPI, err := httpapi.NewTunnelHandlers(
-		runtime,
-		sessionManager,
-		adminJWT,
-		wireguardController,
-		jwtAuthorizer,
-		dataStorage,
-		keystore,
-	)
-	if err != nil {
-		return err
-	}
-	runtime.Services.RegisterService("apiTunnel", tunnelAPI)
+	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keystore)
+
+	rapidoc.Switch(runtime.Settings.Rapidoc)
+
+	// register handlers of all modules
+	hs := xhttp.NewDefault()
+	tunnelAPI.RegisterHandlers(hs.Router())
+	rapidoc.RegisterHandlers(hs.Router())
 
 	// Startup HTTP API
-	rapidoc.Switch(runtime.Settings.Rapidoc)
-	httpService, err := xhttp.New(
-		runtime.Settings.HTTPListenAddr,
-		runtime.Events,
-		tunnelAPI.Handlers(),
-		rapidoc.Handlers(),
-		xhttp.NewHealthCheck("/tunnel/healthcheck").Handlers(),
-	)
-
-	if err != nil {
-		return err
-	}
-	runtime.Services.RegisterService("httpService", httpService)
+	go hs.Run(runtime.Settings.HTTPListenAddr)
+	runtime.Services.RegisterService("httpServer", hs)
 
 	if features["grpc"] {
 		if runtime.Settings.GRPC != nil {

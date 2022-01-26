@@ -17,7 +17,6 @@ import (
 
 // AdminGetSettings implements handler for GET /settings request
 func (instance *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("GetSettings", zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		s := settingsToOpenAPI(instance.runtime.Settings, instance.runtime.DynamicSettings)
 		return s, nil
@@ -26,7 +25,6 @@ func (instance *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Reque
 
 // AdminUpdateSettings implements handler for PATCH /settings request
 func (instance *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("SetSettings", zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		newSettings, err := openApiSettingsFromRequest(r)
 		if err != nil {

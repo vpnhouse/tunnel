@@ -11,12 +11,10 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 // AdminListTrustedKeys GET /api/admin/trusted
 func (instance *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("ListTrustedKeys", zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		keys, err := instance.storage.ListAuthorizerKeys()
 		if err != nil {
@@ -42,7 +40,6 @@ func (instance *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.R
 
 // AdminDeleteTrustedKey DELETE /api/admin/trusted/{id}
 func (instance *TunnelAPI) AdminDeleteTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
-	zap.L().Debug("DeleteTrustedKey", zap.String("id", id), zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		if _, err := uuid.Parse(id); err != nil {
 			return nil, xerror.EInvalidArgument("invalid key id", err)
@@ -58,7 +55,6 @@ func (instance *TunnelAPI) AdminDeleteTrustedKey(w http.ResponseWriter, r *http.
 
 // AdminGetTrustedKey GET /api/admin/trusted/{id}
 func (instance *TunnelAPI) AdminGetTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
-	zap.L().Debug("GetTrustedKey", zap.String("id", id), zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		if _, err := uuid.Parse(id); err != nil {
 			return nil, xerror.EInvalidArgument("invalid key id", err)
@@ -81,7 +77,6 @@ func (instance *TunnelAPI) AdminGetTrustedKey(w http.ResponseWriter, r *http.Req
 
 // AdminAddTrustedKey POST /api/admin/trusted/{id}
 func (instance *TunnelAPI) AdminAddTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
-	zap.L().Debug("AddTrustedKey", zap.String("id", id), zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		return instance.upsertAuthorizerKey(id, r)
 	})
@@ -89,7 +84,6 @@ func (instance *TunnelAPI) AdminAddTrustedKey(w http.ResponseWriter, r *http.Req
 
 // AdminUpdateTrustedKey PUT /api/admin/trusted/{id}
 func (instance *TunnelAPI) AdminUpdateTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
-	zap.L().Debug("UpdateTrustedKey", zap.Any("info", xhttp.RequestInfo(r)))
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		return instance.upsertAuthorizerKey(id, r)
 	})

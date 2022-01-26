@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	apiDoc "github.com/Codename-Uranium/api"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	"github.com/go-chi/chi/v5"
 
 	"go.uber.org/zap"
 )
@@ -16,17 +16,14 @@ func Switch(enabled bool) {
 	rapidocEnabled = enabled
 }
 
-func Handlers() xhttp.Handlers {
-
+func RegisterHandlers(r chi.Router) {
 	if !rapidocEnabled {
-		return xhttp.Handlers{}
+		return
 	}
+
+	zap.L().Info("Registering rapidoc handler")
 
 	fs := http.FS(apiDoc.Docs)
-
-	zap.L().Warn("Registering rapidoc handler")
-	return xhttp.Handlers{
-		"/rapidoc/": http.FileServer(fs),
-		"/schemas/": http.FileServer(fs),
-	}
+	r.Handle("/rapidoc/", http.FileServer(fs))
+	r.Handle("/schemas/", http.FileServer(fs))
 }
