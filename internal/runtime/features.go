@@ -1,25 +1,33 @@
 package runtime
 
+import (
+	"github.com/Codename-Uranium/tunnel/pkg/version"
+)
+
 const (
 	featureGrpc       = "grpc"
 	featureEventlog   = "eventlog"
 	featureFederation = "federation"
 	featurePublicAPI  = "public_api"
-
-	personalVersion = "personal"
 )
 
 type FeatureSet map[string]bool
 
 func NewFeatureSet() FeatureSet {
-	// Default build type is DEV - use personal feature set.
-	// Check for `version.GetFeature()` value to
-	// adjust flags for a particular build type.
+	if version.IsPersonal() {
+		return FeatureSet{
+			featureGrpc:       false,
+			featureEventlog:   false,
+			featureFederation: false,
+			featurePublicAPI:  false,
+		}
+	}
+
 	return FeatureSet{
-		featureGrpc:       false,
-		featureEventlog:   false,
-		featureFederation: false,
-		featurePublicAPI:  false,
+		featureGrpc:       true,
+		featureEventlog:   true,
+		featureFederation: true,
+		featurePublicAPI:  true,
 	}
 }
 
