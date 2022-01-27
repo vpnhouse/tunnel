@@ -51,11 +51,6 @@ func (instance *TunnelAPI) RegisterHandlers(r chi.Router) {
 	root := instance.runtime.Settings.AdminAPI.StaticRoot
 	r.HandleFunc("/", wrap404ToIndex(http.FileServer(http.Dir(root))))
 
-	// public API
-	tunnelAPI.HandlerWithOptions(instance, tunnelAPI.ChiServerOptions{
-		BaseRouter: r,
-	})
-
 	// admin API
 	adminAPI.HandlerWithOptions(instance, adminAPI.ChiServerOptions{
 		BaseRouter: r,
@@ -64,11 +59,18 @@ func (instance *TunnelAPI) RegisterHandlers(r chi.Router) {
 		},
 	})
 
-	// federation API
-	mgmtAPI.HandlerWithOptions(instance, mgmtAPI.ChiServerOptions{
-		BaseRouter: r,
-		Middlewares: []mgmtAPI.MiddlewareFunc{
-			instance.federationAuthMiddleware,
-		},
-	})
+	if instance.runtime.Features.WithPublicAPI() {
+		tunnelAPI.HandlerWithOptions(instance, tunnelAPI.ChiServerOptions{
+			BaseRouter: r,
+		})
+	}
+
+	if instance.runtime.Features.WithFederation() {
+		mgmtAPI.HandlerWithOptions(instance, mgmtAPI.ChiServerOptions{
+			BaseRouter: r,
+			Middlewares: []mgmtAPI.MiddlewareFunc{
+				instance.federationAuthMiddleware,
+			},
+		})
+	}
 }

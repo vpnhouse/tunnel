@@ -28,17 +28,7 @@ import (
 )
 
 func initServices(runtime *runtime.TunnelRuntime) error {
-	features := make(map[string]bool)
-
-	if version.GetFeature() == "personal" {
-		features["eventlog"] = false
-		features["grpc"] = false
-	} else {
-		features["eventlog"] = true
-		features["grpc"] = true
-	}
-
-	zap.L().Info("starting tunnel", zap.String("version", version.GetVersion()), zap.Any("features", features))
+	zap.L().Info("starting tunnel", zap.String("version", version.GetVersion()), zap.Any("features", runtime.Features))
 	if err := sentry.ConfigureGlobal(runtime.Settings.Sentry, version.GetVersion()); err != nil {
 		return err
 	}
@@ -51,12 +41,13 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	runtime.Services.RegisterService("storage", dataStorage)
 
 	var eventLog eventlog.EventManager
-	if features["eventlog"] {
+	if runtime.Features.WithEventLog() {
 		eventLog, err = eventlog.New(runtime.Settings.EventLog)
 		if err != nil {
 			return err
 		}
 		runtime.Services.RegisterService("eventLog", eventLog)
+
 	} else {
 		eventLog = eventlog.NewDummy()
 	}
@@ -88,9 +79,11 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("manager", sessionManager)
 
-	keystore, err := federation_keys.NewFsKeystore(runtime.Settings.ManagementKeystore)
-	if err != nil {
-		keystore = federation_keys.DenyAllKeystore{}
+	var keystore federation_keys.Keystore = federation_keys.DenyAllKeystore{}
+	if runtime.Features.WithFederation() {
+		if k, err := federation_keys.NewFsKeystore(runtime.Settings.ManagementKeystore); err == nil {
+			keystore = k
+		}
 	}
 
 	adminJWT, err := auth.NewJWTMaster(nil, nil)
@@ -112,7 +105,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	go hs.Run(runtime.Settings.HTTPListenAddr)
 	runtime.Services.RegisterService("httpServer", hs)
 
-	if features["grpc"] {
+	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
 			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog)
 			if err != nil {
