@@ -15,6 +15,12 @@ import (
 	"go.uber.org/zap"
 )
 
+// initialize measure middleware only once
+var measureMW = middleware.New(middleware.Config{
+	Recorder:      metrics.NewRecorder(metrics.Config{}),
+	GroupedStatus: true,
+})
+
 type Middleware = func(http.Handler) http.Handler
 
 type Option func(w *wrapper)
@@ -27,10 +33,6 @@ func WithMiddleware(mw Middleware) Option {
 }
 
 func WithMetrics() Option {
-	measureMW := middleware.New(middleware.Config{
-		Recorder:      metrics.NewRecorder(metrics.Config{}),
-		GroupedStatus: true,
-	})
 	return func(w *wrapper) {
 		// the measurement middleware
 		w.router.Use(func(handler http.Handler) http.Handler {
