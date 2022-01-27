@@ -79,8 +79,7 @@ func (tun *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
 func (tun *TunnelAPI) initialSetupMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if tun.runtime.DynamicSettings.InitialSetupRequired() {
-			w.Header().Set("Location", "/api/tunnel/admin/initial")
-			w.WriteHeader(http.StatusTemporaryRedirect)
+			xhttp.WriteJsonError(w, xerror.EConfigurationRequired("initial configuration required"))
 			return
 		}
 
@@ -99,13 +98,13 @@ func (tun *TunnelAPI) adminAuthMiddleware(next http.HandlerFunc) http.HandlerFun
 
 		tokenStr, ok := xhttp.ExtractTokenFromRequest(r)
 		if !ok {
-			http.Error(w, "no auth token given", http.StatusUnauthorized)
+			xhttp.WriteJsonError(w, xerror.EUnauthorized("no auth token given", nil))
 			return
 		}
 
 		err := tun.adminCheckBearerAuth(tokenStr)
 		if err != nil {
-			http.Error(w, "invalid auth token", http.StatusUnauthorized)
+			xhttp.WriteJsonError(w, xerror.EUnauthorized("invalid auth token", nil))
 			return
 		}
 

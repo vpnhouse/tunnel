@@ -31,16 +31,17 @@ type ErrorType struct {
 }
 
 var (
-	EInternalErrorType        = &ErrorType{http.StatusInternalServerError, "INTERNAL_ERROR"}
-	EInvalidArgumentType      = &ErrorType{http.StatusBadRequest, "INVALID_ARGUMENT"}
-	EEntryNotFoundType        = &ErrorType{http.StatusNotFound, "NOT_FOUND"}
-	EExistsType               = &ErrorType{http.StatusConflict, "ENTRY_EXISTS"}
-	EStorageErrorType         = &ErrorType{http.StatusInternalServerError, "STORAGE_ERROR"}
-	ETunnelErrorType          = &ErrorType{http.StatusInternalServerError, "TUNNEL_ERROR"}
-	EUnauthorizedType         = &ErrorType{http.StatusUnauthorized, "UNAUTHORIZED"}
-	EAuthenticationFailedType = &ErrorType{http.StatusUnauthorized, "AUTH_FAILED"}
-	ENotEnoughSpaceType       = &ErrorType{http.StatusInsufficientStorage, "INSUFFICIENT_STORAGE"}
-	EUnavailableType          = &ErrorType{http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"}
+	EInternalErrorType         = &ErrorType{http.StatusInternalServerError, "INTERNAL_ERROR"}
+	EInvalidArgumentType       = &ErrorType{http.StatusBadRequest, "INVALID_ARGUMENT"}
+	EEntryNotFoundType         = &ErrorType{http.StatusNotFound, "NOT_FOUND"}
+	EExistsType                = &ErrorType{http.StatusConflict, "ENTRY_EXISTS"}
+	EStorageErrorType          = &ErrorType{http.StatusInternalServerError, "STORAGE_ERROR"}
+	ETunnelErrorType           = &ErrorType{http.StatusInternalServerError, "TUNNEL_ERROR"}
+	EUnauthorizedType          = &ErrorType{http.StatusUnauthorized, "UNAUTHORIZED"}
+	EAuthenticationFailedType  = &ErrorType{http.StatusUnauthorized, "AUTH_FAILED"}
+	ENotEnoughSpaceType        = &ErrorType{http.StatusInsufficientStorage, "INSUFFICIENT_STORAGE"}
+	EUnavailableType           = &ErrorType{http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"}
+	EConfigurationRequiredType = &ErrorType{http.StatusConflict, "CONFIGURATION_REQUIRED"}
 )
 
 func EInternalError(description string, err error, fields ...zap.Field) *Error {
@@ -129,6 +130,10 @@ func EUnavailable(description string, err error, fields ...zap.Field) *Error {
 
 func WUnavailable(label, description string, err error, fields ...zap.Field) *Error {
 	return newWarning(EUnavailableType, description, defaultSerializer, err, nil, label, fields...)
+}
+
+func EConfigurationRequired(msg string) *Error {
+	return newError(EConfigurationRequiredType, msg, defaultSerializer, nil, nil)
 }
 
 type errorSerializerFunc func(error *Error) (int, []byte)

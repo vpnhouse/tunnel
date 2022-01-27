@@ -36,7 +36,7 @@ func JSONResponse(w http.ResponseWriter, closure func() (interface{}, error)) {
 }
 
 func WriteData(w http.ResponseWriter, data []byte) {
-	w.Header().Set("content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	_, err := w.Write(data)
 	if err != nil {
 		zap.L().Error("can't write response", zap.Error(err))
@@ -50,8 +50,8 @@ func WriteJsonError(w http.ResponseWriter, err error) {
 	}
 
 	code, message := xerror.ErrorToHttpResponse(err)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Header().Set("content-type", "application/json")
 	if _, err = w.Write(message); err != nil {
 		zap.L().Error("can't write response", zap.Error(err))
 	}
