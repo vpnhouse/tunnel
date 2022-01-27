@@ -66,7 +66,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	runtime.Services.RegisterService("ipv4Pool", ipv4Pool)
 
 	// Initialize wireguard controller
-	wireguardController, err := wireguard.New(runtime.Settings.Wireguard, runtime.DynamicSettings.GetWireguardPrivateKey())
+	wireguardController, err := wireguard.New(runtime.Settings.Wireguard, runtime.DynamicSettings.GetWireguardPublicKey())
 	if err != nil {
 		return err
 	}

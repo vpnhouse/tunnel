@@ -21,7 +21,7 @@ import (
 type DynamicConfig interface {
 	SetAdminPassword(plain string) error
 	VerifyAdminPassword(given string) error
-	GetWireguardPrivateKey() wgtypes.Key
+	GetWireguardPublicKey() wgtypes.Key
 	InitialSetupRequired() bool
 }
 
@@ -182,9 +182,10 @@ func (dc *dynamicConfig) VerifyAdminPassword(given string) error {
 	}
 	return nil
 }
-func (dc *dynamicConfig) GetWireguardPrivateKey() wgtypes.Key {
+
+func (dc *dynamicConfig) GetWireguardPublicKey() wgtypes.Key {
 	// do not guard with mutex - read only field.
-	return dc.conf.wgPrivate
+	return dc.conf.wgPrivate.PublicKey()
 }
 
 func (dc *dynamicConfig) InitialSetupRequired() bool {

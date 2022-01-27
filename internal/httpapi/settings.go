@@ -56,7 +56,7 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 }
 
 func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminAPI.Settings {
-	key := d.GetWireguardPrivateKey().PublicKey().String()
+	key := d.GetWireguardPublicKey().PublicKey().String()
 	return adminAPI.Settings{
 		AdminUserName:       &s.AdminAPI.UserName,
 		ConnectionTimeout:   &s.PublicAPI.PeerTTL,
