@@ -24,7 +24,7 @@ var (
 )
 
 // ClientConnect implements endpoint for POST /api/client/connect
-func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		// Extract JWT
 		userToken, ok := xhttp.ExtractTokenFromRequest(r)
@@ -33,7 +33,7 @@ func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request)
 		}
 
 		// Verify JWT, get JWT claims
-		claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+		claims, err := tun.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 		if err != nil {
 			return nil, err
 		}
@@ -43,7 +43,7 @@ func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request)
 		claimsString := string(claimsBytes)
 
 		// Extract connection request body
-		oConnectRequest, err := instance.extractConnectRequest(r)
+		oConnectRequest, err := tun.extractConnectRequest(r)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +58,7 @@ func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request)
 		oPeer := adminAPI.Peer{
 			Type:          &oConnectRequest.Type,
 			InfoWireguard: oConnectRequest.InfoWireguard,
-			Expires:       instance.getExpiration(),
+			Expires:       tun.getExpiration(),
 			Claims:        &claimsString,
 			Identifiers:   oIdentifiers,
 		}
@@ -76,13 +76,13 @@ func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request)
 		}
 
 		// Set peer
-		_, err = instance.manager.ConnectPeer(peer)
+		_, err = tun.manager.ConnectPeer(peer)
 		if err != nil {
 			return nil, err
 		}
 
 		// Prepare connection response
-		wgSettings := instance.runtime.Settings.Wireguard
+		wgSettings := tun.runtime.Settings.Wireguard
 		response := tunnelAPI.ClientConfiguration{
 			InfoWireguard: &tunnelAPI.ConnectInfoWireguard{
 				AllowedIps:      []string{"0.0.0.0/0"},
@@ -91,8 +91,8 @@ func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request)
 				Keepalive:       wgSettings.Keepalive,
 				ServerIpv4:      wgSettings.ServerIPv4,
 				ServerPort:      wgSettings.ServerPort,
-				ServerPublicKey: instance.runtime.DynamicSettings.GetWireguardPrivateKey().String(),
-				PingInterval:    instance.runtime.Settings.PublicAPI.PingInterval,
+				ServerPublicKey: tun.runtime.DynamicSettings.GetWireguardPrivateKey().String(),
+				PingInterval:    tun.runtime.Settings.PublicAPI.PingInterval,
 			},
 		}
 
@@ -101,7 +101,7 @@ func (instance *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request)
 }
 
 // ClientConnectUnsafe implements endpoint for POST /api/client/connect_unsafe
-func (instance *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Request) {
 	response, err := func() ([]byte, error) {
 		// Extract JWT
 		userToken, ok := xhttp.ExtractTokenFromRequest(r)
@@ -110,7 +110,7 @@ func (instance *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Re
 		}
 
 		// Verify JWT, get JWT claims
-		claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+		claims, err := tun.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 		if err != nil {
 			return nil, err
 		}
@@ -159,13 +159,13 @@ func (instance *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Re
 		}
 
 		// Set peer
-		_, err = instance.manager.ConnectPeer(&peer)
+		_, err = tun.manager.ConnectPeer(&peer)
 		if err != nil {
 			return nil, err
 		}
 
 		// Prepare connection response
-		settings := instance.runtime.Settings.Wireguard
+		settings := tun.runtime.Settings.Wireguard
 
 		tmpl := `[Interface]
 Address = %s/32
@@ -180,7 +180,7 @@ PersistentKeepalive = %d
 		response := fmt.Sprintf(tmpl,
 			peer.Ipv4.String(),
 			privateKey.String(),
-			instance.runtime.DynamicSettings.GetWireguardPrivateKey().String(),
+			tun.runtime.DynamicSettings.GetWireguardPrivateKey().String(),
 			settings.ServerIPv4,
 			settings.ServerPort,
 			settings.Keepalive,
@@ -197,14 +197,14 @@ PersistentKeepalive = %d
 }
 
 // ClientDisconnect implements endpoint for POST /api/client/disconnect
-func (instance *TunnelAPI) ClientDisconnect(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) ClientDisconnect(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		identifiers, _, err := instance.extractPeerActionInfo(r)
+		identifiers, _, err := tun.extractPeerActionInfo(r)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := instance.manager.UnsetPeerByIdentifiers(identifiers); err != nil {
+		if err := tun.manager.UnsetPeerByIdentifiers(identifiers); err != nil {
 			return nil, err
 		}
 
@@ -213,14 +213,14 @@ func (instance *TunnelAPI) ClientDisconnect(w http.ResponseWriter, r *http.Reque
 }
 
 // ClientPing implements endpoint for POST /api/client/ping
-func (instance *TunnelAPI) ClientPing(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) ClientPing(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		identifiers, _, err := instance.extractPeerActionInfo(r)
+		identifiers, _, err := tun.extractPeerActionInfo(r)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := instance.manager.UpdatePeerExpiration(identifiers, instance.getExpiration()); err != nil {
+		if err := tun.manager.UpdatePeerExpiration(identifiers, tun.getExpiration()); err != nil {
 			return nil, err
 		}
 
@@ -253,7 +253,7 @@ func constructPeerIdentifiers(request interface{}, claims *auth.ClientClaims) (*
 }
 
 // extractConnectInfo parses client information from request
-func (instance *TunnelAPI) extractConnectRequest(r *http.Request) (*tunnelAPI.ClientConnectJSONBody, error) {
+func (tun *TunnelAPI) extractConnectRequest(r *http.Request) (*tunnelAPI.ClientConnectJSONBody, error) {
 	var request tunnelAPI.ClientConnectJSONBody
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -265,13 +265,13 @@ func (instance *TunnelAPI) extractConnectRequest(r *http.Request) (*tunnelAPI.Cl
 	return &request, nil
 }
 
-func (instance *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerIdentifiers, *auth.ClientClaims, error) {
+func (tun *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerIdentifiers, *auth.ClientClaims, error) {
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
 		return nil, nil, xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
-	claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+	claims, err := tun.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -296,8 +296,8 @@ func (instance *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerId
 	return identifiers, claims, nil
 }
 
-func (instance *TunnelAPI) getExpiration() *time.Time {
-	settings := instance.runtime.Settings.PublicAPI
+func (tun *TunnelAPI) getExpiration() *time.Time {
+	settings := tun.runtime.Settings.PublicAPI
 	expiresSeconds := settings.PingInterval + settings.PeerTTL
 	expires := time.Now().Add(time.Second * time.Duration(expiresSeconds))
 	return &expires

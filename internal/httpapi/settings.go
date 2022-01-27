@@ -16,26 +16,26 @@ import (
 )
 
 // AdminGetSettings implements handler for GET /settings request
-func (instance *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		s := settingsToOpenAPI(instance.runtime.Settings, instance.runtime.DynamicSettings)
+		s := settingsToOpenAPI(tun.runtime.Settings, tun.runtime.DynamicSettings)
 		return s, nil
 	})
 }
 
 // AdminUpdateSettings implements handler for PATCH /settings request
-func (instance *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		newSettings, err := openApiSettingsFromRequest(r)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := updateDynamicSettings(instance.runtime.DynamicSettings, newSettings); err != nil {
+		if err := updateDynamicSettings(tun.runtime.DynamicSettings, newSettings); err != nil {
 			return nil, err
 		}
 
-		static := mergeStaticSettings(instance.runtime.Settings, newSettings)
+		static := mergeStaticSettings(tun.runtime.Settings, newSettings)
 		ok, err := govalidator.ValidateStruct(static)
 		if err != nil {
 			return nil, xerror.EInvalidArgument("failed to validate static config", err)
@@ -50,7 +50,7 @@ func (instance *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Re
 				err, zap.String("path", static.GetPath()))
 		}
 
-		instance.runtime.Events.EmitEvent(control.EventNeedRestart)
+		tun.runtime.Events.EmitEvent(control.EventNeedRestart)
 		return nil, nil
 	})
 }

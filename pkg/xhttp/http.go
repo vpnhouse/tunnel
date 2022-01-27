@@ -12,6 +12,7 @@ import (
 	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	middlewarestd "github.com/slok/go-http-metrics/middleware/std"
+	"go.uber.org/zap"
 )
 
 type Middleware = func(http.Handler) http.Handler
@@ -58,6 +59,7 @@ func (w *wrapper) Run(addr string) error {
 		Addr:    addr,
 	}
 
+	zap.L().Info("starting HTTP server", zap.String("addr", addr))
 	return w.srv.ListenAndServe()
 }
 

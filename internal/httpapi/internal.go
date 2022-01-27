@@ -54,21 +54,21 @@ func wrap404ToIndex(h http.Handler) http.HandlerFunc {
 }
 
 // adminCheckBasicAuth only checks if basic authentication is successful
-func (instance *TunnelAPI) adminCheckBasicAuth(username string, password string) error {
-	if username != instance.runtime.Settings.AdminAPI.UserName {
+func (tun *TunnelAPI) adminCheckBasicAuth(username string, password string) error {
+	if username != tun.runtime.Settings.AdminAPI.UserName {
 		return xerror.EAuthenticationFailed("invalid credentials", nil)
 	}
 
-	if err := instance.runtime.DynamicSettings.VerifyAdminPassword(password); err != nil {
+	if err := tun.runtime.DynamicSettings.VerifyAdminPassword(password); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (instance *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
+func (tun *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
 	var claims jwt.StandardClaims
-	err := instance.adminJWT.Parse(tokenStr, &claims)
+	err := tun.adminJWT.Parse(tokenStr, &claims)
 	if err != nil {
 		return err
 	}
@@ -76,8 +76,20 @@ func (instance *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
 	return nil
 }
 
+func (tun *TunnelAPI) initialSetupMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if tun.runtime.DynamicSettings.InitialSetupRequired() {
+			w.Header().Set("Location", "/api/tunnel/admin/initial")
+			w.WriteHeader(http.StatusTemporaryRedirect)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
+}
+
 // adminAuthMiddleware checks if bearer authentication is succeed
-func (instance *TunnelAPI) adminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func (tun *TunnelAPI) adminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/tunnel/admin/auth" {
 			// bypass auth url
@@ -91,7 +103,7 @@ func (instance *TunnelAPI) adminAuthMiddleware(next http.HandlerFunc) http.Handl
 			return
 		}
 
-		err := instance.adminCheckBearerAuth(tokenStr)
+		err := tun.adminCheckBearerAuth(tokenStr)
 		if err != nil {
 			http.Error(w, "invalid auth token", http.StatusUnauthorized)
 			return
@@ -101,10 +113,10 @@ func (instance *TunnelAPI) adminAuthMiddleware(next http.HandlerFunc) http.Handl
 	}
 }
 
-func (instance *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func (tun *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get(federationAuthHeader)
-		who, ok := instance.keystore.Authorize(authHeader)
+		who, ok := tun.keystore.Authorize(authHeader)
 		if !ok {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return

@@ -14,9 +14,9 @@ import (
 )
 
 // AdminListTrustedKeys GET /api/admin/trusted
-func (instance *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		keys, err := instance.storage.ListAuthorizerKeys()
+		keys, err := tun.storage.ListAuthorizerKeys()
 		if err != nil {
 			return nil, err
 		}
@@ -39,13 +39,13 @@ func (instance *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.R
 }
 
 // AdminDeleteTrustedKey DELETE /api/admin/trusted/{id}
-func (instance *TunnelAPI) AdminDeleteTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
+func (tun *TunnelAPI) AdminDeleteTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		if _, err := uuid.Parse(id); err != nil {
 			return nil, xerror.EInvalidArgument("invalid key id", err)
 		}
 
-		if err := instance.storage.DeleteAuthorizerKey(id); err != nil {
+		if err := tun.storage.DeleteAuthorizerKey(id); err != nil {
 			return nil, err
 		}
 
@@ -54,13 +54,13 @@ func (instance *TunnelAPI) AdminDeleteTrustedKey(w http.ResponseWriter, r *http.
 }
 
 // AdminGetTrustedKey GET /api/admin/trusted/{id}
-func (instance *TunnelAPI) AdminGetTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
+func (tun *TunnelAPI) AdminGetTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		if _, err := uuid.Parse(id); err != nil {
 			return nil, xerror.EInvalidArgument("invalid key id", err)
 		}
 
-		key, err := instance.storage.GetAuthorizerKeyByID(id)
+		key, err := tun.storage.GetAuthorizerKeyByID(id)
 		if err != nil {
 			return nil, err
 		}
@@ -76,20 +76,20 @@ func (instance *TunnelAPI) AdminGetTrustedKey(w http.ResponseWriter, r *http.Req
 }
 
 // AdminAddTrustedKey POST /api/admin/trusted/{id}
-func (instance *TunnelAPI) AdminAddTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
+func (tun *TunnelAPI) AdminAddTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		return instance.upsertAuthorizerKey(id, r)
+		return tun.upsertAuthorizerKey(id, r)
 	})
 }
 
 // AdminUpdateTrustedKey PUT /api/admin/trusted/{id}
-func (instance *TunnelAPI) AdminUpdateTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
+func (tun *TunnelAPI) AdminUpdateTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		return instance.upsertAuthorizerKey(id, r)
+		return tun.upsertAuthorizerKey(id, r)
 	})
 }
 
-func (instance *TunnelAPI) upsertAuthorizerKey(id string, r *http.Request) (string, error) {
+func (tun *TunnelAPI) upsertAuthorizerKey(id string, r *http.Request) (string, error) {
 	if _, err := uuid.Parse(id); err != nil {
 		return "", xerror.EInvalidArgument("invalid key id", nil)
 	}
@@ -106,7 +106,7 @@ func (instance *TunnelAPI) upsertAuthorizerKey(id string, r *http.Request) (stri
 		Key:    xcrypto.KeyToBase64(pubkey),
 	}
 
-	if err := instance.storage.UpdateAuthorizerKeys([]types.AuthorizerKey{key}); err != nil {
+	if err := tun.storage.UpdateAuthorizerKeys([]types.AuthorizerKey{key}); err != nil {
 		return "", err
 	}
 

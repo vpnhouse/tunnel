@@ -8,9 +8,9 @@ import (
 )
 
 // AdminGetStatus returns current server status
-func (instance *TunnelAPI) AdminGetStatus(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) AdminGetStatus(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		flags := instance.runtime.Flags
+		flags := tun.runtime.Flags
 		status := adminAPI.ServiceStatusResponse{
 			RestartRequired: flags.RestartRequired,
 		}
