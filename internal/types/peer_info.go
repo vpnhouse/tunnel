@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"github.com/Codename-Uranium/tunnel/pkg/xtime"
@@ -69,20 +70,17 @@ func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
 	return p
 }
 
-func TunnelTypeToName(tunnelType *int) *string {
-	if tunnelType == nil {
-		return nil
+func (peer *PeerInfo) TypeName() tunnelAPI.PeerType {
+	if peer == nil || peer.Type == nil {
+		return ""
 	}
 
-	switch *tunnelType {
+	switch *peer.Type {
 	case TunnelWireguard:
-		name := "wireguard"
-		return &name
-	case TunnelUnknown:
-		break
+		return tunnelAPI.PeerTypeWireguard
+	default:
+		return ""
 	}
-
-	return nil
 }
 
 // in provides case-insensitive match of field name across a list of fields

@@ -122,7 +122,7 @@ func validateAndWriteSettings(newSettings settings.StaticConfig) error {
 }
 
 func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminAPI.Settings {
-	key := d.GetWireguardPublicKey().PublicKey().String()
+	public := d.GetWireguardPrivateKey().Public().Unwrap().String()
 	return adminAPI.Settings{
 		AdminUserName:       &s.AdminAPI.UserName,
 		ConnectionTimeout:   &s.PublicAPI.PeerTTL,
@@ -132,7 +132,7 @@ func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminA
 		PingInterval:        &s.PublicAPI.PingInterval,
 		WireguardKeepalive:  &s.Wireguard.Keepalive,
 		WireguardListenPort: &s.Wireguard.ServerPort,
-		WireguardPublicKey:  &key,
+		WireguardPublicKey:  &public,
 		WireguardServerIpv4: &s.Wireguard.ServerIPv4,
 		WireguardSubnet:     &s.Wireguard.Subnet,
 	}

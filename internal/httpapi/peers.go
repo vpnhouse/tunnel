@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 
+	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 )
 
-// getPeerInfo parses peer information from request body.
+// getPeerFromRequest parses peer information from request body.
 // WARNING! This function does not do any verification of imported data! Caller must do it itself!
-func getPeerInfo(r *http.Request, id *int64) (*types.PeerInfo, error) {
+func getPeerFromRequest(r *http.Request, id *int64) (*types.PeerInfo, error) {
 	var oPeer adminAPI.Peer
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -39,7 +41,8 @@ func (tun *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request) {
 				return nil, err
 			}
 			foundPeers[i].Id = *peer.Id
-			foundPeers[i].Peer = *oPeer
+			foundPeers[i].Peer = oPeer
+			foundPeers[i].ConnectInfo = tun.peerConnectionInfo(peer.Ipv4)
 		}
 
 		return foundPeers, nil
@@ -68,19 +71,25 @@ func (tun *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, id in
 			return nil, xerror.EEntryNotFound("entry not found", nil)
 		}
 
-		oPeer, err := exportPeer(peer)
+		exported, err := exportPeer(peer)
 		if err != nil {
 			return nil, err
 		}
 
-		return oPeer, nil
+		info := adminAPI.PeerRecord{
+			Id:          id,
+			Peer:        exported,
+			ConnectInfo: tun.peerConnectionInfo(peer.Ipv4),
+		}
+
+		return info, nil
 	})
 }
 
-// AdminCreatePeer implements POST method on /api/admin/peers/{id} endpoint
+// AdminCreatePeer implements POST method on /api/admin/peers endpoint
 func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		peer, err := getPeerInfo(r, nil)
+		peer, err := getPeerFromRequest(r, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -106,8 +115,9 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 		}
 
 		record := adminAPI.PeerRecord{
-			Id:   *id,
-			Peer: *oPeer,
+			Id:          *id,
+			Peer:        oPeer,
+			ConnectInfo: tun.peerConnectionInfo(insertedPeer.Ipv4),
 		}
 
 		return record, nil
@@ -117,7 +127,7 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 // AdminUpdatePeer implements PUT method on /api/admin/peers/{id} endpoint
 func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id int64) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		peer, err := getPeerInfo(r, &id)
+		peer, err := getPeerFromRequest(r, &id)
 		if err != nil {
 			return nil, err
 		}
@@ -136,6 +146,30 @@ func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id
 			return nil, err
 		}
 
-		return exportPeer(insertedPeer)
+		exported, err := exportPeer(insertedPeer)
+		if err != nil {
+			return nil, err
+		}
+
+		info := adminAPI.PeerRecord{
+			Id:          id,
+			Peer:        exported,
+			ConnectInfo: tun.peerConnectionInfo(insertedPeer.Ipv4),
+		}
+
+		return info, nil
 	})
+}
+
+func (tun *TunnelAPI) peerConnectionInfo(ip *xnet.IP) *tunnelAPI.ConnectInfoWireguard {
+	return &tunnelAPI.ConnectInfoWireguard{
+		TunnelIpv4:      ip.String(),
+		AllowedIps:      []string{"0.0.0.0/1", "128.0.0.0/1"},
+		Dns:             tun.runtime.Settings.Wireguard.DNS,
+		Keepalive:       tun.runtime.Settings.Wireguard.Keepalive,
+		PingInterval:    tun.runtime.Settings.Wireguard.Keepalive,
+		ServerIpv4:      tun.runtime.Settings.Wireguard.ServerIPv4,
+		ServerPort:      tun.runtime.Settings.Wireguard.ServerPort,
+		ServerPublicKey: tun.runtime.DynamicSettings.GetWireguardPrivateKey().Public().Unwrap().String(),
+	}
 }

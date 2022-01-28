@@ -133,7 +133,7 @@ func (tun *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.Handl
 
 func importIdentifiers(oIdentifiers *commonAPI.ConnectionIdentifiers) (*types.PeerIdentifiers, error) {
 	if oIdentifiers == nil {
-		return nil, nil
+		return &types.PeerIdentifiers{}, nil
 	}
 
 	installationIdPtr, err := parseIdentifierUUID(oIdentifiers.InstallationId)
@@ -253,19 +253,18 @@ func exportIdentifiers(identifiers *types.PeerIdentifiers) *commonAPI.Connection
 	return oIdentifiers
 }
 
-func exportPeer(peer *types.PeerInfo) (*adminAPI.Peer, error) {
+func exportPeer(peer *types.PeerInfo) (adminAPI.Peer, error) {
 	// Validate peer
 	err := peer.Validate()
 	if err != nil {
-		return nil, err
+		return adminAPI.Peer{}, err
 	}
 
 	// Handle tunnel type
-	tunnelType := types.TunnelTypeToName(peer.Type)
-	if tunnelType == nil {
-		return nil, xerror.EInvalidArgument("unknown tunnel type", nil)
+	tunnelType := peer.TypeName()
+	if len(tunnelType) == 0 {
+		return adminAPI.Peer{}, xerror.EInvalidArgument("unknown tunnel type", nil)
 	}
-	peerType := tunnelAPI.PeerType(*tunnelType)
 
 	// Handle wireguard information
 	var wg *tunnelAPI.PeerWireguard
@@ -281,7 +280,7 @@ func exportPeer(peer *types.PeerInfo) (*adminAPI.Peer, error) {
 
 	oPeer := adminAPI.Peer{
 		Label:         peer.Label,
-		Type:          &peerType,
+		Type:          &tunnelType,
 		Ipv4:          &ip,
 		InfoWireguard: wg,
 		Created:       peer.Created.TimePtr(),
@@ -291,7 +290,7 @@ func exportPeer(peer *types.PeerInfo) (*adminAPI.Peer, error) {
 		Identifiers:   exportIdentifiers(&peer.PeerIdentifiers),
 	}
 
-	return &oPeer, nil
+	return oPeer, nil
 }
 
 func parseIdentifierUUID(v *string) (*uuid.UUID, error) {

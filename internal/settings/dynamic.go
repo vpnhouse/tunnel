@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/version"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xrand"
@@ -21,7 +22,7 @@ import (
 type DynamicConfig interface {
 	SetAdminPassword(plain string) error
 	VerifyAdminPassword(given string) error
-	GetWireguardPublicKey() wgtypes.Key
+	GetWireguardPrivateKey() types.WGPrivateKey
 	InitialSetupRequired() bool
 }
 
@@ -32,7 +33,7 @@ type dynamicConfigYAML struct {
 	AdminPasswordHash   string `yaml:"admin_password_hash"`
 
 	// parsed key
-	wgPublic wgtypes.Key
+	wgPrivate types.WGPrivateKey
 }
 
 func loadDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
@@ -41,13 +42,12 @@ func loadDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
 		return dynamicConfigYAML{}, err
 	}
 
-	pkey, err := wgtypes.ParseKey(conf.WireguardPrivateKey)
+	privateKey, err := wgtypes.ParseKey(conf.WireguardPrivateKey)
 	if err != nil {
 		return dynamicConfigYAML{}, xerror.EInternalError("failed to parse wireguard's private key", err)
 	}
 
-	conf.wgPublic = pkey.PublicKey()
-
+	conf.wgPrivate = types.WGPrivateKey(privateKey)
 	return conf, nil
 }
 
@@ -69,8 +69,8 @@ func generateAndWriteDynamicConfig(fs afero.Fs, path string, withPassword bool) 
 	if err != nil {
 		return dynamicConfigYAML{}, xerror.EInternalError("failed to generate WG key", err)
 	}
-	cfg.wgPublic = privateKey.PublicKey()
 	cfg.WireguardPrivateKey = privateKey.String()
+	cfg.wgPrivate = types.WGPrivateKey(privateKey)
 
 	fd, err := fs.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
@@ -183,9 +183,9 @@ func (dc *dynamicConfig) VerifyAdminPassword(given string) error {
 	return nil
 }
 
-func (dc *dynamicConfig) GetWireguardPublicKey() wgtypes.Key {
+func (dc *dynamicConfig) GetWireguardPrivateKey() types.WGPrivateKey {
 	// do not guard with mutex - read only field.
-	return dc.conf.wgPublic.PublicKey()
+	return dc.conf.wgPrivate
 }
 
 func (dc *dynamicConfig) InitialSetupRequired() bool {

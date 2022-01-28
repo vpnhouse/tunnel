@@ -21,12 +21,7 @@ import (
 )
 
 const (
-	appDir = "/opt/uranium/tunnel/"
-
-	defaultConfigDir        = appDir + "config/"
-	defaultStaticRoot       = appDir + "web/"
-	defaultEventlogDir      = appDir + "eventlog/"
-	defaultManagementKeyDir = appDir + "keystore/"
+	defaultConfigDir = "/opt/uranium/tunnel/"
 
 	staticConfigFileName  = "static.yaml"
 	dynamicConfigFileName = "dynamic.yaml"

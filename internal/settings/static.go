@@ -61,7 +61,7 @@ func staticConfigFromFS(fs afero.Fs, configDir string) (StaticConfig, error) {
 	switch {
 	case os.IsNotExist(err):
 		zap.L().Warn("no static config file, using safe defaults", zap.String("path", pathToStatic))
-		return safeDefaults(), nil
+		return safeDefaults(configDir), nil
 	case err == nil:
 		return loadStaticConfig(fs, pathToStatic)
 	default:
@@ -78,16 +78,18 @@ func loadStaticConfig(fs afero.Fs, path string) (StaticConfig, error) {
 	return c, nil
 }
 
-func safeDefaults() StaticConfig {
+// safeDefaults provides safe static config with paths started with the rootDir
+func safeDefaults(rootDir string) StaticConfig {
 	return StaticConfig{
-		path:               filepath.Join(defaultConfigDir, staticConfigFileName),
+		path: filepath.Join(rootDir, staticConfigFileName),
+
 		LogLevel:           "debug",
-		SQLitePath:         filepath.Join(defaultConfigDir, "db.sqlite3"),
+		SQLitePath:         filepath.Join(rootDir, "db.sqlite3"),
 		HTTPListenAddr:     ":8085",
-		ManagementKeystore: defaultManagementKeyDir,
+		ManagementKeystore: filepath.Join(rootDir, "keystore/"),
 		Rapidoc:            true,
 		AdminAPI: AdminAPIConfig{
-			StaticRoot:    defaultStaticRoot,
+			StaticRoot:    filepath.Join(rootDir, "web/"),
 			UserName:      "admin",
 			TokenLifetime: 30 * 60, // 30min,
 		},
@@ -104,7 +106,7 @@ func safeDefaults() StaticConfig {
 			DNS:        []string{"8.8.8.8", "8.8.4.4"},
 		},
 		EventLog: eventlog.StorageConfig{
-			Dir:      defaultEventlogDir,
+			Dir:      filepath.Join(rootDir, "eventlog/"),
 			MaxFiles: 10,
 			Size:     100 * 1024 * 1024,
 		},
