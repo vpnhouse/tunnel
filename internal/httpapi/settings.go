@@ -44,7 +44,7 @@ func validate(req initialSetupRequest) error {
 		return xerror.EInvalidField("only ipv4 network supported", "server_ip_mask", nil)
 	}
 
-	if !ipAddr.IP.IsPrivate() {
+	if !ipAddr.IsPrivate() {
 		return xerror.EInvalidField("not a private subnet given", "server_ip_mask", nil)
 	}
 
