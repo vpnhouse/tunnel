@@ -10,12 +10,15 @@ import (
 )
 
 type Config struct {
-	Interface  string   `yaml:"interface" valid:"alphanum"`
-	ServerIPv4 string   `yaml:"server_ipv4" valid:"ipv4" allow:"empty"`
-	ServerPort int      `yaml:"server_port" valid:"port"`
-	Keepalive  int      `yaml:"keepalive" valid:"natural"`
-	Subnet     string   `yaml:"subnet" valid:"cidr"`
-	DNS        []string `yaml:"dns" valid:"ipv4list"`
+	Interface  string `yaml:"interface" valid:"alphanum"`
+	ServerIPv4 string `yaml:"server_ipv4" valid:"ipv4" allow:"empty"`
+	ServerPort int    `yaml:"server_port" valid:"port"`
+	Keepalive  int    `yaml:"keepalive" valid:"natural"`
+	// FIXME(nikonov): it's not a subnet, it is ip/mask,
+	//  where IP is a server IP and a mask represents
+	//  the address range for the WG clients.
+	Subnet string   `yaml:"subnet" valid:"cidr"`
+	DNS    []string `yaml:"dns" valid:"ipv4list"`
 }
 
 // getPeerConfig generates wireguard configuration for a peer.

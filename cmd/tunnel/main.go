@@ -86,6 +86,8 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
+	// note: we do not provide any key here: new JWT key generates
+	//  on each restart, so the auth token getting expired.
 	adminJWT, err := auth.NewJWTMaster(nil, nil)
 	if err != nil {
 		return err

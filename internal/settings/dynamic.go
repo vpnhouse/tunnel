@@ -32,7 +32,7 @@ type dynamicConfigYAML struct {
 	AdminPasswordHash   string `yaml:"admin_password_hash"`
 
 	// parsed key
-	wgPrivate wgtypes.Key
+	wgPublic wgtypes.Key
 }
 
 func loadDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
@@ -46,7 +46,7 @@ func loadDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
 		return dynamicConfigYAML{}, xerror.EInternalError("failed to parse wireguard's private key", err)
 	}
 
-	conf.wgPrivate = pkey.PublicKey()
+	conf.wgPublic = pkey.PublicKey()
 
 	return conf, nil
 }
@@ -65,12 +65,12 @@ func generateAndWriteDynamicConfig(fs afero.Fs, path string, withPassword bool) 
 		cfg.AdminPasswordHash = password
 	}
 
-	pkey, err := wgtypes.GenerateKey()
+	privateKey, err := wgtypes.GeneratePrivateKey()
 	if err != nil {
 		return dynamicConfigYAML{}, xerror.EInternalError("failed to generate WG key", err)
 	}
-	cfg.wgPrivate = pkey
-	cfg.WireguardPrivateKey = pkey.String()
+	cfg.wgPublic = privateKey.PublicKey()
+	cfg.WireguardPrivateKey = privateKey.String()
 
 	fd, err := fs.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
@@ -185,7 +185,7 @@ func (dc *dynamicConfig) VerifyAdminPassword(given string) error {
 
 func (dc *dynamicConfig) GetWireguardPublicKey() wgtypes.Key {
 	// do not guard with mutex - read only field.
-	return dc.conf.wgPrivate.PublicKey()
+	return dc.conf.wgPublic.PublicKey()
 }
 
 func (dc *dynamicConfig) InitialSetupRequired() bool {

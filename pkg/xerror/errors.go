@@ -42,6 +42,7 @@ var (
 	ENotEnoughSpaceType        = &ErrorType{http.StatusInsufficientStorage, "INSUFFICIENT_STORAGE"}
 	EUnavailableType           = &ErrorType{http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"}
 	EConfigurationRequiredType = &ErrorType{http.StatusConflict, "CONFIGURATION_REQUIRED"}
+	EForbiddenType             = &ErrorType{http.StatusForbidden, "FORBIDDEN"}
 )
 
 func EInternalError(description string, err error, fields ...zap.Field) *Error {
@@ -134,6 +135,10 @@ func WUnavailable(label, description string, err error, fields ...zap.Field) *Er
 
 func EConfigurationRequired(msg string) *Error {
 	return newError(EConfigurationRequiredType, msg, defaultSerializer, nil, nil)
+}
+
+func EForbidden(msg string) *Error {
+	return newError(EForbiddenType, msg, defaultSerializer, nil, nil)
 }
 
 type errorSerializerFunc func(error *Error) (int, []byte)
@@ -243,8 +248,10 @@ func ErrorToHttpResponse(err error) (int, []byte) {
 		return t.serializer(t)
 	}
 
+	msg := err.Error()
 	oError := &openapi.Error{
 		Result: "UNKNOWN_ERROR",
+		Error:  &msg,
 	}
 	return http.StatusInternalServerError, marshalError(oError)
 }

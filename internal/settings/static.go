@@ -16,7 +16,7 @@ import (
 type StaticConfig struct {
 	LogLevel           string `yaml:"log_level"`
 	SQLitePath         string `yaml:"sqlite_path" valid:"path"`
-	HTTPListenAddr     string `yaml:"http_listen_addr" valid:"dialstring"`
+	HTTPListenAddr     string `yaml:"http_listen_addr" valid:"listen_addr"`
 	ManagementKeystore string `yaml:"management_keystore" valid:"path"`
 	Rapidoc            bool   `yaml:"rapidoc"`
 
