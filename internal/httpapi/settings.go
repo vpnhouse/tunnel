@@ -24,18 +24,43 @@ func (tun *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type initialSetupRequest struct {
-	AdminPassword string `json:"admin_password"`
-	// ip/netmask actually
-	ServerIP string `json:"server_ip_mask"`
+// AdminInitialSetup POST /api/tunnel/admin/initial-setup
+func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) {
+	xhttp.JSONResponse(w, func() (interface{}, error) {
+		if !tun.runtime.DynamicSettings.InitialSetupRequired() {
+			return nil, xerror.EForbidden("the initial configuration has already been applied")
+		}
+
+		var req adminAPI.InitialSetupRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return nil, xerror.EInvalidArgument("failed to unmarshal request", err)
+		}
+
+		if err := validateInitialSetupRequest(req); err != nil {
+			return nil, err
+		}
+
+		tun.runtime.Settings.Wireguard.Subnet = req.ServerIpMask
+		if err := validateAndWriteSettings(tun.runtime.Settings); err != nil {
+			return nil, err
+		}
+
+		// setting the password resets the "initial setup required" flag.
+		if err := tun.runtime.DynamicSettings.SetAdminPassword(req.AdminPassword); err != nil {
+			return nil, err
+		}
+
+		tun.runtime.Events.EmitEvent(control.EventRestart)
+		return nil, nil
+	})
 }
 
-func validate(req initialSetupRequest) error {
+func validateInitialSetupRequest(req adminAPI.InitialSetupRequest) error {
 	if len(req.AdminPassword) < 6 {
 		return xerror.EInvalidField("password too short", "admin_password", nil)
 	}
 
-	ipAddr, ipNet, err := xnet.ParseCIDR(req.ServerIP)
+	ipAddr, ipNet, err := xnet.ParseCIDR(req.ServerIpMask)
 	if err != nil {
 		return xerror.EInvalidField("failed to parse subnet", "server_ip_mask", err)
 	}
@@ -58,36 +83,6 @@ func validate(req initialSetupRequest) error {
 	}
 
 	return nil
-}
-
-func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) {
-	xhttp.JSONResponse(w, func() (interface{}, error) {
-		if !tun.runtime.DynamicSettings.InitialSetupRequired() {
-			return nil, xerror.EForbidden("the initial configuration has already been applied")
-		}
-
-		var req initialSetupRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			return nil, xerror.EInvalidArgument("failed to unmarshal request", err)
-		}
-
-		if err := validate(req); err != nil {
-			return nil, err
-		}
-
-		tun.runtime.Settings.Wireguard.Subnet = req.ServerIP
-		if err := validateAndWriteSettings(tun.runtime.Settings); err != nil {
-			return nil, err
-		}
-
-		// setting the password resets the "initial setup required" flag.
-		if err := tun.runtime.DynamicSettings.SetAdminPassword(req.AdminPassword); err != nil {
-			return nil, err
-		}
-
-		tun.runtime.Events.EmitEvent(control.EventRestart)
-		return nil, nil
-	})
 }
 
 // AdminUpdateSettings implements handler for PATCH /settings request

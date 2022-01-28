@@ -79,19 +79,25 @@ func (tun *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
 func (tun *TunnelAPI) initialSetupMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if tun.runtime.DynamicSettings.InitialSetupRequired() {
-			xhttp.WriteJsonError(w, xerror.EConfigurationRequired("initial configuration required"))
-			return
+			if r.URL.Path != "/api/tunnel/admin/initial-setup" {
+				xhttp.WriteJsonError(w, xerror.EConfigurationRequired("initial configuration required"))
+				return
+			}
 		}
 
 		next.ServeHTTP(w, r)
 	}
 }
 
+var adminAuthBypassPaths = map[string]struct{}{
+	"/api/tunnel/admin/auth":          {},
+	"/api/tunnel/admin/initial-setup": {},
+}
+
 // adminAuthMiddleware checks if bearer authentication is succeed
 func (tun *TunnelAPI) adminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/tunnel/admin/auth" {
-			// bypass auth url
+		if _, ok := adminAuthBypassPaths[r.URL.Path]; ok {
 			next.ServeHTTP(w, r)
 			return
 		}

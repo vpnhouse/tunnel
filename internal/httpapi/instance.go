@@ -51,9 +51,6 @@ func (tun *TunnelAPI) RegisterHandlers(r chi.Router) {
 	root := tun.runtime.Settings.AdminAPI.StaticRoot
 	r.HandleFunc("/", wrap404ToIndex(http.FileServer(http.Dir(root))))
 
-	r.Post("/_test/conf", tun.AdminInitialSetup)
-	r.Post("/_test/restart", tun.restartTest)
-
 	// admin API
 	adminAPI.HandlerWithOptions(tun, adminAPI.ChiServerOptions{
 		BaseRouter: r,

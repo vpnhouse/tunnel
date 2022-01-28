@@ -46,6 +46,8 @@ github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53/go.mod h1:+3
 github.com/CloudyKit/jet/v3 v3.0.0/go.mod h1:HKQPgSJmdK8hdoAbKUUWajkHyHo4RaU5rMdUywE7VMo=
 github.com/Codename-Uranium/api v0.0.0-20220125084926-65bb226c592e h1:ZrLeQtAWhvth8f6HfwmZkTTrt6UGNWk5nchWo+ept+U=
 github.com/Codename-Uranium/api v0.0.0-20220125084926-65bb226c592e/go.mod h1:gujgPmous+eDiPUKvCJ/siYnssCHuY8W53NL6bLTs0k=
+github.com/Codename-Uranium/api v0.0.0-20220128091422-91886b61c4f9 h1:eJy3h4f2J95kff33b9CkYKc6r7fxVUo68MFUBJxt+k8=
+github.com/Codename-Uranium/api v0.0.0-20220128091422-91886b61c4f9/go.mod h1:gujgPmous+eDiPUKvCJ/siYnssCHuY8W53NL6bLTs0k=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
 github.com/Masterminds/goutils v1.1.0/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver v1.5.0/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=
