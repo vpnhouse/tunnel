@@ -14,9 +14,3 @@ func (tun *TunnelAPI) AdminReloadService(w http.ResponseWriter, r *http.Request)
 	w.(http.Flusher).Flush()
 	tun.runtime.Events.EmitEvent(control.EventRestart)
 }
-
-func (tun *TunnelAPI) restartTest(w http.ResponseWriter, r *http.Request) {
-	xhttp.JSONResponse(w, func() (interface{}, error) { return nil, nil })
-	w.(http.Flusher).Flush()
-	tun.runtime.Events.EmitEvent(control.EventRestart)
-}
