@@ -7,6 +7,7 @@ import (
 
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/version"
 	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
@@ -16,6 +17,10 @@ import (
 // AdminListTrustedKeys GET /api/admin/trusted
 func (tun *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
+		if version.IsPersonal() {
+			return nil, xerror.EForbidden("trusted keys api disabled in a personal version")
+		}
+
 		keys, err := tun.storage.ListAuthorizerKeys()
 		if err != nil {
 			return nil, err
@@ -41,6 +46,10 @@ func (tun *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.Reques
 // AdminDeleteTrustedKey DELETE /api/admin/trusted/{id}
 func (tun *TunnelAPI) AdminDeleteTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
+		if version.IsPersonal() {
+			return nil, xerror.EForbidden("trusted keys api disabled in a personal version")
+		}
+
 		if _, err := uuid.Parse(id); err != nil {
 			return nil, xerror.EInvalidArgument("invalid key id", err)
 		}
@@ -56,6 +65,10 @@ func (tun *TunnelAPI) AdminDeleteTrustedKey(w http.ResponseWriter, r *http.Reque
 // AdminGetTrustedKey GET /api/admin/trusted/{id}
 func (tun *TunnelAPI) AdminGetTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
+		if version.IsPersonal() {
+			return nil, xerror.EForbidden("trusted keys api disabled in a personal version")
+		}
+
 		if _, err := uuid.Parse(id); err != nil {
 			return nil, xerror.EInvalidArgument("invalid key id", err)
 		}
@@ -78,6 +91,9 @@ func (tun *TunnelAPI) AdminGetTrustedKey(w http.ResponseWriter, r *http.Request,
 // AdminAddTrustedKey POST /api/admin/trusted/{id}
 func (tun *TunnelAPI) AdminAddTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
+		if version.IsPersonal() {
+			return nil, xerror.EForbidden("trusted keys api disabled in a personal version")
+		}
 		return tun.upsertAuthorizerKey(id, r)
 	})
 }
@@ -85,6 +101,9 @@ func (tun *TunnelAPI) AdminAddTrustedKey(w http.ResponseWriter, r *http.Request,
 // AdminUpdateTrustedKey PUT /api/admin/trusted/{id}
 func (tun *TunnelAPI) AdminUpdateTrustedKey(w http.ResponseWriter, r *http.Request, id string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
+		if version.IsPersonal() {
+			return nil, xerror.EForbidden("trusted keys api disabled in a personal version")
+		}
 		return tun.upsertAuthorizerKey(id, r)
 	})
 }
