@@ -27,22 +27,22 @@ func init() {
 
 type ErrorType struct {
 	httpCode int
-	codeName string
+	codeName openapi.ErrorResult
 }
 
 var (
-	EInternalErrorType         = &ErrorType{http.StatusInternalServerError, "INTERNAL_ERROR"}
-	EInvalidArgumentType       = &ErrorType{http.StatusBadRequest, "INVALID_ARGUMENT"}
-	EEntryNotFoundType         = &ErrorType{http.StatusNotFound, "NOT_FOUND"}
-	EExistsType                = &ErrorType{http.StatusConflict, "ENTRY_EXISTS"}
-	EStorageErrorType          = &ErrorType{http.StatusInternalServerError, "STORAGE_ERROR"}
-	ETunnelErrorType           = &ErrorType{http.StatusInternalServerError, "TUNNEL_ERROR"}
-	EUnauthorizedType          = &ErrorType{http.StatusUnauthorized, "UNAUTHORIZED"}
-	EAuthenticationFailedType  = &ErrorType{http.StatusUnauthorized, "AUTH_FAILED"}
-	ENotEnoughSpaceType        = &ErrorType{http.StatusInsufficientStorage, "INSUFFICIENT_STORAGE"}
-	EUnavailableType           = &ErrorType{http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"}
-	EConfigurationRequiredType = &ErrorType{http.StatusConflict, "CONFIGURATION_REQUIRED"}
-	EForbiddenType             = &ErrorType{http.StatusForbidden, "FORBIDDEN"}
+	EInternalErrorType         = &ErrorType{http.StatusInternalServerError, openapi.ErrorResultINTERNALERROR}
+	EInvalidArgumentType       = &ErrorType{http.StatusBadRequest, openapi.ErrorResultINVALIDARGUMENT}
+	EEntryNotFoundType         = &ErrorType{http.StatusNotFound, openapi.ErrorResultNOTFOUND}
+	EExistsType                = &ErrorType{http.StatusConflict, openapi.ErrorResultENTRYEXISTS}
+	EStorageErrorType          = &ErrorType{http.StatusInternalServerError, openapi.ErrorResultSTORAGEERROR}
+	ETunnelErrorType           = &ErrorType{http.StatusInternalServerError, openapi.ErrorResultTUNNELERROR}
+	EUnauthorizedType          = &ErrorType{http.StatusUnauthorized, openapi.ErrorResultUNAUTHORIZED}
+	EAuthenticationFailedType  = &ErrorType{http.StatusUnauthorized, openapi.ErrorResultAUTHFAILED}
+	ENotEnoughSpaceType        = &ErrorType{http.StatusInsufficientStorage, openapi.ErrorResultINSUFFICIENTSTORAGE}
+	EUnavailableType           = &ErrorType{http.StatusServiceUnavailable, openapi.ErrorResultSERVICEUNAVAILABLE}
+	EConfigurationRequiredType = &ErrorType{http.StatusConflict, openapi.ErrorResultCONFIGURATIONREQUIRED}
+	EForbiddenType             = &ErrorType{http.StatusForbidden, openapi.ErrorResultFORBIDDEN}
 )
 
 func EInternalError(description string, err error, fields ...zap.Field) *Error {
@@ -259,7 +259,7 @@ func ErrorToHttpResponse(err error) (int, []byte) {
 func sendToExternalServices(e *Error, fields ...zap.Field) {
 	// prometheus counter
 	errorByCodeCounter.WithLabelValues(
-		e.errorType.codeName,
+		string(e.errorType.codeName),
 		e.warningLabel,
 		version.GetTag(),
 		version.GetCommit(),
@@ -271,7 +271,7 @@ func sendToExternalServices(e *Error, fields ...zap.Field) {
 	// fill the scope with error-related fields and push an error
 	// within that scope.
 	sentry.CurrentHub().WithScope(func(scope *sentry.Scope) {
-		scope.SetTag("err_type", e.errorType.codeName)
+		scope.SetTag("err_type", string(e.errorType.codeName))
 
 		if e.failedField != nil {
 			scope.SetExtra("failed_field", *e.failedField)
