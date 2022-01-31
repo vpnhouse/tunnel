@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// initialize measure middleware only once
+// initialize the measuring middleware only once
 var measureMW = middleware.New(middleware.Config{
 	Recorder:      metrics.NewRecorder(metrics.Config{}),
 	GroupedStatus: true,
