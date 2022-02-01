@@ -78,7 +78,7 @@ func validateInitialSetupRequest(req adminAPI.InitialSetupRequest) error {
 	}
 
 	size, _ := ipNet.Mask().Size()
-	if size < 8 || size > 31 {
+	if size < 8 || size > 30 {
 		return xerror.EInvalidField("invalid subnet size", "server_ip_mask", nil)
 	}
 

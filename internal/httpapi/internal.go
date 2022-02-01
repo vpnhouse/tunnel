@@ -3,12 +3,14 @@ package httpapi
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	commonAPI "github.com/Codename-Uranium/api/go/server/common"
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/auth"
+	"github.com/Codename-Uranium/tunnel/pkg/version"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/Codename-Uranium/tunnel/pkg/xnet"
@@ -74,6 +76,22 @@ func (tun *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
 	}
 
 	return nil
+}
+
+// versionRestrictionsMiddleware limits an access to the admin API subsets depends on the build type.
+func (tun *TunnelAPI) versionRestrictionsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if version.IsPersonal() {
+			// do not allow to access the trusted keys section in personal version
+			if strings.HasPrefix(r.URL.Path, "/api/tunnel/admin/trusted") {
+				msg := "trusted keys management does not available for the personal version"
+				xhttp.WriteJsonError(w, xerror.EForbidden(msg))
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	}
 }
 
 func (tun *TunnelAPI) initialSetupMiddleware(next http.HandlerFunc) http.HandlerFunc {

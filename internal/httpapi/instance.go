@@ -57,6 +57,7 @@ func (tun *TunnelAPI) RegisterHandlers(r chi.Router) {
 		Middlewares: []adminAPI.MiddlewareFunc{
 			tun.adminAuthMiddleware,
 			tun.initialSetupMiddleware,
+			tun.versionRestrictionsMiddleware,
 		},
 	})
 
