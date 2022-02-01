@@ -8,55 +8,121 @@ import (
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/settings"
 	"github.com/Codename-Uranium/tunnel/pkg/control"
+	"github.com/Codename-Uranium/tunnel/pkg/validator"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/asaskevich/govalidator"
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
 // AdminGetSettings implements handler for GET /settings request
-func (instance *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		s := settingsToOpenAPI(instance.runtime.Settings, instance.runtime.DynamicSettings)
+		s := settingsToOpenAPI(tun.runtime.Settings, tun.runtime.DynamicSettings)
 		return s, nil
 	})
 }
 
+// AdminInitialSetup POST /api/tunnel/admin/initial-setup
+func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) {
+	xhttp.JSONResponse(w, func() (interface{}, error) {
+		if !tun.runtime.DynamicSettings.InitialSetupRequired() {
+			return nil, xerror.EForbidden("the initial configuration has already been applied")
+		}
+
+		var req adminAPI.InitialSetupRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return nil, xerror.EInvalidArgument("failed to unmarshal request", err)
+		}
+
+		if err := validateInitialSetupRequest(req); err != nil {
+			return nil, err
+		}
+
+		tun.runtime.Settings.Wireguard.Subnet = req.ServerIpMask
+		if err := validateAndWriteSettings(tun.runtime.Settings); err != nil {
+			return nil, err
+		}
+
+		// setting the password resets the "initial setup required" flag.
+		if err := tun.runtime.DynamicSettings.SetAdminPassword(req.AdminPassword); err != nil {
+			return nil, err
+		}
+
+		tun.runtime.Events.EmitEvent(control.EventRestart)
+		return nil, nil
+	})
+}
+
+func validateInitialSetupRequest(req adminAPI.InitialSetupRequest) error {
+	if len(req.AdminPassword) < 6 {
+		return xerror.EInvalidField("password too short", "admin_password", nil)
+	}
+
+	ipAddr, ipNet, err := xnet.ParseCIDR(req.ServerIpMask)
+	if err != nil {
+		return xerror.EInvalidField("failed to parse subnet", "server_ip_mask", err)
+	}
+
+	if !ipAddr.Isv4() {
+		return xerror.EInvalidField("only ipv4 network supported", "server_ip_mask", nil)
+	}
+
+	if !ipAddr.IsPrivate() {
+		return xerror.EInvalidField("not a private subnet given", "server_ip_mask", nil)
+	}
+
+	if ipAddr.Equal(ipNet.IP()) {
+		return xerror.EInvalidField("ip/mask required, but subnet/mask given", "server_ip_mask", nil)
+	}
+
+	size, _ := ipNet.Mask().Size()
+	if size < 8 || size > 30 {
+		return xerror.EInvalidField("invalid subnet size", "server_ip_mask", nil)
+	}
+
+	return nil
+}
+
 // AdminUpdateSettings implements handler for PATCH /settings request
-func (instance *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		newSettings, err := openApiSettingsFromRequest(r)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := updateDynamicSettings(instance.runtime.DynamicSettings, newSettings); err != nil {
+		if err := updateDynamicSettings(tun.runtime.DynamicSettings, newSettings); err != nil {
 			return nil, err
 		}
 
-		static := mergeStaticSettings(instance.runtime.Settings, newSettings)
-		ok, err := govalidator.ValidateStruct(static)
-		if err != nil {
-			return nil, xerror.EInvalidArgument("failed to validate static config", err)
-		}
-		if !ok {
-			return nil, xerror.EInvalidArgument("failed to validate static config", nil)
+		static := mergeStaticSettings(tun.runtime.Settings, newSettings)
+		if err := validateAndWriteSettings(static); err != nil {
+			return nil, err
 		}
 
-		bs, _ := yaml.Marshal(static)
-		if err := os.WriteFile(static.GetPath(), bs, 0600); err != nil {
-			return nil, xerror.WInternalError("config", "failed to write static config",
-				err, zap.String("path", static.GetPath()))
-		}
-
-		instance.runtime.Events.EmitEvent(control.EventNeedRestart)
+		tun.runtime.Events.EmitEvent(control.EventNeedRestart)
 		return nil, nil
 	})
 }
 
+func validateAndWriteSettings(newSettings settings.StaticConfig) error {
+	if err := validator.ValidateStruct(newSettings); err != nil {
+		return xerror.EInvalidArgument("failed to validate static config", err)
+	}
+
+	bs, _ := yaml.Marshal(newSettings)
+	path := newSettings.GetPath()
+	if err := os.WriteFile(path, bs, 0600); err != nil {
+		return xerror.WInternalError("config", "failed to write static config",
+			err, zap.String("path", path))
+	}
+	return nil
+}
+
 func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminAPI.Settings {
-	key := d.GetWireguardPrivateKey().PublicKey().String()
+	public := d.GetWireguardPrivateKey().Public().Unwrap().String()
 	return adminAPI.Settings{
 		AdminUserName:       &s.AdminAPI.UserName,
 		ConnectionTimeout:   &s.PublicAPI.PeerTTL,
@@ -66,7 +132,7 @@ func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminA
 		PingInterval:        &s.PublicAPI.PingInterval,
 		WireguardKeepalive:  &s.Wireguard.Keepalive,
 		WireguardListenPort: &s.Wireguard.ServerPort,
-		WireguardPublicKey:  &key,
+		WireguardPublicKey:  &public,
 		WireguardServerIpv4: &s.Wireguard.ServerIPv4,
 		WireguardSubnet:     &s.Wireguard.Subnet,
 	}

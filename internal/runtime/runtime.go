@@ -19,6 +19,7 @@ type TunnelRuntime struct {
 	Settings        settings.StaticConfig
 	DynamicSettings settings.DynamicConfig
 	Flags           Flags
+	Features        FeatureSet
 	starter         ServicesInitFunc
 }
 
@@ -29,6 +30,7 @@ func (runtime *TunnelRuntime) EventChannel() chan control.Event {
 func New(static settings.StaticConfig, dynamic settings.DynamicConfig, starter ServicesInitFunc) *TunnelRuntime {
 	updateLogLevelFn := control.InitLogger(static.LogLevel)
 	return &TunnelRuntime{
+		Features:        NewFeatureSet(),
 		Settings:        static,
 		DynamicSettings: dynamic,
 		SetLogLevel:     updateLogLevelFn,

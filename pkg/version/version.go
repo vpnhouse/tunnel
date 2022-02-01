@@ -1,5 +1,11 @@
 package version
 
+const (
+	Dev        = "dev"
+	Personal   = "personal"
+	Enterprise = "enterprise"
+)
+
 var (
 	// tag and commit values must be set via -ldflags, for example:
 	// go build \
@@ -26,6 +32,18 @@ func GetCommit() string {
 // GetFeature returns current feature set for the build
 func GetFeature() string {
 	return feature
+}
+
+func IsPersonal() bool {
+	return feature == Personal
+}
+
+func IsDevelop() bool {
+	return feature == Dev
+}
+
+func IsEnterprise() bool {
+	return feature == Enterprise
 }
 
 // GetVersion returns the full version of tag and commit,

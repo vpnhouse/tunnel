@@ -3,12 +3,14 @@ package httpapi
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	commonAPI "github.com/Codename-Uranium/api/go/server/common"
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/auth"
+	"github.com/Codename-Uranium/tunnel/pkg/version"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/Codename-Uranium/tunnel/pkg/xnet"
@@ -54,21 +56,21 @@ func wrap404ToIndex(h http.Handler) http.HandlerFunc {
 }
 
 // adminCheckBasicAuth only checks if basic authentication is successful
-func (instance *TunnelAPI) adminCheckBasicAuth(username string, password string) error {
-	if username != instance.runtime.Settings.AdminAPI.UserName {
+func (tun *TunnelAPI) adminCheckBasicAuth(username string, password string) error {
+	if username != tun.runtime.Settings.AdminAPI.UserName {
 		return xerror.EAuthenticationFailed("invalid credentials", nil)
 	}
 
-	if err := instance.runtime.DynamicSettings.VerifyAdminPassword(password); err != nil {
+	if err := tun.runtime.DynamicSettings.VerifyAdminPassword(password); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (instance *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
+func (tun *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
 	var claims jwt.StandardClaims
-	err := instance.adminJWT.Parse(tokenStr, &claims)
+	err := tun.adminJWT.Parse(tokenStr, &claims)
 	if err != nil {
 		return err
 	}
@@ -76,24 +78,57 @@ func (instance *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
 	return nil
 }
 
-// adminAuthMiddleware checks if bearer authentication is succeed
-func (instance *TunnelAPI) adminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+// versionRestrictionsMiddleware limits an access to the admin API subsets depends on the build type.
+func (tun *TunnelAPI) versionRestrictionsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/tunnel/admin/auth" {
-			// bypass auth url
+		if version.IsPersonal() {
+			// do not allow to access the trusted keys section in personal version
+			if strings.HasPrefix(r.URL.Path, "/api/tunnel/admin/trusted") {
+				msg := "trusted keys management does not available for the personal version"
+				xhttp.WriteJsonError(w, xerror.EForbidden(msg))
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	}
+}
+
+func (tun *TunnelAPI) initialSetupMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if tun.runtime.DynamicSettings.InitialSetupRequired() {
+			if r.URL.Path != "/api/tunnel/admin/initial-setup" {
+				xhttp.WriteJsonError(w, xerror.EConfigurationRequired("initial configuration required"))
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	}
+}
+
+var adminAuthBypassPaths = map[string]struct{}{
+	"/api/tunnel/admin/auth":          {},
+	"/api/tunnel/admin/initial-setup": {},
+}
+
+// adminAuthMiddleware checks if bearer authentication is succeed
+func (tun *TunnelAPI) adminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := adminAuthBypassPaths[r.URL.Path]; ok {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		tokenStr, ok := xhttp.ExtractTokenFromRequest(r)
 		if !ok {
-			http.Error(w, "no auth token given", http.StatusUnauthorized)
+			xhttp.WriteJsonError(w, xerror.EUnauthorized("no auth token given", nil))
 			return
 		}
 
-		err := instance.adminCheckBearerAuth(tokenStr)
+		err := tun.adminCheckBearerAuth(tokenStr)
 		if err != nil {
-			http.Error(w, "invalid auth token", http.StatusUnauthorized)
+			xhttp.WriteJsonError(w, xerror.EUnauthorized("invalid auth token", nil))
 			return
 		}
 
@@ -101,10 +136,10 @@ func (instance *TunnelAPI) adminAuthMiddleware(next http.HandlerFunc) http.Handl
 	}
 }
 
-func (instance *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func (tun *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get(federationAuthHeader)
-		who, ok := instance.keystore.Authorize(authHeader)
+		who, ok := tun.keystore.Authorize(authHeader)
 		if !ok {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
@@ -116,7 +151,7 @@ func (instance *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.
 
 func importIdentifiers(oIdentifiers *commonAPI.ConnectionIdentifiers) (*types.PeerIdentifiers, error) {
 	if oIdentifiers == nil {
-		return nil, nil
+		return &types.PeerIdentifiers{}, nil
 	}
 
 	installationIdPtr, err := parseIdentifierUUID(oIdentifiers.InstallationId)
@@ -236,19 +271,18 @@ func exportIdentifiers(identifiers *types.PeerIdentifiers) *commonAPI.Connection
 	return oIdentifiers
 }
 
-func exportPeer(peer *types.PeerInfo) (*adminAPI.Peer, error) {
+func exportPeer(peer *types.PeerInfo) (adminAPI.Peer, error) {
 	// Validate peer
 	err := peer.Validate()
 	if err != nil {
-		return nil, err
+		return adminAPI.Peer{}, err
 	}
 
 	// Handle tunnel type
-	tunnelType := types.TunnelTypeToName(peer.Type)
-	if tunnelType == nil {
-		return nil, xerror.EInvalidArgument("unknown tunnel type", nil)
+	tunnelType := peer.TypeName()
+	if len(tunnelType) == 0 {
+		return adminAPI.Peer{}, xerror.EInvalidArgument("unknown tunnel type", nil)
 	}
-	peerType := tunnelAPI.PeerType(*tunnelType)
 
 	// Handle wireguard information
 	var wg *tunnelAPI.PeerWireguard
@@ -264,7 +298,7 @@ func exportPeer(peer *types.PeerInfo) (*adminAPI.Peer, error) {
 
 	oPeer := adminAPI.Peer{
 		Label:         peer.Label,
-		Type:          &peerType,
+		Type:          &tunnelType,
 		Ipv4:          &ip,
 		InfoWireguard: wg,
 		Created:       peer.Created.TimePtr(),
@@ -274,7 +308,7 @@ func exportPeer(peer *types.PeerInfo) (*adminAPI.Peer, error) {
 		Identifiers:   exportIdentifiers(&peer.PeerIdentifiers),
 	}
 
-	return &oPeer, nil
+	return oPeer, nil
 }
 
 func parseIdentifierUUID(v *string) (*uuid.UUID, error) {

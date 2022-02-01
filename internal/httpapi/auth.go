@@ -12,7 +12,7 @@ import (
 )
 
 // AdminDoAuth implements handler for GET /api/tunnel/admin/auth
-func (instance *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		authOK := false
 
@@ -20,7 +20,7 @@ func (instance *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
 		username, password, haveBasic := r.BasicAuth()
 		if haveBasic {
 			zap.L().Debug("found basic authentication")
-			err := instance.adminCheckBasicAuth(username, password)
+			err := tun.adminCheckBasicAuth(username, password)
 			if err != nil {
 				return nil, err
 			}
@@ -32,7 +32,7 @@ func (instance *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
 			tokenStr, haveBearer := xhttp.ExtractTokenFromRequest(r)
 			if haveBearer {
 				zap.L().Debug("found bearer authentication")
-				err := instance.adminCheckBearerAuth(tokenStr)
+				err := tun.adminCheckBearerAuth(tokenStr)
 				if err != nil {
 					return nil, err
 				}
@@ -46,13 +46,13 @@ func (instance *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
 
 		// Create claims
 		issued := time.Now().Unix()
-		expires := issued + int64(instance.runtime.Settings.AdminAPI.TokenLifetime)
+		expires := issued + int64(tun.runtime.Settings.AdminAPI.TokenLifetime)
 		claims := jwt.StandardClaims{
 			IssuedAt:  issued,
 			ExpiresAt: expires,
 		}
 
-		signedToken, err := instance.adminJWT.Token(&claims)
+		signedToken, err := tun.adminJWT.Token(&claims)
 		if err != nil {
 			return nil, err
 		}

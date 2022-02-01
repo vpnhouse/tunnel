@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"net"
 	"strconv"
 	"strings"
 
@@ -16,6 +17,7 @@ type UrlList []string
 
 func init() {
 	govalidator.TagMap["cidr"] = govalidator.IsCIDR
+	govalidator.TagMap["listen_addr"] = isListenAddr
 	govalidator.TagMap["path"] = govalidator.IsUnixFilePath
 	govalidator.TagMap["hash"] = isPasswordHash
 	govalidator.TagMap["natural"] = isNatural
@@ -35,6 +37,22 @@ func ValidateStruct(s interface{}) error {
 		return errors.New("validation failed")
 	}
 	return nil
+}
+
+func isListenAddr(s string) bool {
+	host, port, err := net.SplitHostPort(s)
+	if err != nil {
+		return false
+	}
+	if !govalidator.IsPort(port) {
+		return false
+	}
+	// dual-stack listener
+	if len(host) == 0 {
+		return true
+	}
+
+	return govalidator.IsHost(host) || govalidator.IsIP(host)
 }
 
 func isNatural(str string) bool {

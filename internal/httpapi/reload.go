@@ -8,9 +8,9 @@ import (
 )
 
 // AdminReloadService reloads server with new configuration
-func (instance *TunnelAPI) AdminReloadService(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) AdminReloadService(w http.ResponseWriter, r *http.Request) {
 	// ask the default wrapper to write OK string to the client conn
 	xhttp.JSONResponse(w, func() (interface{}, error) { return nil, nil })
 	w.(http.Flusher).Flush()
-	instance.runtime.Events.EmitEvent(control.EventRestart)
+	tun.runtime.Events.EmitEvent(control.EventRestart)
 }

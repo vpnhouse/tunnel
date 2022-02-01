@@ -9,7 +9,7 @@ import (
 )
 
 func TestDefaults(t *testing.T) {
-	cfg, err := dynamicConfigFromFS(&afero.MemMapFs{}, "")
+	cfg, err := dynamicConfigFromFS(&afero.MemMapFs{}, "", true)
 	require.NoError(t, err)
 	assert.True(t, len(cfg.conf.AdminPasswordHash) > 0)
 	assert.True(t, len(cfg.conf.WireguardPrivateKey) > 0)
@@ -17,7 +17,7 @@ func TestDefaults(t *testing.T) {
 
 func TestNonExistentDir(t *testing.T) {
 	// must start with defaults if directory does not exists
-	cfg, err := dynamicConfigFromFS(&afero.MemMapFs{}, "/does/not/exists")
+	cfg, err := dynamicConfigFromFS(&afero.MemMapFs{}, "/does/not/exists", true)
 	require.NoError(t, err)
 	assert.True(t, len(cfg.conf.WireguardPrivateKey) > 0)
 }
