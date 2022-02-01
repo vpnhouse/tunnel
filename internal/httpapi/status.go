@@ -17,3 +17,17 @@ func (tun *TunnelAPI) AdminGetStatus(w http.ResponseWriter, r *http.Request) {
 		return status, nil
 	})
 }
+
+func (tun *TunnelAPI) AdminConnectionInfoWireguard(w http.ResponseWriter, r *http.Request) {
+	xhttp.JSONResponse(w, func() (interface{}, error) {
+		opts := adminAPI.ServerWireguardOptions{
+			AllowedIps:      []string{"0.0.0.0/1", "128.0.0.0/1"},
+			Dns:             tun.runtime.Settings.Wireguard.DNS,
+			Keepalive:       tun.runtime.Settings.Wireguard.Keepalive,
+			ServerIpv4:      tun.runtime.Settings.Wireguard.ServerIPv4,
+			ServerPort:      tun.runtime.Settings.Wireguard.ServerPort,
+			ServerPublicKey: tun.runtime.DynamicSettings.GetWireguardPrivateKey().Public().Unwrap().String(),
+		}
+		return opts, nil
+	})
+}

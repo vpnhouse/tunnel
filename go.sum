@@ -60,6 +60,14 @@ github.com/Codename-Uranium/api v0.0.0-20220131095638-802859307553 h1:YnQioxPY1D
 github.com/Codename-Uranium/api v0.0.0-20220131095638-802859307553/go.mod h1:gujgPmous+eDiPUKvCJ/siYnssCHuY8W53NL6bLTs0k=
 github.com/Codename-Uranium/api v0.0.0-20220131100127-7183dbc48fc2 h1:U1I9n65bfqFG+UJVqdwJNTRAtStKmroN/shW9qivG6Y=
 github.com/Codename-Uranium/api v0.0.0-20220131100127-7183dbc48fc2/go.mod h1:gujgPmous+eDiPUKvCJ/siYnssCHuY8W53NL6bLTs0k=
+github.com/Codename-Uranium/api v0.0.0-20220201072811-f7ff36451387 h1:FmtSdu+ykFXq6nW1sjPR3C39Am4GiWiY+evaRERH7qI=
+github.com/Codename-Uranium/api v0.0.0-20220201072811-f7ff36451387/go.mod h1:gujgPmous+eDiPUKvCJ/siYnssCHuY8W53NL6bLTs0k=
+github.com/Codename-Uranium/api v0.0.0-20220201075742-705646e8c3b8 h1:r8rAa6WGb+7LoraqRTVtgjAdkAlfVAFRevbQ18dHoxA=
+github.com/Codename-Uranium/api v0.0.0-20220201075742-705646e8c3b8/go.mod h1:gujgPmous+eDiPUKvCJ/siYnssCHuY8W53NL6bLTs0k=
+github.com/Codename-Uranium/api v0.0.0-20220201075912-9e10ecd8f1b1 h1:l9dt1xDRxGVR8o6yhP1Ze5/asNfIhXqWecYmNtoRu0c=
+github.com/Codename-Uranium/api v0.0.0-20220201075912-9e10ecd8f1b1/go.mod h1:gujgPmous+eDiPUKvCJ/siYnssCHuY8W53NL6bLTs0k=
+github.com/Codename-Uranium/api v0.0.0-20220201080607-4ee675d252e9 h1:/nbXGXXieGYnD7DV26096sU0W1xm8Jl+JOEoRqiXxsU=
+github.com/Codename-Uranium/api v0.0.0-20220201080607-4ee675d252e9/go.mod h1:gujgPmous+eDiPUKvCJ/siYnssCHuY8W53NL6bLTs0k=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
 github.com/Masterminds/goutils v1.1.0/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver v1.5.0/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=

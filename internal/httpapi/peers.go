@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 )
 
 // getPeerFromRequest parses peer information from request body.
@@ -42,7 +40,6 @@ func (tun *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request) {
 			}
 			foundPeers[i].Id = *peer.Id
 			foundPeers[i].Peer = oPeer
-			foundPeers[i].ConnectInfo = tun.peerConnectionInfo(peer.Ipv4)
 		}
 
 		return foundPeers, nil
@@ -77,9 +74,8 @@ func (tun *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, id in
 		}
 
 		info := adminAPI.PeerRecord{
-			Id:          id,
-			Peer:        exported,
-			ConnectInfo: tun.peerConnectionInfo(peer.Ipv4),
+			Id:   id,
+			Peer: exported,
 		}
 
 		return info, nil
@@ -115,9 +111,8 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 		}
 
 		record := adminAPI.PeerRecord{
-			Id:          *id,
-			Peer:        oPeer,
-			ConnectInfo: tun.peerConnectionInfo(insertedPeer.Ipv4),
+			Id:   *id,
+			Peer: oPeer,
 		}
 
 		return record, nil
@@ -152,24 +147,10 @@ func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id
 		}
 
 		info := adminAPI.PeerRecord{
-			Id:          id,
-			Peer:        exported,
-			ConnectInfo: tun.peerConnectionInfo(insertedPeer.Ipv4),
+			Id:   id,
+			Peer: exported,
 		}
 
 		return info, nil
 	})
-}
-
-func (tun *TunnelAPI) peerConnectionInfo(ip *xnet.IP) *tunnelAPI.ConnectInfoWireguard {
-	return &tunnelAPI.ConnectInfoWireguard{
-		TunnelIpv4:      ip.String(),
-		AllowedIps:      []string{"0.0.0.0/1", "128.0.0.0/1"},
-		Dns:             tun.runtime.Settings.Wireguard.DNS,
-		Keepalive:       tun.runtime.Settings.Wireguard.Keepalive,
-		PingInterval:    tun.runtime.Settings.Wireguard.Keepalive,
-		ServerIpv4:      tun.runtime.Settings.Wireguard.ServerIPv4,
-		ServerPort:      tun.runtime.Settings.Wireguard.ServerPort,
-		ServerPublicKey: tun.runtime.DynamicSettings.GetWireguardPrivateKey().Public().Unwrap().String(),
-	}
 }
