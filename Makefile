@@ -16,7 +16,7 @@ ifeq (${DOCKER_TAG},)
 endif
 
 DESCRIPTION = tunnel $(GIT_TAG)-$(GIT_COMMIT) branch $(GIT_BRANCH)
-GO_VERSION_PATH = github.com/Codename-Uranium/common/version
+GO_VERSION_PATH = github.com/Codename-Uranium/tunnel/pkg/version
 GO_LDFLAGS = -w -s -X $(GO_VERSION_PATH).tag=$(GIT_TAG) -X $(GO_VERSION_PATH).commit=$(GIT_COMMIT)
 GO_LDFLAGS_PERSONAL = $(GO_LDFLAGS) -X $(GO_VERSION_PATH).feature=personal
 

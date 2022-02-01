@@ -10,9 +10,9 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 )
 
-// getPeerInfo parses peer information from request body.
+// getPeerFromRequest parses peer information from request body.
 // WARNING! This function does not do any verification of imported data! Caller must do it itself!
-func getPeerInfo(r *http.Request, id *int64) (*types.PeerInfo, error) {
+func getPeerFromRequest(r *http.Request, id *int64) (*types.PeerInfo, error) {
 	var oPeer adminAPI.Peer
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -25,9 +25,9 @@ func getPeerInfo(r *http.Request, id *int64) (*types.PeerInfo, error) {
 }
 
 // AdminListPeers implements GET method on /api/admin/peers endpoint
-func (instance *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		peers, err := instance.manager.ListPeers()
+		peers, err := tun.manager.ListPeers()
 		if err != nil {
 			return nil, err
 		}
@@ -39,7 +39,7 @@ func (instance *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request
 				return nil, err
 			}
 			foundPeers[i].Id = *peer.Id
-			foundPeers[i].Peer = *oPeer
+			foundPeers[i].Peer = oPeer
 		}
 
 		return foundPeers, nil
@@ -47,9 +47,9 @@ func (instance *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request
 }
 
 // AdminDeletePeer implements DELETE method on /api/admin/peers/{id} endpoint
-func (instance *TunnelAPI) AdminDeletePeer(w http.ResponseWriter, r *http.Request, id int64) {
+func (tun *TunnelAPI) AdminDeletePeer(w http.ResponseWriter, r *http.Request, id int64) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		if err := instance.manager.UnsetPeer(id); err != nil {
+		if err := tun.manager.UnsetPeer(id); err != nil {
 			return nil, err
 		}
 		return nil, nil
@@ -57,9 +57,9 @@ func (instance *TunnelAPI) AdminDeletePeer(w http.ResponseWriter, r *http.Reques
 }
 
 // AdminGetPeer implements GET method on /api/admin/peers/{id} endpoint
-func (instance *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, id int64) {
+func (tun *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, id int64) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		peer, err := instance.manager.GetPeer(id)
+		peer, err := tun.manager.GetPeer(id)
 		if err != nil {
 			return nil, err
 		}
@@ -68,19 +68,24 @@ func (instance *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, 
 			return nil, xerror.EEntryNotFound("entry not found", nil)
 		}
 
-		oPeer, err := exportPeer(peer)
+		exported, err := exportPeer(peer)
 		if err != nil {
 			return nil, err
 		}
 
-		return oPeer, nil
+		info := adminAPI.PeerRecord{
+			Id:   id,
+			Peer: exported,
+		}
+
+		return info, nil
 	})
 }
 
-// AdminCreatePeer implements POST method on /api/admin/peers/{id} endpoint
-func (instance *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
+// AdminCreatePeer implements POST method on /api/admin/peers endpoint
+func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		peer, err := getPeerInfo(r, nil)
+		peer, err := getPeerFromRequest(r, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -90,12 +95,12 @@ func (instance *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Reques
 			return nil, err
 		}
 
-		id, err := instance.manager.SetPeer(peer)
+		id, err := tun.manager.SetPeer(peer)
 		if err != nil {
 			return nil, err
 		}
 
-		insertedPeer, err := instance.manager.GetPeer(*id)
+		insertedPeer, err := tun.manager.GetPeer(*id)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +112,7 @@ func (instance *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Reques
 
 		record := adminAPI.PeerRecord{
 			Id:   *id,
-			Peer: *oPeer,
+			Peer: oPeer,
 		}
 
 		return record, nil
@@ -115,9 +120,9 @@ func (instance *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Reques
 }
 
 // AdminUpdatePeer implements PUT method on /api/admin/peers/{id} endpoint
-func (instance *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id int64) {
+func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id int64) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		peer, err := getPeerInfo(r, &id)
+		peer, err := getPeerFromRequest(r, &id)
 		if err != nil {
 			return nil, err
 		}
@@ -126,16 +131,26 @@ func (instance *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Reques
 			return nil, err
 		}
 
-		if err := instance.manager.UpdatePeer(peer); err != nil {
+		if err := tun.manager.UpdatePeer(peer); err != nil {
 			return nil, err
 		}
 
 		// fetch updated record and send it back
-		insertedPeer, err := instance.manager.GetPeer(id)
+		insertedPeer, err := tun.manager.GetPeer(id)
 		if err != nil {
 			return nil, err
 		}
 
-		return exportPeer(insertedPeer)
+		exported, err := exportPeer(insertedPeer)
+		if err != nil {
+			return nil, err
+		}
+
+		info := adminAPI.PeerRecord{
+			Id:   id,
+			Peer: exported,
+		}
+
+		return info, nil
 	})
 }

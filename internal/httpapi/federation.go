@@ -12,10 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
-func (instance *TunnelAPI) FederationPing(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) FederationPing(w http.ResponseWriter, r *http.Request) {
 	zap.L().Debug("ping")
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		stats := instance.manager.GetCachedStatistics()
+		stats := tun.manager.GetCachedStatistics()
 		reply := mgmtAPI.PingResponse{
 			PeersTotal:       stats.PeersTotal,
 			PeersWithTraffic: stats.PeersWithTraffic,
@@ -33,7 +33,7 @@ func (instance *TunnelAPI) FederationPing(w http.ResponseWriter, r *http.Request
 	})
 }
 
-func (instance *TunnelAPI) FederationSetAuthorizerKeys(w http.ResponseWriter, r *http.Request) {
+func (tun *TunnelAPI) FederationSetAuthorizerKeys(w http.ResponseWriter, r *http.Request) {
 	zap.L().Debug("set authorizer keys")
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		var records []federation.PublicKeyRecord
@@ -57,7 +57,7 @@ func (instance *TunnelAPI) FederationSetAuthorizerKeys(w http.ResponseWriter, r 
 			authorizerKeys[i] = ak
 		}
 
-		if err := instance.storage.UpdateAuthorizerKeys(authorizerKeys); err != nil {
+		if err := tun.storage.UpdateAuthorizerKeys(authorizerKeys); err != nil {
 			return nil, err
 		}
 

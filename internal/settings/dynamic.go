@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/version"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xrand"
 	"github.com/spf13/afero"
@@ -20,7 +22,8 @@ import (
 type DynamicConfig interface {
 	SetAdminPassword(plain string) error
 	VerifyAdminPassword(given string) error
-	GetWireguardPrivateKey() wgtypes.Key
+	GetWireguardPrivateKey() types.WGPrivateKey
+	InitialSetupRequired() bool
 }
 
 // this is how we serialize and store the
@@ -30,7 +33,7 @@ type dynamicConfigYAML struct {
 	AdminPasswordHash   string `yaml:"admin_password_hash"`
 
 	// parsed key
-	wgPrivate wgtypes.Key
+	wgPrivate types.WGPrivateKey
 }
 
 func loadDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
@@ -39,34 +42,35 @@ func loadDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
 		return dynamicConfigYAML{}, err
 	}
 
-	pkey, err := wgtypes.ParseKey(conf.WireguardPrivateKey)
+	privateKey, err := wgtypes.ParseKey(conf.WireguardPrivateKey)
 	if err != nil {
 		return dynamicConfigYAML{}, xerror.EInternalError("failed to parse wireguard's private key", err)
 	}
 
-	conf.wgPrivate = pkey.PublicKey()
-
+	conf.wgPrivate = types.WGPrivateKey(privateKey)
 	return conf, nil
 }
 
-func generateAndWriteDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
+func generateAndWriteDynamicConfig(fs afero.Fs, path string, withPassword bool) (dynamicConfigYAML, error) {
 	if err := fs.MkdirAll(filepath.Dir(path), 0600); err != nil {
 		return dynamicConfigYAML{}, xerror.EInternalError("failed to create directory for the dynamic config", err, zap.String("path", path))
 	}
 
 	cfg := dynamicConfigYAML{}
-	password, err := generateAdminPasswordHash()
-	if err != nil {
-		return dynamicConfigYAML{}, err
+	if withPassword {
+		password, err := generateAdminPasswordHash()
+		if err != nil {
+			return dynamicConfigYAML{}, err
+		}
+		cfg.AdminPasswordHash = password
 	}
-	cfg.AdminPasswordHash = password
 
-	pkey, err := wgtypes.GenerateKey()
+	privateKey, err := wgtypes.GeneratePrivateKey()
 	if err != nil {
 		return dynamicConfigYAML{}, xerror.EInternalError("failed to generate WG key", err)
 	}
-	cfg.wgPrivate = pkey
-	cfg.WireguardPrivateKey = pkey.String()
+	cfg.WireguardPrivateKey = privateKey.String()
+	cfg.wgPrivate = types.WGPrivateKey(privateKey)
 
 	fd, err := fs.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
@@ -107,10 +111,12 @@ type dynamicConfig struct {
 
 // LoadDynamic loads and validates a YAML file from given path p
 func LoadDynamic(configDir string) (DynamicConfig, error) {
-	return dynamicConfigFromFS(afero.OsFs{}, configDir)
+	// TODO(nikonov): not quite good solution because of implicit logic
+	mustGeneratePassword := !version.IsPersonal()
+	return dynamicConfigFromFS(afero.OsFs{}, configDir, mustGeneratePassword)
 }
 
-func dynamicConfigFromFS(fs afero.Fs, configDir string) (*dynamicConfig, error) {
+func dynamicConfigFromFS(fs afero.Fs, configDir string, withPassword bool) (*dynamicConfig, error) {
 	if len(configDir) == 0 {
 		configDir = defaultConfigDir
 	}
@@ -120,7 +126,7 @@ func dynamicConfigFromFS(fs afero.Fs, configDir string) (*dynamicConfig, error) 
 	switch {
 	case os.IsNotExist(err):
 		zap.L().Debug("no dynamic config file, generating the new one")
-		conf, err = generateAndWriteDynamicConfig(fs, pathToDynamic)
+		conf, err = generateAndWriteDynamicConfig(fs, pathToDynamic, withPassword)
 		if err != nil {
 			return nil, err
 		}
@@ -168,12 +174,22 @@ func (dc *dynamicConfig) SetAdminPassword(plain string) error {
 }
 
 func (dc *dynamicConfig) VerifyAdminPassword(given string) error {
+	dc.mu.RLock()
+	defer dc.mu.RUnlock()
+
 	if err := passlib.VerifyNoUpgrade(given, dc.conf.AdminPasswordHash); err != nil {
-		return xerror.EInternalError("admin credentails verification failed", err)
+		return xerror.EInternalError("admin credentials verification failed", err)
 	}
 	return nil
 }
-func (dc *dynamicConfig) GetWireguardPrivateKey() wgtypes.Key {
+
+func (dc *dynamicConfig) GetWireguardPrivateKey() types.WGPrivateKey {
 	// do not guard with mutex - read only field.
 	return dc.conf.wgPrivate
+}
+
+func (dc *dynamicConfig) InitialSetupRequired() bool {
+	dc.mu.RLock()
+	defer dc.mu.RUnlock()
+	return len(dc.conf.AdminPasswordHash) == 0
 }

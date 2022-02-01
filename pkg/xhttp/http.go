@@ -12,7 +12,14 @@ import (
 	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	middlewarestd "github.com/slok/go-http-metrics/middleware/std"
+	"go.uber.org/zap"
 )
+
+// initialize the measuring middleware only once
+var measureMW = middleware.New(middleware.Config{
+	Recorder:      metrics.NewRecorder(metrics.Config{}),
+	GroupedStatus: true,
+})
 
 type Middleware = func(http.Handler) http.Handler
 
@@ -26,10 +33,6 @@ func WithMiddleware(mw Middleware) Option {
 }
 
 func WithMetrics() Option {
-	measureMW := middleware.New(middleware.Config{
-		Recorder:      metrics.NewRecorder(metrics.Config{}),
-		GroupedStatus: true,
-	})
 	return func(w *wrapper) {
 		// the measurement middleware
 		w.router.Use(func(handler http.Handler) http.Handler {
@@ -58,6 +61,7 @@ func (w *wrapper) Run(addr string) error {
 		Addr:    addr,
 	}
 
+	zap.L().Info("starting HTTP server", zap.String("addr", addr))
 	return w.srv.ListenAndServe()
 }
 
