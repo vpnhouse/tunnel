@@ -31,6 +31,32 @@ type IPv4pool struct {
 	logFunc func(format string, a ...string)
 }
 
+func NewIPv4FromSubnet(subnet *xnet.IPNet) (*IPv4pool, error) {
+	f := zap.String("subnet", subnet.String())
+	zap.L().Debug("starting ipv4 pool", f)
+
+	if !subnet.IP().Isv4() {
+		return nil, xerror.EInvalidArgument("can't start pool with non-ipv4 subnet", nil, f)
+	}
+
+	if ones, _ := subnet.Mask().Size(); ones > 30 {
+		return nil, xerror.EInvalidArgument("need at least /30 subnet to operate", nil, f)
+	}
+
+	minIP := subnet.FirstUsable()
+	maxIP := subnet.LastUsable()
+
+	return &IPv4pool{
+		serverIP: minIP,
+		used:     defaultUsed(minIP.ToUint32()),
+		min:      minIP.ToUint32(),
+		max:      maxIP.ToUint32(),
+		running:  true,
+		// silently do nothing if in the production mode.
+		logFunc: func(format string, a ...string) {},
+	}, nil
+}
+
 func NewIPv4(subnetAddr string) (*IPv4pool, error) {
 	zap.L().Debug("Starting ipv4 pool", zap.String("subnetAddr", subnetAddr))
 
@@ -59,7 +85,7 @@ func NewIPv4(subnetAddr string) (*IPv4pool, error) {
 
 	return &IPv4pool{
 		serverIP: minIP,
-		used:     defaultUsed(serverIP.ToUint32()),
+		used:     defaultUsed(minIP.ToUint32()),
 		min:      minIP.ToUint32(),
 		max:      maxIP.ToUint32(),
 		running:  true,
