@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"github.com/asaskevich/govalidator"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"gopkg.in/hlandau/passlib.v1"
@@ -14,6 +15,17 @@ import (
 
 type Ipv4List []string
 type UrlList []string
+
+type Subnet string
+
+func (s Subnet) Unwrap() *xnet.IPNet {
+	_, n, err := xnet.ParseCIDR(string(s))
+	if err != nil {
+		// must never happen since `s` always validated
+		panic(err)
+	}
+	return n
+}
 
 func init() {
 	govalidator.TagMap["cidr"] = govalidator.IsCIDR
@@ -26,6 +38,7 @@ func init() {
 
 	govalidator.CustomTypeTagMap.Set("ipv4list", isIPv4List)
 	govalidator.CustomTypeTagMap.Set("urllist", isURLList)
+	govalidator.CustomTypeTagMap.Set("subnet", isSubnet)
 }
 
 func ValidateStruct(s interface{}) error {
@@ -134,6 +147,34 @@ func isURLList(value interface{}, _ interface{}) bool {
 		if !govalidator.IsURL(url) {
 			return false
 		}
+	}
+
+	return true
+}
+
+func isSubnet(value interface{}, _ interface{}) bool {
+	var s string
+	switch v := value.(type) {
+	case string:
+		s = v
+	case Subnet:
+		s = string(v)
+	default:
+		return false
+	}
+
+	ipa, ipn, err := xnet.ParseCIDR(s)
+	if err != nil {
+		return false
+	}
+
+	if !ipn.IP().Isv4() {
+		return false
+	}
+
+	// must be the network address, not the host one
+	if !ipn.IP().Equal(ipa) {
+		return false
 	}
 
 	return true

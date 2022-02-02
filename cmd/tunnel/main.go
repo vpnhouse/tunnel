@@ -59,7 +59,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	runtime.Services.RegisterService("authorizer", jwtAuthorizer)
 
 	// Initialize IP pool
-	ipv4Pool, err := ippool.NewIPv4(runtime.Settings.Wireguard.Subnet)
+	ipv4Pool, err := ippool.NewIPv4FromSubnet(runtime.Settings.Wireguard.Subnet.Unwrap())
 	if err != nil {
 		return err
 	}
