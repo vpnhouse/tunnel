@@ -14,14 +14,9 @@ import (
 // (GET /api/tunnel/admin/ip-pool/suggest)
 func (tun *TunnelAPI) AdminIppoolSuggest(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		// allocate the address, then immediately deallocate back,
-		// so we know that this particular IP is available.
-		ipa, err := tun.ippool.Alloc()
+		ipa, err := tun.ippool.Available()
 		if err != nil {
-			return nil, xerror.EInternalError("ipv4pool: failed to allocate", err)
-		}
-		if err := tun.ippool.Unset(ipa); err != nil {
-			return nil, xerror.EInternalError("ipv4pool: failed to de-allocate", err)
+			return nil, err
 		}
 
 		addr := tunnel_admin.IpPoolAddress{
@@ -45,12 +40,8 @@ func (tun *TunnelAPI) AdminIppoolIsUsed(w http.ResponseWriter, r *http.Request) 
 			return nil, xerror.EInvalidField("failed to parse given IP address", "ip_address", nil)
 		}
 
-		// same as above: try to use the address and de-allocate immediately
-		if err := tun.ippool.Set(*ipa); err != nil {
-			return nil, err
-		}
-		if err := tun.ippool.Unset(*ipa); err != nil {
-			return nil, err
+		if !tun.ippool.IsAvailable(*ipa) {
+			return nil, xerror.EInvalidField("given IP address is not available", "ip_address", nil)
 		}
 
 		return nil, nil

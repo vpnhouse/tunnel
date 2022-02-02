@@ -17,9 +17,8 @@ import (
 )
 
 type IpPool interface {
-	Alloc() (xnet.IP, error)
-	Set(ip xnet.IP) error
-	Unset(ip xnet.IP) error
+	Available() (xnet.IP, error)
+	IsAvailable(ip xnet.IP) bool
 }
 
 type TunnelAPI struct {

@@ -117,6 +117,30 @@ func (pool *IPv4pool) ServerIP() xnet.IP {
 	return pool.serverIP
 }
 
+// method does not allocate an IP on the pool.
+// The pool.mutex must be held.
+// An important precondition is to check that .free() > 0.
+func (pool *IPv4pool) getUnusedIP() xnet.IP {
+	next := rand.Uint32()%(pool.max-pool.min+1) + pool.min
+	stop := next
+	cycled := false
+	cycledRound := false
+
+	// Do one loop round across pool
+	for !cycled || (next != stop) {
+		if !pool.isUsed(next) {
+			return xnet.Uint32ToIP(next)
+		}
+
+		// Go to next IP, track cycling
+		next, cycledRound = pool.nextAddr(next)
+		cycled = cycled || cycledRound
+	}
+
+	zap.L().Fatal("expected to have some space in ipv4 pool, but free IP was not found", zap.Int("free", pool.free()))
+	return xnet.IP{}
+}
+
 func (pool *IPv4pool) Alloc() (xnet.IP, error) {
 	// Lock pool
 	pool.mutex.Lock()
@@ -128,29 +152,11 @@ func (pool *IPv4pool) Alloc() (xnet.IP, error) {
 		return xnet.IP{}, xerror.ENotEnoughSpace("ipv4pool", ErrNotEnoughSpace)
 	}
 
-	// Initialize variables
-	next := rand.Uint32()%(pool.max-pool.min+1) + pool.min
-	stop := next
-	cycled := false
-	cycledRound := false
+	ip := pool.getUnusedIP()
+	pool.logFunc("allocated IPv4 address: %s", ip.String())
+	pool.used[ip.ToUint32()] = true
 
-	// Do one loop round across pool
-	for !cycled || (next != stop) {
-		if !pool.isUsed(next) {
-			pool.used[next] = true
-
-			ip := xnet.Uint32ToIP(next)
-			pool.logFunc("allocated IPv4 address: %s", ip.String())
-			return ip, nil
-		}
-
-		// Go to next IP, track cycling
-		next, cycledRound = pool.nextAddr(next)
-		cycled = cycled || cycledRound
-	}
-
-	zap.L().Fatal("expected to have some space in ipv4 pool, but free IP was not found", zap.Int("free", pool.free()))
-	return xnet.IP{}, xerror.ENotEnoughSpace("no space in ipv4 pool", nil)
+	return ip, nil
 }
 
 func (pool *IPv4pool) Set(ip xnet.IP) error {
@@ -205,4 +211,37 @@ func (pool *IPv4pool) Unset(ip xnet.IP) error {
 	pool.logFunc("released IPv4 address: %s", ip.String())
 
 	return nil
+}
+
+// IsAvailable checks whether given ip is used by the pool.
+func (pool *IPv4pool) IsAvailable(ip xnet.IP) bool {
+	if !ip.Isv4() {
+		zap.L().Error("non ipv4 address given", zap.Stringer("addr", ip))
+		return false
+	}
+
+	uip := ip.ToUint32()
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
+	if uip < pool.min || uip > pool.max {
+		return false
+	}
+
+	return !pool.isUsed(uip)
+}
+
+// Available returns an available ip address without actually allocating it.
+func (pool *IPv4pool) Available() (xnet.IP, error) {
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
+	pool.checkRunning()
+
+	if pool.free() == 0 {
+		return xnet.IP{}, xerror.ENotEnoughSpace("ipv4pool", ErrNotEnoughSpace)
+	}
+
+	ip := pool.getUnusedIP()
+	return ip, nil
 }
