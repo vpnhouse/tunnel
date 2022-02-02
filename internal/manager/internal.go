@@ -44,7 +44,7 @@ func (manager *Manager) restorePeers() {
 				//  to allow further migration by hand.
 				continue
 			}
-			peer.Ipv4 = newIP
+			peer.Ipv4 = &newIP
 			if _, err := manager.storage.UpdatePeer(&peer); err != nil {
 				continue
 			}
@@ -100,7 +100,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) (*int64, error) {
 				return nil, nil, err
 			}
 
-			peer.Ipv4 = ipv4
+			peer.Ipv4 = &ipv4
 		} else {
 			// Check if IP can be used
 			err := manager.ipv4pool.Set(*peer.Ipv4)
@@ -167,7 +167,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		// Prepare ipv4 address
 		if newPeer.Ipv4 == nil {
 			// IP is not set - allocate new one
-			var ipv4 *xnet.IP
+			var ipv4 xnet.IP
 			ipv4, err = manager.ipv4pool.Alloc()
 			if err != nil {
 				// TODO: Differentiate log level by error type (i.e. no space is debug message, others are errors)
@@ -177,7 +177,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 				newPeer.Ipv4 = oldPeer.Ipv4
 			} else {
 				// Hurrah, we have new IP!
-				newPeer.Ipv4 = ipv4
+				newPeer.Ipv4 = &ipv4
 			}
 		} else if !newPeer.Ipv4.Equal(oldPeer.Ipv4) {
 			// Try to set up new ip, if it differs from old one
