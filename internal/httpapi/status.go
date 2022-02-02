@@ -22,6 +22,7 @@ func (tun *TunnelAPI) AdminConnectionInfoWireguard(w http.ResponseWriter, r *htt
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		opts := adminAPI.ServerWireguardOptions{
 			AllowedIps:      []string{"0.0.0.0/1", "128.0.0.0/1"},
+			Subnet:          string(tun.runtime.Settings.Wireguard.Subnet),
 			Dns:             tun.runtime.Settings.Wireguard.DNS,
 			Keepalive:       tun.runtime.Settings.Wireguard.Keepalive,
 			ServerIpv4:      tun.runtime.Settings.Wireguard.ServerIPv4,
