@@ -3,6 +3,7 @@ package xnet
 import (
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"net"
 )
 
@@ -12,15 +13,15 @@ type IP struct {
 	IP net.IP
 }
 
-func (ip *IP) Isv4() bool {
+func (ip IP) Isv4() bool {
 	return ip.IP.To4() != nil
 }
 
-func (ip *IP) Equal(other *IP) bool {
+func (ip IP) Equal(other *IP) bool {
 	return ip.IP.Equal(other.IP)
 }
 
-func (ip *IP) String() string {
+func (ip IP) String() string {
 	return ip.IP.String()
 }
 
@@ -47,6 +48,12 @@ func (net *IPNet) IP() *IP {
 
 func (net *IPNet) Mask() *IPMask {
 	return &IPMask{net.IPNet.Mask}
+}
+
+func (net *IPNet) String() string {
+	na := net.NetworkAddr()
+	ones, _ := net.Mask().Size()
+	return fmt.Sprintf("%s/%d", na.String(), ones)
 }
 
 func (mask *IPMask) Size() (ones, bits int) {

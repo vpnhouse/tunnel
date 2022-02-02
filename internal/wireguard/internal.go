@@ -4,21 +4,23 @@ import (
 	"net"
 
 	"github.com/Codename-Uranium/tunnel/internal/types"
+	"github.com/Codename-Uranium/tunnel/pkg/validator"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 type Config struct {
-	Interface  string `yaml:"interface" valid:"alphanum"`
-	ServerIPv4 string `yaml:"server_ipv4" valid:"ipv4" allow:"empty"`
-	ServerPort int    `yaml:"server_port" valid:"port"`
-	Keepalive  int    `yaml:"keepalive" valid:"natural"`
+	Interface  string `yaml:"interface" valid:"alphanum,required"`
+	ServerIPv4 string `yaml:"server_ipv4" valid:"ipv4"`
+	ServerPort int    `yaml:"server_port" valid:"port,required"`
+	Keepalive  int    `yaml:"keepalive" valid:"natural,required"`
 	// FIXME(nikonov): it's not a subnet, it is ip/mask,
 	//  where IP is a server IP and a mask represents
 	//  the address range for the WG clients.
-	Subnet string   `yaml:"subnet" valid:"cidr"`
-	DNS    []string `yaml:"dns" valid:"ipv4list"`
+	// Subnet string   `yaml:"subnet" valid:"cidr"`
+	Subnet validator.Subnet `yaml:"subnet" valid:"subnet,required"`
+	DNS    []string         `yaml:"dns" valid:"ipv4list"`
 }
 
 // getPeerConfig generates wireguard configuration for a peer.

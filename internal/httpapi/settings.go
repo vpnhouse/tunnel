@@ -11,7 +11,6 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/validator"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -40,7 +39,7 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			return nil, err
 		}
 
-		tun.runtime.Settings.Wireguard.Subnet = req.ServerIpMask
+		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
 		if err := validateAndWriteSettings(tun.runtime.Settings); err != nil {
 			return nil, err
 		}
@@ -58,28 +57,6 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 func validateInitialSetupRequest(req adminAPI.InitialSetupRequest) error {
 	if len(req.AdminPassword) < 6 {
 		return xerror.EInvalidField("password too short", "admin_password", nil)
-	}
-
-	ipAddr, ipNet, err := xnet.ParseCIDR(req.ServerIpMask)
-	if err != nil {
-		return xerror.EInvalidField("failed to parse subnet", "server_ip_mask", err)
-	}
-
-	if !ipAddr.Isv4() {
-		return xerror.EInvalidField("only ipv4 network supported", "server_ip_mask", nil)
-	}
-
-	if !ipAddr.IsPrivate() {
-		return xerror.EInvalidField("not a private subnet given", "server_ip_mask", nil)
-	}
-
-	if ipAddr.Equal(ipNet.IP()) {
-		return xerror.EInvalidField("ip/mask required, but subnet/mask given", "server_ip_mask", nil)
-	}
-
-	size, _ := ipNet.Mask().Size()
-	if size < 8 || size > 30 {
-		return xerror.EInvalidField("invalid subnet size", "server_ip_mask", nil)
 	}
 
 	return nil
@@ -123,6 +100,7 @@ func validateAndWriteSettings(newSettings settings.StaticConfig) error {
 
 func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminAPI.Settings {
 	public := d.GetWireguardPrivateKey().Public().Unwrap().String()
+	subnet := string(s.Wireguard.Subnet)
 	return adminAPI.Settings{
 		AdminUserName:       &s.AdminAPI.UserName,
 		ConnectionTimeout:   &s.PublicAPI.PeerTTL,
@@ -134,7 +112,7 @@ func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminA
 		WireguardListenPort: &s.Wireguard.ServerPort,
 		WireguardPublicKey:  &public,
 		WireguardServerIpv4: &s.Wireguard.ServerIPv4,
-		WireguardSubnet:     &s.Wireguard.Subnet,
+		WireguardSubnet:     &subnet,
 	}
 }
 
@@ -166,7 +144,7 @@ func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) set
 		current.Wireguard.ServerIPv4 = *s.WireguardServerIpv4
 	}
 	if s.WireguardSubnet != nil {
-		current.Wireguard.Subnet = *s.WireguardSubnet
+		current.Wireguard.Subnet = validator.Subnet(*s.WireguardSubnet)
 	}
 
 	return current
