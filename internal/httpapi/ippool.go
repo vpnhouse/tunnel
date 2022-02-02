@@ -36,11 +36,11 @@ func (tun *TunnelAPI) AdminIppoolIsUsed(w http.ResponseWriter, r *http.Request) 
 		}
 
 		ipa := xnet.ParseIP(req.IpAddress)
-		if ipa == nil {
+		if ipa.IP == nil {
 			return nil, xerror.EInvalidField("failed to parse given IP address", "ip_address", nil)
 		}
 
-		if !tun.ippool.IsAvailable(*ipa) {
+		if !tun.ippool.IsAvailable(ipa) {
 			return nil, xerror.EInvalidField("given IP address is not available", "ip_address", nil)
 		}
 

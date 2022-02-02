@@ -181,19 +181,18 @@ func importIdentifiers(oIdentifiers *commonAPI.ConnectionIdentifiers) (*types.Pe
 
 // ImportPeer generates internal representation of a peer from openapi representation
 // Note: function does not expect to have all fields to be set, so caller must handle it by itself
-func importPeer(oPeer adminAPI.Peer, id *int64) (*types.PeerInfo, error) {
-	var tunnelTypePtr *int
+func importPeer(oPeer adminAPI.Peer, id int64) (types.PeerInfo, error) {
+	var tunnelType int
 	var wg types.WireguardInfo
 
 	// Handle tunnel type
 	if oPeer.Type != nil {
 		// Wireguard tunnel
 		if *oPeer.Type == "wireguard" {
-			tunnelType := types.TunnelWireguard
-			tunnelTypePtr = &tunnelType
+			tunnelType = types.TunnelWireguard
 		} else {
 			// Unknown tunnel type
-			return nil, xerror.EInvalidArgument("invalid tunnel type", nil, zap.Any("oPeer", oPeer))
+			return types.PeerInfo{}, xerror.EInvalidArgument("invalid tunnel type", nil, zap.Any("oPeer", oPeer))
 		}
 	}
 
@@ -205,31 +204,31 @@ func importPeer(oPeer adminAPI.Peer, id *int64) (*types.PeerInfo, error) {
 	}
 
 	// Handle peer ip address
-	var ip *xnet.IP
+	var ip xnet.IP
 	if oPeer.Ipv4 != nil {
 		ip = xnet.ParseIP(*oPeer.Ipv4)
-		if ip == nil || !ip.Isv4() {
-			return nil, xerror.EInvalidArgument("invalid ipv4 format", nil, zap.Any("oPeer", oPeer))
+		if ip.IP == nil || !ip.Isv4() {
+			return types.PeerInfo{}, xerror.EInvalidArgument("invalid ipv4 format", nil, zap.Any("oPeer", oPeer))
 		}
 	}
 
 	identifiers, err := importIdentifiers(oPeer.Identifiers)
 	if err != nil {
-		return nil, err
+		return types.PeerInfo{}, err
 	}
 
 	peer := types.PeerInfo{
-		Id:              id,
+		ID:              id,
 		Label:           oPeer.Label,
-		Type:            tunnelTypePtr,
-		Ipv4:            ip,
+		Type:            &tunnelType,
+		Ipv4:            &ip,
 		Expires:         xtime.FromTimePtr(oPeer.Expires),
 		Claims:          oPeer.Claims,
 		PeerIdentifiers: *identifiers,
 		WireguardInfo:   wg,
 	}
 
-	return &peer, nil
+	return peer, nil
 }
 
 func validateClientIdentifiers(identifiers *commonAPI.ConnectionIdentifiers) error {
@@ -271,7 +270,7 @@ func exportIdentifiers(identifiers *types.PeerIdentifiers) *commonAPI.Connection
 	return oIdentifiers
 }
 
-func exportPeer(peer *types.PeerInfo) (adminAPI.Peer, error) {
+func exportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
 	// Validate peer
 	err := peer.Validate()
 	if err != nil {

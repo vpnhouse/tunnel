@@ -28,7 +28,10 @@ type PeerIdentifiers struct {
 }
 
 type PeerInfo struct {
-	Id      *int64      `db:"id"`
+	WireguardInfo
+	PeerIdentifiers
+
+	ID      int64       `db:"id"`
 	Label   *string     `db:"label"`
 	Type    *int        `db:"type"`
 	Ipv4    *xnet.IP    `db:"ipv4" json:"-"`
@@ -36,8 +39,6 @@ type PeerInfo struct {
 	Updated *xtime.Time `db:"updated"`
 	Expires *xtime.Time `db:"expires"`
 	Claims  *string     `db:"claims"`
-	WireguardInfo
-	PeerIdentifiers
 }
 
 func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
@@ -117,7 +118,7 @@ func (peer *PeerInfo) Validate(omit ...string) error {
 	}
 
 	// Check auto-generated fields with ability to omit in validation
-	if !in("Id", omit) && peer.Id == nil {
+	if !in("ID", omit) && peer.ID == 0 {
 		return xerror.EInvalidArgument("empty peer id", nil)
 	}
 
