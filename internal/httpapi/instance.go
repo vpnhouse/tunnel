@@ -12,8 +12,15 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/runtime"
 	"github.com/Codename-Uranium/tunnel/internal/storage"
 	"github.com/Codename-Uranium/tunnel/pkg/auth"
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"github.com/go-chi/chi/v5"
 )
+
+type IpPool interface {
+	Alloc() (xnet.IP, error)
+	Set(ip xnet.IP) error
+	Unset(ip xnet.IP) error
+}
 
 type TunnelAPI struct {
 	runtime    *runtime.TunnelRuntime
@@ -22,6 +29,7 @@ type TunnelAPI struct {
 	authorizer *authorizer.JWTAuthorizer
 	storage    *storage.Storage
 	keystore   federation_keys.Keystore
+	ippool     IpPool
 	running    bool
 }
 
@@ -32,6 +40,7 @@ func NewTunnelHandlers(
 	authorizer *authorizer.JWTAuthorizer,
 	storage *storage.Storage,
 	keystore federation_keys.Keystore,
+	ippool IpPool,
 ) *TunnelAPI {
 	instance := &TunnelAPI{
 		runtime:    runtime,
@@ -40,6 +49,7 @@ func NewTunnelHandlers(
 		authorizer: authorizer,
 		storage:    storage,
 		keystore:   keystore,
+		ippool:     ippool,
 		running:    true,
 	}
 

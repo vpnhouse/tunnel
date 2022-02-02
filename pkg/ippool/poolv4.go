@@ -117,7 +117,7 @@ func (pool *IPv4pool) ServerIP() xnet.IP {
 	return pool.serverIP
 }
 
-func (pool *IPv4pool) Alloc() (*xnet.IP, error) {
+func (pool *IPv4pool) Alloc() (xnet.IP, error) {
 	// Lock pool
 	pool.mutex.Lock()
 	defer pool.mutex.Unlock()
@@ -125,7 +125,7 @@ func (pool *IPv4pool) Alloc() (*xnet.IP, error) {
 	pool.checkRunning()
 
 	if pool.free() == 0 {
-		return nil, xerror.ENotEnoughSpace("ipv4pool", ErrNotEnoughSpace)
+		return xnet.IP{}, xerror.ENotEnoughSpace("ipv4pool", ErrNotEnoughSpace)
 	}
 
 	// Initialize variables
@@ -141,7 +141,7 @@ func (pool *IPv4pool) Alloc() (*xnet.IP, error) {
 
 			ip := xnet.Uint32ToIP(next)
 			pool.logFunc("allocated IPv4 address: %s", ip.String())
-			return &ip, nil
+			return ip, nil
 		}
 
 		// Go to next IP, track cycling
@@ -150,7 +150,7 @@ func (pool *IPv4pool) Alloc() (*xnet.IP, error) {
 	}
 
 	zap.L().Fatal("expected to have some space in ipv4 pool, but free IP was not found", zap.Int("free", pool.free()))
-	return nil, xerror.ENotEnoughSpace("no space in ipv4 pool", nil)
+	return xnet.IP{}, xerror.ENotEnoughSpace("no space in ipv4 pool", nil)
 }
 
 func (pool *IPv4pool) Set(ip xnet.IP) error {

@@ -94,7 +94,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	// Prepare tunneling HTTP API
-	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keystore)
+	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keystore, ipv4Pool)
 
 	rapidoc.Switch(runtime.Settings.Rapidoc)
 
