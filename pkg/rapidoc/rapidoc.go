@@ -1,29 +1,35 @@
 package rapidoc
 
 import (
-	_ "embed"
 	"net/http"
 
 	apiDoc "github.com/Codename-Uranium/api"
+	"github.com/Codename-Uranium/tunnel/pkg/version"
 	"github.com/go-chi/chi/v5"
 
 	"go.uber.org/zap"
 )
 
-var rapidocEnabled = false
-
-func Switch(enabled bool) {
-	rapidocEnabled = enabled
-}
-
 func RegisterHandlers(r chi.Router) {
-	if !rapidocEnabled {
-		return
+	zap.L().Info("Registering rapidoc handlers")
+
+	docFs := http.FS(apiDoc.Docs)
+	r.Handle("/schemas/*", http.FileServer(docFs))
+
+	if version.IsPersonal() {
+		// for the personal version - serve the Admin API docs as an index page
+		index, err := apiDoc.Docs.ReadFile("rapidoc/tunnel_admin.html")
+		if err != nil {
+			zap.L().Error("rapidoc seems misconfigured, failed to open `rapidoc/tunnel_admin.html`", zap.Error(err))
+			return
+		}
+
+		r.HandleFunc("/rapidoc/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write(index)
+		})
+	} else {
+		// server all docs for non-personal versions
+		r.Handle("/rapidoc/*", http.FileServer(docFs))
 	}
-
-	zap.L().Info("Registering rapidoc handler")
-
-	fs := http.FS(apiDoc.Docs)
-	r.Handle("/rapidoc/", http.FileServer(fs))
-	r.Handle("/schemas/", http.FileServer(fs))
 }
