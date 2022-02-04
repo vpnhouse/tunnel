@@ -89,7 +89,9 @@ func safeDefaults(rootDir string) StaticConfig {
 		ManagementKeystore: filepath.Join(rootDir, "keystore/"),
 		Rapidoc:            true,
 		AdminAPI: AdminAPIConfig{
-			StaticRoot:    filepath.Join(rootDir, "web/"),
+			// StaticRoot:    filepath.Join(rootDir, "web/"),
+			// TODO(nikonov): better to embed frontend files in the future.
+			StaticRoot:    "/opt/uranium/web/tunnel",
 			UserName:      "admin",
 			TokenLifetime: 30 * 60, // 30min,
 		},
