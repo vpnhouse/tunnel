@@ -160,6 +160,7 @@ func (pool *IPv4pool) Alloc() (xnet.IP, error) {
 }
 
 func (pool *IPv4pool) Set(ip xnet.IP) error {
+	// FIXME(nikonov): add zap.field with an IP address to each error
 	if !ip.Isv4() {
 		return xerror.EInvalidArgument("ipv4pool", ErrInvalidAddress)
 	}
