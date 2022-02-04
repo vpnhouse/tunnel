@@ -61,7 +61,7 @@ func New(config Config, privateKey types.WGPrivateKey) (*Wireguard, error) {
 		}
 	}()
 
-	addr, err := netlink.ParseAddr(config.Subnet.Unwrap().FirstUsable().String())
+	addr, err := netlink.ParseAddr(config.ServerAddr())
 	if err != nil {
 		return nil, xerror.EInvalidArgument("can't parse wireguard subnet", err, zap.String("subnet", string(config.Subnet)))
 	}

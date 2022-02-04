@@ -16,6 +16,10 @@ import (
 type Ipv4List []string
 type UrlList []string
 
+// TODO(nikonov): probably it will be better to implement this type
+//  as a complex struct with the UnmarshaText method.
+//  This way we will have an ability to store IP and mask
+//  separately, so perform operations on IPs/ranges in a more convenient way.
 type Subnet string
 
 func (s Subnet) Unwrap() *xnet.IPNet {

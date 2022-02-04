@@ -104,7 +104,7 @@ func safeDefaults(rootDir string) StaticConfig {
 			ServerIPv4: "",
 			ServerPort: 3000,
 			Keepalive:  60,
-			Subnet:     "10.235.0.1/16",
+			Subnet:     "10.235.0.0/16",
 			DNS:        []string{"8.8.8.8", "8.8.4.4"},
 		},
 		EventLog: eventlog.StorageConfig{

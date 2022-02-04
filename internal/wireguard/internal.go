@@ -1,6 +1,7 @@
 package wireguard
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/Codename-Uranium/tunnel/internal/types"
@@ -11,16 +12,19 @@ import (
 )
 
 type Config struct {
-	Interface  string `yaml:"interface" valid:"alphanum,required"`
-	ServerIPv4 string `yaml:"server_ipv4" valid:"ipv4"`
-	ServerPort int    `yaml:"server_port" valid:"port,required"`
-	Keepalive  int    `yaml:"keepalive" valid:"natural,required"`
-	// FIXME(nikonov): it's not a subnet, it is ip/mask,
-	//  where IP is a server IP and a mask represents
-	//  the address range for the WG clients.
-	// Subnet string   `yaml:"subnet" valid:"cidr"`
-	Subnet validator.Subnet `yaml:"subnet" valid:"subnet,required"`
-	DNS    []string         `yaml:"dns" valid:"ipv4list"`
+	Interface  string           `yaml:"interface" valid:"alphanum,required"`
+	ServerIPv4 string           `yaml:"server_ipv4" valid:"ipv4"`
+	ServerPort int              `yaml:"server_port" valid:"port,required"`
+	Keepalive  int              `yaml:"keepalive" valid:"natural,required"`
+	Subnet     validator.Subnet `yaml:"subnet" valid:"subnet,required"`
+	DNS        []string         `yaml:"dns" valid:"ipv4list"`
+}
+
+// ServerAddr returns IPAddr/mask to use as a wireguard interface address.
+func (c Config) ServerAddr() string {
+	a := c.Subnet.Unwrap()
+	ones, _ := a.Mask().Size()
+	return fmt.Sprintf("%s/%d", a.FirstUsable().String(), ones)
 }
 
 // getPeerConfig generates wireguard configuration for a peer.
