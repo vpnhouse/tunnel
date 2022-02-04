@@ -6,14 +6,15 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xtime"
-	"go.uber.org/zap"
 )
 
-func (manager *Manager) SetPeer(info *types.PeerInfo) (*int64, error) {
+func (manager *Manager) SetPeer(info *types.PeerInfo) error {
 	if err := manager.lock(); err != nil {
-		return nil, err
+		return err
 	}
 	defer manager.unlock()
+
+	// note: manager.setPeer mutates given struct
 	return manager.setPeer(info)
 }
 
@@ -25,9 +26,9 @@ func (manager *Manager) UpdatePeer(info *types.PeerInfo) error {
 	return manager.updatePeer(info)
 }
 
-func (manager *Manager) GetPeer(id int64) (*types.PeerInfo, error) {
+func (manager *Manager) GetPeer(id int64) (types.PeerInfo, error) {
 	if err := manager.lock(); err != nil {
-		return nil, err
+		return types.PeerInfo{}, err
 	}
 	defer manager.unlock()
 
@@ -45,10 +46,6 @@ func (manager *Manager) UnsetPeer(id int64) error {
 		return err
 	}
 
-	if info == nil {
-		return xerror.EEntryNotFound("entry not found", nil, zap.Int64("id", id))
-	}
-
 	return manager.unsetPeer(info)
 }
 
@@ -61,10 +58,6 @@ func (manager *Manager) UnsetPeerByIdentifiers(identifiers *types.PeerIdentifier
 	info, err := manager.findPeerByIdentifiers(identifiers)
 	if err != nil {
 		return err
-	}
-
-	if info == nil {
-		return xerror.EEntryNotFound("entry not found", nil, zap.Any("identifiers", identifiers))
 	}
 
 	return manager.unsetPeer(info)
@@ -80,9 +73,9 @@ func (manager *Manager) ListPeers() ([]types.PeerInfo, error) {
 	return manager.storage.SearchPeers(&peer)
 }
 
-func (manager *Manager) ConnectPeer(info *types.PeerInfo) (*int64, error) {
+func (manager *Manager) ConnectPeer(info *types.PeerInfo) error {
 	if err := manager.lock(); err != nil {
-		return nil, err
+		return err
 	}
 	defer manager.unlock()
 
@@ -95,7 +88,7 @@ func (manager *Manager) ConnectPeer(info *types.PeerInfo) (*int64, error) {
 
 	oldPeers, err := manager.storage.SearchPeers(&oldPeerShadow)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(oldPeers) == 0 {
@@ -104,12 +97,12 @@ func (manager *Manager) ConnectPeer(info *types.PeerInfo) (*int64, error) {
 	}
 
 	if len(oldPeers) > 1 {
-		return nil, xerror.EInternalError("too many peers for identifiers", nil)
+		return xerror.EInternalError("too many peers for identifiers", nil)
 	}
 
-	info.Id = oldPeers[0].Id
+	info.ID = oldPeers[0].ID
 	info.Ipv4 = oldPeers[0].Ipv4
-	return info.Id, manager.updatePeer(info)
+	return manager.updatePeer(info)
 }
 
 func (manager *Manager) UpdatePeerExpiration(identifiers *types.PeerIdentifiers, expires *time.Time) error {

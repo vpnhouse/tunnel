@@ -173,7 +173,7 @@ func isSubnet(value interface{}, _ interface{}) bool {
 	}
 
 	// must be the network address, not the host one
-	if !ipn.IP().Equal(ipa) {
+	if !ipn.IP().Equal(*ipa) {
 		return false
 	}
 
