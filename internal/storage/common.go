@@ -63,6 +63,13 @@ func getFields(i interface{}, omitNull bool) (columns []string) {
 	for i := 0; i < v.NumField(); i++ {
 		columnName := v.Type().Field(i).Tag.Get("db")
 
+		fName := v.Type().Field(i).Name
+		if fName == "ID" {
+			if v.Field(i).IsZero() {
+				continue
+			}
+		}
+
 		field := v.Field(i)
 		if columnName != "" {
 			if omitNull && field.Kind() == reflect.Ptr && field.IsNil() {

@@ -12,13 +12,13 @@ import (
 
 // getPeerFromRequest parses peer information from request body.
 // WARNING! This function does not do any verification of imported data! Caller must do it itself!
-func getPeerFromRequest(r *http.Request, id *int64) (*types.PeerInfo, error) {
+func getPeerFromRequest(r *http.Request, id int64) (types.PeerInfo, error) {
 	var oPeer adminAPI.Peer
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&oPeer); err != nil {
-		return nil, xerror.EInvalidArgument("invalid peer info", err)
+		return types.PeerInfo{}, xerror.EInvalidArgument("invalid peer info", err)
 	}
 
 	return importPeer(oPeer, id)
@@ -34,11 +34,11 @@ func (tun *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request) {
 
 		foundPeers := make([]adminAPI.PeerRecord, len(peers))
 		for i, peer := range peers {
-			oPeer, err := exportPeer(&peer)
+			oPeer, err := exportPeer(peer)
 			if err != nil {
 				return nil, err
 			}
-			foundPeers[i].Id = *peer.Id
+			foundPeers[i].Id = peer.ID
 			foundPeers[i].Peer = oPeer
 		}
 
@@ -64,10 +64,6 @@ func (tun *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, id in
 			return nil, err
 		}
 
-		if peer == nil {
-			return nil, xerror.EEntryNotFound("entry not found", nil)
-		}
-
 		exported, err := exportPeer(peer)
 		if err != nil {
 			return nil, err
@@ -85,22 +81,22 @@ func (tun *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, id in
 // AdminCreatePeer implements POST method on /api/admin/peers endpoint
 func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		peer, err := getPeerFromRequest(r, nil)
+		peer, err := getPeerFromRequest(r, 0)
 		if err != nil {
 			return nil, err
 		}
 
-		err = peer.Validate("Id", "Ipv4")
+		err = peer.Validate("ID", "Ipv4")
 		if err != nil {
 			return nil, err
 		}
 
-		id, err := tun.manager.SetPeer(peer)
-		if err != nil {
+		if err := tun.manager.SetPeer(&peer); err != nil {
 			return nil, err
 		}
 
-		insertedPeer, err := tun.manager.GetPeer(*id)
+		// query back with all defaults
+		insertedPeer, err := tun.manager.GetPeer(peer.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +107,7 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 		}
 
 		record := adminAPI.PeerRecord{
-			Id:   *id,
+			Id:   peer.ID,
 			Peer: oPeer,
 		}
 
@@ -122,7 +118,7 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 // AdminUpdatePeer implements PUT method on /api/admin/peers/{id} endpoint
 func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id int64) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		peer, err := getPeerFromRequest(r, &id)
+		peer, err := getPeerFromRequest(r, id)
 		if err != nil {
 			return nil, err
 		}
@@ -131,7 +127,7 @@ func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id
 			return nil, err
 		}
 
-		if err := tun.manager.UpdatePeer(peer); err != nil {
+		if err := tun.manager.UpdatePeer(&peer); err != nil {
 			return nil, err
 		}
 

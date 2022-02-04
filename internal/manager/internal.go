@@ -7,20 +7,19 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/ippool"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"github.com/Codename-Uranium/tunnel/pkg/xtime"
 	"github.com/Codename-Uranium/tunnel/proto"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-func (manager *Manager) peers(_ *types.PeerInfo) ([]types.PeerInfo, error) {
+func (manager *Manager) peers() ([]types.PeerInfo, error) {
 	return manager.storage.SearchPeers(&types.PeerInfo{})
 }
 
 // restore peers on startup
 func (manager *Manager) restorePeers() {
-	peers, err := manager.peers(nil)
+	peers, err := manager.peers()
 	if err != nil {
 		// err has already been logged inside
 		return
@@ -29,7 +28,7 @@ func (manager *Manager) restorePeers() {
 	for _, peer := range peers {
 		if peer.Expired() {
 			zap.L().Debug("Wiping expired peer", zap.Any("peer", peer))
-			_ = manager.storage.DeletePeer(*peer.Id)
+			_ = manager.storage.DeletePeer(peer.ID)
 			continue
 		}
 
@@ -45,28 +44,24 @@ func (manager *Manager) restorePeers() {
 				continue
 			}
 			peer.Ipv4 = &newIP
-			if _, err := manager.storage.UpdatePeer(&peer); err != nil {
+			if _, err := manager.storage.UpdatePeer(peer); err != nil {
 				continue
 			}
 		}
 
 		switch *peer.Type {
 		case types.TunnelWireguard:
-			_ = manager.wireguard.SetPeer(&peer)
+			_ = manager.wireguard.SetPeer(peer)
 			allPeersGauge.Inc()
 		default:
-			zap.L().Error("unsupported tunnel type", zap.Int("type", *peer.Type))
+			zap.L().Error("unsupported tunnel type", zap.Any("type", peer.TypeName()))
 			continue
 		}
 	}
 }
 
-func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
-	if peer == nil {
-		return xerror.EInternalError("peer info is nil", nil)
-	}
-
-	errManager := manager.storage.DeletePeer(*peer.Id)
+func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
+	errManager := manager.storage.DeletePeer(peer.ID)
 	errWireguard := manager.wireguard.UnsetPeer(peer)
 	errPool := manager.ipv4pool.Unset(*peer.Ipv4)
 
@@ -87,17 +82,19 @@ func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
 	}(errManager, errPool, errWireguard)
 }
 
-func (manager *Manager) setPeer(peer *types.PeerInfo) (*int64, error) {
-	id, ipv4, err := func() (*int64, *xnet.IP, error) {
+// setPeer mutates the given PeerInfo,
+// fields: ID, IPv4
+func (manager *Manager) setPeer(peer *types.PeerInfo) error {
+	err := func() error {
 		if peer.Expired() {
-			return nil, nil, xerror.EInvalidArgument("peer already expired", nil)
+			return xerror.EInvalidArgument("peer already expired", nil)
 		}
 
 		if peer.Ipv4 == nil {
 			// Allocate IP, if necessary
 			ipv4, err := manager.ipv4pool.Alloc()
 			if err != nil {
-				return nil, nil, err
+				return err
 			}
 
 			peer.Ipv4 = &ipv4
@@ -105,54 +102,57 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) (*int64, error) {
 			// Check if IP can be used
 			err := manager.ipv4pool.Set(*peer.Ipv4)
 			if err != nil {
-				return nil, nil, err
+				return err
 			}
 		}
 
 		// Create peer in storage
-		id, err := manager.storage.CreatePeer(peer)
+		id, err := manager.storage.CreatePeer(*peer)
 		if err != nil {
-			return nil, peer.Ipv4, err
+			return err
 		}
+		peer.ID = id
 
 		// Set peer in wireguard
-		return id, peer.Ipv4, manager.wireguard.SetPeer(peer)
+		if err := manager.wireguard.SetPeer(*peer); err != nil {
+			return err
+		}
+
+		return nil
 	}()
 
+	// rollback an action on error
 	if err != nil {
-		if ipv4 != nil {
-			_ = manager.ipv4pool.Unset(*ipv4)
+		if peer.Ipv4 != nil {
+			_ = manager.ipv4pool.Unset(*peer.Ipv4)
 		}
 
-		if id != nil {
-			_ = manager.storage.DeletePeer(*id)
+		if peer.ID > 0 {
+			_ = manager.storage.DeletePeer(peer.ID)
 		}
 
-		return nil, err
+		return err
 	}
 
 	allPeersGauge.Inc()
 	if err := manager.eventLog.Push(uint32(proto.EventType_PeerAdd), time.Now().Unix(), peer.IntoProto()); err != nil {
 		// do not return an error here because it's not related to the method itself.
-		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
+		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerAdd)))
 	}
-	return id, nil
+	return nil
 }
 
+// updatePeer mutates given newPeer,
+// fields: ID, IPv4
 func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 	if newPeer.Expired() {
-		return manager.unsetPeer(newPeer)
+		return manager.unsetPeer(*newPeer)
 	}
 
 	// Find old peer to remove it from wireguard interface
-	oldPeer, err := manager.storage.GetPeer(*newPeer.Id)
-
-	if oldPeer == nil {
-		if err != nil {
-			return err
-		} else {
-			return xerror.EEntryNotFound("peer not found", nil, zap.Any("newPeer", newPeer))
-		}
+	oldPeer, err := manager.storage.GetPeer(newPeer.ID)
+	if err != nil {
+		return err
 	}
 
 	if *oldPeer.Type != *newPeer.Type {
@@ -163,12 +163,12 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		return xerror.EInvalidArgument("updating this tunnel type is not supported yet", nil, zap.Any("newPeer", newPeer))
 	}
 
-	ipOK, dbOK, wgOK, err := func() (ipOK bool, dbOK bool, wgOK bool, err error) {
+	ipOK, dbOK, wgOK, err := func() (bool, bool, bool, error) {
+		var ipOK, dbOK, wgOK bool
 		// Prepare ipv4 address
 		if newPeer.Ipv4 == nil {
 			// IP is not set - allocate new one
-			var ipv4 xnet.IP
-			ipv4, err = manager.ipv4pool.Alloc()
+			ipv4, err := manager.ipv4pool.Alloc()
 			if err != nil {
 				// TODO: Differentiate log level by error type (i.e. no space is debug message, others are errors)
 				zap.L().Debug("can't allocate new IP for existing peer", zap.Error(err))
@@ -179,11 +179,10 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 				// Hurrah, we have new IP!
 				newPeer.Ipv4 = &ipv4
 			}
-		} else if !newPeer.Ipv4.Equal(oldPeer.Ipv4) {
+		} else if !newPeer.Ipv4.Equal(*oldPeer.Ipv4) {
 			// Try to set up new ip, if it differs from old one
-			err = manager.ipv4pool.Set(*newPeer.Ipv4)
-			if err != nil {
-				return
+			if err := manager.ipv4pool.Set(*newPeer.Ipv4); err != nil {
+				return ipOK, dbOK, wgOK, err
 			}
 		}
 
@@ -193,32 +192,30 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		// Update database
 		now := xtime.Now()
 		newPeer.Updated = &now
-		_, err = manager.storage.UpdatePeer(newPeer)
+		id, err := manager.storage.UpdatePeer(*newPeer)
 		if err != nil {
-			return
+			return ipOK, dbOK, wgOK, err
 		}
-
 		// We finished database updating
+		newPeer.ID = id
 		dbOK = true
 
 		// Update wireguard peer
 		if *oldPeer.WireguardPublicKey != *newPeer.WireguardPublicKey {
 			// Key changed - we need remove old peer and set new
-			err = manager.wireguard.UnsetPeer(oldPeer)
-			if err != nil {
-				return
+			if err := manager.wireguard.UnsetPeer(oldPeer); err != nil {
+				return ipOK, dbOK, wgOK, err
 			}
 		}
 
-		err = manager.wireguard.SetPeer(newPeer)
-		if err != nil {
+		if err := manager.wireguard.SetPeer(*newPeer); err != nil {
 			zap.L().Error("failed to set new peer, trying to revert old", zap.Error(err))
 			err = manager.wireguard.SetPeer(oldPeer)
-			return
+			return ipOK, dbOK, wgOK, err
 		}
 
 		wgOK = true
-		return
+		return ipOK, dbOK, wgOK, err
 	}()
 
 	// Reverting back
@@ -228,14 +225,14 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 			_, _ = manager.storage.UpdatePeer(oldPeer)
 		}
 
-		if ipOK && !newPeer.Ipv4.Equal(oldPeer.Ipv4) {
+		if ipOK && !newPeer.Ipv4.Equal(*oldPeer.Ipv4) {
 			// Try to cleanup new IP
 			_ = manager.ipv4pool.Unset(*newPeer.Ipv4)
 		}
 
 		if wgOK {
 			// Try to revert wireguard peer
-			_ = manager.wireguard.UnsetPeer(newPeer)
+			_ = manager.wireguard.UnsetPeer(*newPeer)
 			_ = manager.wireguard.SetPeer(oldPeer)
 		}
 
@@ -245,14 +242,14 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 	// TODO(nikonov): report an actual traffic on update
 	if err := manager.eventLog.Push(uint32(proto.EventType_PeerUpdate), time.Now().Unix(), newPeer.IntoProto()); err != nil {
 		// do not return an error here because it's not related to the method itself.
-		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
+		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerUpdate)))
 	}
 	return nil
 }
 
-func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers) (*types.PeerInfo, error) {
+func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers) (types.PeerInfo, error) {
 	if identifiers == nil {
-		return nil, xerror.EInvalidArgument("no identifiers", nil)
+		return types.PeerInfo{}, xerror.EInvalidArgument("no identifiers", nil)
 	}
 
 	peerQuery := types.PeerInfo{
@@ -261,18 +258,18 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 
 	peers, err := manager.storage.SearchPeers(&peerQuery)
 	if err != nil {
-		return nil, err
+		return types.PeerInfo{}, err
 	}
 
 	if len(peers) == 0 {
-		return nil, xerror.EEntryNotFound("peer not found", nil)
+		return types.PeerInfo{}, xerror.EEntryNotFound("peer not found", nil)
 	}
 
 	if len(peers) > 1 {
-		return nil, xerror.EInvalidArgument("not enough identifiers to update peer", nil)
+		return types.PeerInfo{}, xerror.EInvalidArgument("not enough identifiers to update peer", nil)
 	}
 
-	return &peers[0], nil
+	return peers[0], nil
 }
 
 func (manager *Manager) lock() error {
@@ -308,23 +305,23 @@ func (manager *Manager) backgroundOnce() {
 	peersTotal := 0
 	withHandshakes := 0
 
-	peers, err := manager.peers(nil)
+	peers, err := manager.peers()
 	if err != nil {
 		return
 	}
 
 	for _, peer := range peers {
 		if peer.Expired() {
-			_ = manager.unsetPeer(&peer)
+			_ = manager.unsetPeer(peer)
 			continue
 		}
 
 		peersTotal++
-		wgPeer, ok := findWgPeerByPublicKey(&peer, wireguardPeers)
+		wgPeer, ok := findWgPeerByPublicKey(peer, wireguardPeers)
 		if ok {
 			// no handshake - no traffic, avoid spamming empty events to the log
 			if !wgPeer.LastHandshakeTime.IsZero() {
-				manager.reportPeerTraffic(&peer, wgPeer)
+				manager.reportPeerTraffic(peer, wgPeer)
 				withHandshakes++
 			}
 		}
@@ -359,7 +356,7 @@ func (manager *Manager) background() {
 }
 
 // findWgPeerByPublicKey returns wireguard peer for matching peer public key, if any.
-func findWgPeerByPublicKey(peer *types.PeerInfo, wgPeers map[string]wgtypes.Peer) (wgtypes.Peer, bool) {
+func findWgPeerByPublicKey(peer types.PeerInfo, wgPeers map[string]wgtypes.Peer) (wgtypes.Peer, bool) {
 	// make it safe to call with empty or nil map
 	if len(wgPeers) == 0 {
 		return wgtypes.Peer{}, false
@@ -369,7 +366,7 @@ func findWgPeerByPublicKey(peer *types.PeerInfo, wgPeers map[string]wgtypes.Peer
 		// should this ever happen?
 		// why we even have this as string *pointer*?
 		zap.L().Error("got a peer without the public key",
-			zap.Any("id", peer.Id),
+			zap.Any("id", peer.ID),
 			zap.Any("user_id", peer.UserId),
 			zap.Any("install_id", peer.InstallationId))
 		return wgtypes.Peer{}, false
@@ -380,7 +377,7 @@ func findWgPeerByPublicKey(peer *types.PeerInfo, wgPeers map[string]wgtypes.Peer
 	if !ok {
 		zap.L().Error("peer is presented in the manager's storage but not configured on the interface",
 			zap.String("pub_key", *peer.WireguardPublicKey),
-			zap.Any("id", peer.Id),
+			zap.Any("id", peer.ID),
 			zap.Any("user_id", peer.UserId),
 			zap.Any("install_id", peer.InstallationId))
 		return wgtypes.Peer{}, false
@@ -390,7 +387,7 @@ func findWgPeerByPublicKey(peer *types.PeerInfo, wgPeers map[string]wgtypes.Peer
 }
 
 // reportPeerTraffic reports peer's rx/tx traffic to the eventlog.
-func (manager *Manager) reportPeerTraffic(peer *types.PeerInfo, wgPeer wgtypes.Peer) {
+func (manager *Manager) reportPeerTraffic(peer types.PeerInfo, wgPeer wgtypes.Peer) {
 	info := peer.IntoProto()
 	info.BytesTx = uint64(wgPeer.TransmitBytes)
 	info.BytesRx = uint64(wgPeer.ReceiveBytes)

@@ -17,7 +17,7 @@ func (ip IP) Isv4() bool {
 	return ip.IP.To4() != nil
 }
 
-func (ip IP) Equal(other *IP) bool {
+func (ip IP) Equal(other IP) bool {
 	return ip.IP.Equal(other.IP)
 }
 
@@ -25,13 +25,13 @@ func (ip IP) String() string {
 	return ip.IP.String()
 }
 
-func ParseIP(s string) *IP {
+func ParseIP(s string) IP {
 	ip := net.ParseIP(s)
 	if ip == nil {
-		return nil
+		return IP{}
 	}
 
-	return &IP{ip}
+	return IP{ip}
 }
 
 type IPNet struct {

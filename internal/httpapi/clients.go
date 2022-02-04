@@ -64,20 +64,18 @@ func (tun *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Get peer internal representation
-		peer, err := importPeer(oPeer, nil)
+		peer, err := importPeer(oPeer, 0)
 		if err != nil {
 			return nil, err
 		}
 
 		// Validate peer
-		err = peer.Validate("Id", "Ipv4")
-		if err != nil {
+		if err := peer.Validate("ID", "Ipv4"); err != nil {
 			return nil, err
 		}
 
 		// Set peer
-		_, err = tun.manager.ConnectPeer(peer)
-		if err != nil {
+		if err := tun.manager.ConnectPeer(&peer); err != nil {
 			return nil, err
 		}
 
@@ -134,7 +132,6 @@ func (tun *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Request
 		installationId := uuid.NewMD5(unsafeUUIDSpace, []byte(claims.Subject))
 		sessionId, _ := uuid.NewRandom()
 		peer := types.PeerInfo{
-			Id:      nil,
 			Label:   nil,
 			Type:    &tunType,
 			Ipv4:    nil,
@@ -153,14 +150,12 @@ func (tun *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Request
 		}
 
 		// Validate peer
-		err = peer.Validate("Id", "Ipv4")
-		if err != nil {
+		if err := peer.Validate("ID", "Ipv4"); err != nil {
 			return nil, err
 		}
 
 		// Set peer
-		_, err = tun.manager.ConnectPeer(&peer)
-		if err != nil {
+		if err := tun.manager.ConnectPeer(&peer); err != nil {
 			return nil, err
 		}
 
