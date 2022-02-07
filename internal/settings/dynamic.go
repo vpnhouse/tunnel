@@ -52,7 +52,7 @@ func loadDynamicConfig(fs afero.Fs, path string) (dynamicConfigYAML, error) {
 }
 
 func generateAndWriteDynamicConfig(fs afero.Fs, path string, withPassword bool) (dynamicConfigYAML, error) {
-	if err := fs.MkdirAll(filepath.Dir(path), 0600); err != nil {
+	if err := fs.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return dynamicConfigYAML{}, xerror.EInternalError("failed to create directory for the dynamic config", err, zap.String("path", path))
 	}
 
