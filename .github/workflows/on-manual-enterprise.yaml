@@ -1,0 +1,30 @@
+name: "Manually/personal: build image"
+
+on: workflow_dispatch
+
+jobs:
+  build_image:
+    name: "personal :: build image"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cleanup the ref name
+        # turns "refs/heads/fix/this-and-that" into
+        # the docker-tag-friendly "fix-this-and-that".
+        run: echo "GITHUB_REF_SHORT=$(echo $GITHUB_REF | sed -e 's/refs\/heads\///' -e 's/\//-/')" >> $GITHUB_ENV
+
+      - name: login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: build and push image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          build_args: TARGET=build/linux/personal
+          file: docker/tunnel/Dockerfile
+          push: true
+          tags: codenameuranium/tunnel:personal-${{ env.GITHUB_REF_SHORT }}
