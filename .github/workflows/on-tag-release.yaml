@@ -26,6 +26,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
+          build_args: TARGET=build/linux/personal
           file: docker/tunnel/Dockerfile
           push: true
-          tags: codenameuranium/tunnel:latest,codenameuranium/tunnel:${{ steps.get_version.outputs.TAG_VERSION }}
+          tags: codenameuranium/tunnel:personal-${{ steps.get_version.outputs.TAG_VERSION }}
