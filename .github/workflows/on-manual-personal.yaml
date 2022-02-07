@@ -24,7 +24,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          build_args: TARGET=build/linux
+          build-args: TARGET=build/linux
           file: docker/tunnel/Dockerfile
           push: true
           tags: codenameuranium/tunnel:${{ env.GITHUB_REF_SHORT }}
