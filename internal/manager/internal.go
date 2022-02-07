@@ -90,7 +90,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 			return xerror.EInvalidArgument("peer already expired", nil)
 		}
 
-		if peer.Ipv4 == nil {
+		if peer.Ipv4 == nil || peer.Ipv4.IP == nil {
 			// Allocate IP, if necessary
 			ipv4, err := manager.ipv4pool.Alloc()
 			if err != nil {
