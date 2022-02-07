@@ -14,18 +14,19 @@ import (
 )
 
 type StaticConfig struct {
-	LogLevel           string `yaml:"log_level"`
-	SQLitePath         string `yaml:"sqlite_path" valid:"path"`
-	HTTPListenAddr     string `yaml:"http_listen_addr" valid:"listen_addr"`
-	ManagementKeystore string `yaml:"management_keystore" valid:"path"`
-	Rapidoc            bool   `yaml:"rapidoc"`
+	LogLevel       string           `yaml:"log_level"`
+	SQLitePath     string           `yaml:"sqlite_path" valid:"path,required"`
+	HTTPListenAddr string           `yaml:"http_listen_addr" valid:"listen_addr,required"`
+	Rapidoc        bool             `yaml:"rapidoc"`
+	Wireguard      wireguard.Config `yaml:"wireguard"`
 
-	AdminAPI  AdminAPIConfig         `yaml:"admin_api"`
-	PublicAPI PublicAPIConfig        `yaml:"public_api"`
-	Wireguard wireguard.Config       `yaml:"wireguard"`
-	GRPC      *grpc.Config           `yaml:"grpc"`
-	Sentry    sentry.Config          `yaml:"sentry"`
-	EventLog  eventlog.StorageConfig `yaml:"event_log"`
+	// optional configuration
+	AdminAPI           *AdminAPIConfig         `yaml:"admin_api,omitempty"`
+	PublicAPI          *PublicAPIConfig        `yaml:"public_api,omitempty"`
+	GRPC               *grpc.Config            `yaml:"grpc,omitempty"`
+	Sentry             *sentry.Config          `yaml:"sentry,omitempty"`
+	EventLog           *eventlog.StorageConfig `yaml:"event_log,omitempty"`
+	ManagementKeystore string                  `yaml:"management_keystore,omitempty" valid:"path"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
@@ -36,15 +37,45 @@ func (s StaticConfig) GetPath() string {
 	return s.path
 }
 
+func (s StaticConfig) GetAdminAPConfig() *AdminAPIConfig {
+	if s.AdminAPI != nil {
+		return s.AdminAPI
+	}
+	return defaultAdminAPIConfig()
+}
+
+func (s StaticConfig) GetPublicAPIConfig() *PublicAPIConfig {
+	if s.PublicAPI != nil {
+		return s.PublicAPI
+	}
+	return defaultPublicAPIConfig()
+}
+
 type AdminAPIConfig struct {
 	StaticRoot    string `yaml:"static_root" valid:"path"`
 	UserName      string `yaml:"user_name" valid:"printableascii"`
 	TokenLifetime int    `yaml:"token_lifetime" valid:"natural"`
 }
 
+func defaultAdminAPIConfig() *AdminAPIConfig {
+	return &AdminAPIConfig{
+		// TODO(nikonov): better to embed frontend files in the future.
+		StaticRoot:    "/opt/uranium/web/tunnel",
+		UserName:      "admin",
+		TokenLifetime: 30 * 60, // 30min,
+	}
+}
+
 type PublicAPIConfig struct {
 	PingInterval int `yaml:"ping_interval" valid:"natural"`
 	PeerTTL      int `yaml:"connection_timeout" valid:"natural"`
+}
+
+func defaultPublicAPIConfig() *PublicAPIConfig {
+	return &PublicAPIConfig{
+		PingInterval: 600,  // 10min
+		PeerTTL:      3600, // 1h
+	}
 }
 
 func LoadStatic(configDir string) (StaticConfig, error) {
@@ -83,22 +114,10 @@ func safeDefaults(rootDir string) StaticConfig {
 	return StaticConfig{
 		path: filepath.Join(rootDir, staticConfigFileName),
 
-		LogLevel:           "debug",
-		SQLitePath:         filepath.Join(rootDir, "db.sqlite3"),
-		HTTPListenAddr:     ":8085",
-		ManagementKeystore: filepath.Join(rootDir, "keystore/"),
-		Rapidoc:            true,
-		AdminAPI: AdminAPIConfig{
-			// StaticRoot:    filepath.Join(rootDir, "web/"),
-			// TODO(nikonov): better to embed frontend files in the future.
-			StaticRoot:    "/opt/uranium/web/tunnel",
-			UserName:      "admin",
-			TokenLifetime: 30 * 60, // 30min,
-		},
-		PublicAPI: PublicAPIConfig{
-			PingInterval: 600,  // 10min
-			PeerTTL:      3600, // 1h
-		},
+		LogLevel:       "debug",
+		HTTPListenAddr: ":8085",
+		Rapidoc:        true,
+		SQLitePath:     filepath.Join(rootDir, "db.sqlite3"),
 		Wireguard: wireguard.Config{
 			Interface:  "uwg0",
 			ServerIPv4: "",
@@ -107,13 +126,5 @@ func safeDefaults(rootDir string) StaticConfig {
 			Subnet:     "10.235.0.0/16",
 			DNS:        []string{"8.8.8.8", "8.8.4.4"},
 		},
-		EventLog: eventlog.StorageConfig{
-			Dir:      filepath.Join(rootDir, "eventlog/"),
-			MaxFiles: 10,
-			Size:     100 * 1024 * 1024,
-		},
-		// disable some services by default
-		Sentry: sentry.Config{},
-		GRPC:   nil,
 	}
 }

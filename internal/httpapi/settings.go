@@ -102,12 +102,12 @@ func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminA
 	public := d.GetWireguardPrivateKey().Public().Unwrap().String()
 	subnet := string(s.Wireguard.Subnet)
 	return adminAPI.Settings{
-		AdminUserName:       &s.AdminAPI.UserName,
-		ConnectionTimeout:   &s.PublicAPI.PeerTTL,
+		AdminUserName:       &s.GetAdminAPConfig().UserName,
+		ConnectionTimeout:   &s.GetPublicAPIConfig().PeerTTL,
 		Dns:                 &s.Wireguard.DNS,
 		HttpListenAddr:      &s.HTTPListenAddr,
 		LogLevel:            (*adminAPI.SettingsLogLevel)(&s.LogLevel),
-		PingInterval:        &s.PublicAPI.PingInterval,
+		PingInterval:        &s.GetPublicAPIConfig().PingInterval,
 		WireguardKeepalive:  &s.Wireguard.Keepalive,
 		WireguardListenPort: &s.Wireguard.ServerPort,
 		WireguardPublicKey:  &public,
@@ -122,13 +122,6 @@ func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) set
 	}
 	if s.HttpListenAddr != nil {
 		current.HTTPListenAddr = *s.HttpListenAddr
-	}
-
-	if s.ConnectionTimeout != nil {
-		current.PublicAPI.PeerTTL = *s.ConnectionTimeout
-	}
-	if s.PingInterval != nil {
-		current.PublicAPI.PingInterval = *s.PingInterval
 	}
 
 	if s.Dns != nil {
