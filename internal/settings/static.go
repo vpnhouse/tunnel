@@ -85,7 +85,7 @@ func safeDefaults(rootDir string) StaticConfig {
 
 		LogLevel:           "debug",
 		SQLitePath:         filepath.Join(rootDir, "db.sqlite3"),
-		HTTPListenAddr:     ":8085",
+		HTTPListenAddr:     "127.0.0.1:8085",
 		ManagementKeystore: filepath.Join(rootDir, "keystore/"),
 		Rapidoc:            true,
 		AdminAPI: AdminAPIConfig{
