@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine3.12 as toolset
+FROM golang:1.17.6-alpine3.15 as toolset
 
 RUN apk add gcc make git musl-dev
 
@@ -10,7 +10,7 @@ COPY . /build
 WORKDIR /build
 RUN make $TARGET
 
-FROM alpine:3.12
+FROM alpine:3.15
 
 RUN apk add tcpdump wireguard-tools
 COPY docker/tunnel/entrypoint.sh /entrypoint.sh
