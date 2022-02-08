@@ -3,10 +3,12 @@ package xhttp
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"time"
 
 	openapi "github.com/Codename-Uranium/api/go/server/common"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
@@ -54,15 +56,26 @@ type wrapper struct {
 	router chi.Router
 }
 
-// Run starts the http server and blocks
+// Run starts the http server asynchronously.
 func (w *wrapper) Run(addr string) error {
 	w.srv = &http.Server{
 		Handler: w.router,
 		Addr:    addr,
 	}
 
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		return xerror.EInternalError("failed to start http listener", err, zap.String("addr", addr))
+	}
+
 	zap.L().Info("starting HTTP server", zap.String("addr", addr))
-	return w.srv.ListenAndServe()
+	go func() {
+		if err := w.srv.Serve(lis); err != nil {
+			zap.L().Error("http listener failed", zap.String("addr", addr), zap.Error(err))
+		}
+	}()
+
+	return nil
 }
 
 // Router exposes chi.Router for the external registration of handlers.
