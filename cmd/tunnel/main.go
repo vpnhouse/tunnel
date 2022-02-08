@@ -111,7 +111,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	// Startup HTTP API
-	go hs.Run(runtime.Settings.HTTPListenAddr)
+	if err := hs.Run(runtime.Settings.HTTPListenAddr); err != nil {
+		return err
+	}
 	runtime.Services.RegisterService("httpServer", hs)
 
 	if runtime.Features.WithGRPC() {
