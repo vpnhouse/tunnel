@@ -2,7 +2,6 @@ package control
 
 const (
 	EventRestart = iota + 1
-	EventNeedRestart
 	EventSetLogLevel
 	EventCriticalError
 )
