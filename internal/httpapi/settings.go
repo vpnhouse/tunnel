@@ -79,7 +79,7 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 			return nil, err
 		}
 
-		tun.runtime.Events.EmitEvent(control.EventNeedRestart)
+		tun.runtime.Events.EmitEvent(control.EventRestart)
 		return nil, nil
 	})
 }
