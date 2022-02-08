@@ -1,7 +1,7 @@
 GIT_TAG    ?= $(shell git describe --tags --abbrev=0)
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
-DOCKER_TAG ?= $(shell git describe --tags --exact-match `git rev-parse --short HEAD` 2>/dev/null || git rev-parse --abbrev-ref HEAD)
+DOCKER_TAG ?= $(shell git describe --tags --exact-match `git rev-parse --short HEAD` 2>/dev/null || git rev-parse --abbrev-ref HEAD | sed -e 's/\//-/g')
 
 ifeq (${GIT_COMMIT},)
 	GIT_COMMIT = unknown
