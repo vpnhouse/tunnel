@@ -115,7 +115,7 @@ func safeDefaults(rootDir string) StaticConfig {
 		path: filepath.Join(rootDir, staticConfigFileName),
 
 		LogLevel:       "debug",
-		HTTPListenAddr: ":8085",
+		HTTPListenAddr: ":8084",
 		Rapidoc:        true,
 		SQLitePath:     filepath.Join(rootDir, "db.sqlite3"),
 		Wireguard: wireguard.Config{
