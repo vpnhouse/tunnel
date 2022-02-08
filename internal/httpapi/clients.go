@@ -90,7 +90,7 @@ func (tun *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
 				ServerIpv4:      wgSettings.ServerIPv4,
 				ServerPort:      wgSettings.ServerPort,
 				ServerPublicKey: tun.runtime.DynamicSettings.GetWireguardPrivateKey().Public().Unwrap().String(),
-				PingInterval:    tun.runtime.Settings.PublicAPI.PingInterval,
+				PingInterval:    tun.runtime.Settings.GetPublicAPIConfig().PingInterval,
 			},
 		}
 
@@ -292,7 +292,7 @@ func (tun *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerIdentif
 }
 
 func (tun *TunnelAPI) getExpiration() *time.Time {
-	settings := tun.runtime.Settings.PublicAPI
+	settings := tun.runtime.Settings.GetPublicAPIConfig()
 	expiresSeconds := settings.PingInterval + settings.PeerTTL
 	expires := time.Now().Add(time.Second * time.Duration(expiresSeconds))
 	return &expires

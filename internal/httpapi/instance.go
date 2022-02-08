@@ -57,7 +57,7 @@ func NewTunnelHandlers(
 
 func (tun *TunnelAPI) RegisterHandlers(r chi.Router) {
 	// handle frontend redirects
-	root := tun.runtime.Settings.AdminAPI.StaticRoot
+	root := tun.runtime.Settings.GetAdminAPConfig().StaticRoot
 	r.HandleFunc("/", wrap404ToIndex(http.FileServer(http.Dir(root))))
 
 	// admin API

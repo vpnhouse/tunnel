@@ -46,7 +46,7 @@ func (tun *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
 
 		// Create claims
 		issued := time.Now().Unix()
-		expires := issued + int64(tun.runtime.Settings.AdminAPI.TokenLifetime)
+		expires := issued + int64(tun.runtime.Settings.GetAdminAPConfig().TokenLifetime)
 		claims := jwt.StandardClaims{
 			IssuedAt:  issued,
 			ExpiresAt: expires,

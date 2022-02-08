@@ -57,7 +57,7 @@ func wrap404ToIndex(h http.Handler) http.HandlerFunc {
 
 // adminCheckBasicAuth only checks if basic authentication is successful
 func (tun *TunnelAPI) adminCheckBasicAuth(username string, password string) error {
-	if username != tun.runtime.Settings.AdminAPI.UserName {
+	if username != tun.runtime.Settings.GetAdminAPConfig().UserName {
 		return xerror.EAuthenticationFailed("invalid credentials", nil)
 	}
 
