@@ -27,6 +27,19 @@ import (
 	"go.uber.org/zap"
 )
 
+var adminJWT *auth.JWTMaster
+
+func init() {
+	// note: we do not provide any key here: new JWT key generates
+	//  on each restart, so the auth token getting expired.
+	// By the same reason we keep the global instance that can be reused between soft restarts.
+	var err error
+	adminJWT, err = auth.NewJWTMaster(nil, nil)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func initServices(runtime *runtime.TunnelRuntime) error {
 	zap.L().Info("starting tunnel", zap.String("version", version.GetVersion()), zap.Any("features", runtime.Features))
 	if runtime.Settings.Sentry != nil {
@@ -85,13 +98,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		if k, err := federation_keys.NewFsKeystore(runtime.Settings.ManagementKeystore); err == nil {
 			keystore = k
 		}
-	}
-
-	// note: we do not provide any key here: new JWT key generates
-	//  on each restart, so the auth token getting expired.
-	adminJWT, err := auth.NewJWTMaster(nil, nil)
-	if err != nil {
-		return err
 	}
 
 	// Prepare tunneling HTTP API
