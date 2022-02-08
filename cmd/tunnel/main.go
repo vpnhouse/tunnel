@@ -29,8 +29,10 @@ import (
 
 func initServices(runtime *runtime.TunnelRuntime) error {
 	zap.L().Info("starting tunnel", zap.String("version", version.GetVersion()), zap.Any("features", runtime.Features))
-	if err := sentry.ConfigureGlobal(runtime.Settings.Sentry, version.GetVersion()); err != nil {
-		return err
+	if runtime.Settings.Sentry != nil {
+		if err := sentry.ConfigureGlobal(*runtime.Settings.Sentry, version.GetVersion()); err != nil {
+			return err
+		}
 	}
 
 	// Initialize sqlite storage
@@ -40,16 +42,15 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("storage", dataStorage)
 
-	var eventLog eventlog.EventManager
+	var eventLog eventlog.EventManager = eventlog.NewDummy()
 	if runtime.Features.WithEventLog() {
-		eventLog, err = eventlog.New(runtime.Settings.EventLog)
-		if err != nil {
-			return err
+		if runtime.Settings.EventLog != nil {
+			eventLog, err = eventlog.New(*runtime.Settings.EventLog)
+			if err != nil {
+				return err
+			}
+			runtime.Services.RegisterService("eventLog", eventLog)
 		}
-		runtime.Services.RegisterService("eventLog", eventLog)
-
-	} else {
-		eventLog = eventlog.NewDummy()
 	}
 
 	jwtAuthorizer, err := authorizer.NewJWT(dataStorage.AsKeystore())
