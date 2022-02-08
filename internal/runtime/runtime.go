@@ -42,11 +42,10 @@ func New(static settings.StaticConfig, dynamic settings.DynamicConfig, starter S
 
 func (runtime *TunnelRuntime) ProcessEvents(event control.Event) {
 	switch event.EventType {
-	case control.EventNeedRestart:
-		runtime.Flags.RestartRequired = true
 	case control.EventSetLogLevel:
 		_ = runtime.SetLogLevel(event.Info.(string))
 	case control.EventRestart:
+		runtime.Flags.RestartRequired = true
 		if err := runtime.Restart(); err != nil {
 			zap.L().Fatal("service restart failed", zap.Error(err))
 		}
