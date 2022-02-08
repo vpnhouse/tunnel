@@ -48,7 +48,7 @@ func wrap404ToIndex(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nfrw := &notFoundWriter{ResponseWriter: w}
 		h.ServeHTTP(nfrw, r)
-		if nfrw.status == 404 {
+		if nfrw.status == http.StatusNotFound {
 			zap.L().Debug("Redirecting to index.html.", zap.String("uri", r.RequestURI))
 			http.Redirect(w, r, "/index.html", http.StatusFound)
 		}
