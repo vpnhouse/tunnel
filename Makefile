@@ -18,45 +18,53 @@ endif
 DESCRIPTION = tunnel $(GIT_TAG)-$(GIT_COMMIT) branch $(GIT_BRANCH)
 GO_VERSION_PATH = github.com/Codename-Uranium/tunnel/pkg/version
 GO_LDFLAGS = -w -s -X $(GO_VERSION_PATH).tag=$(GIT_TAG) -X $(GO_VERSION_PATH).commit=$(GIT_COMMIT)
+GO_LDFLAGS_ENTERPRISE = $(GO_LDFLAGS) -X $(GO_VERSION_PATH).feature=enterprise
 GO_LDFLAGS_PERSONAL = $(GO_LDFLAGS) -X $(GO_VERSION_PATH).feature=personal
 
-DOCKER_IMAGE ?= codenameuranium/tunnel:$(DOCKER_TAG)
-DOCKER_IMAGE_PERSONAL ?= codenameuranium/tunnel:$(DOCKER_TAG).personal
+DOCKER_IMAGE ?= codenameuranium/tunnel:$(DOCKER_TAG)-personal
+DOCKER_IMAGE_ENTERPRISE ?= codenameuranium/tunnel:$(DOCKER_TAG)
 DOCKER_BUILD_ARGS = --progress=plain --platform=linux/amd64
 
-run:
-	@echo "+ $@ $(DESCRIPTION)"
-	@go build -ldflags="$(GO_LDFLAGS)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
+
+run: run/personal
+
+build: build/personal
+
+docker/build: docker/build/personal
+
+docker/push: docker/push/personal
+
+
+run/personal: build/personal
 	@./tunnel-node
 
-run/personal:
+build/personal:
 	@echo "+ $@ $(DESCRIPTION) (personal)"
-	@go build -ldflags="$(GO_LDFLAGS_PERSONAL)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
-	@./tunnel-node
-
-build/linux:
-	@echo "+ $@ $(DESCRIPTION)"
-	@GOOS=linux GOARCH=amd64 go build -ldflags="$(GO_LDFLAGS)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
-
-build/linux/personal:
-	@echo "+ $@ $(DESCRIPTION) (personal)"
-	@GOOS=linux GOARCH=amd64 go build -ldflags="$(GO_LDFLAGS_PERSONAL)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
-
-docker/build:
-	@echo "+ $@ $(DOCKER_IMAGE)"
-	docker build $(DOCKER_BUILD_ARGS) --tag $(DOCKER_IMAGE) --file ./docker/tunnel/Dockerfile .
+	go build -ldflags="$(GO_LDFLAGS_PERSONAL)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
 
 docker/build/personal:
 	@echo "+ $@ $(DOCKER_IMAGE)"
-	docker build $(DOCKER_BUILD_ARGS) --tag $(DOCKER_IMAGE_PERSONAL) --build-arg TARGET="build/linux/personal" --file ./docker/tunnel/Dockerfile .
+	docker build $(DOCKER_BUILD_ARGS) --tag $(DOCKER_IMAGE) --build-arg TARGET="build/personal" --file ./docker/tunnel/Dockerfile .
 
-docker/push:
+docker/push/personal:
 	@echo "+ $@ $(DOCKER_IMAGE)"
 	@docker push $(DOCKER_IMAGE)
 
-docker/push/personal:
-	@echo "+ $@ $(DOCKER_IMAGE_PERSONAL)"
-	@docker push $(DOCKER_IMAGE_PERSONAL)
+run/enterprise: build/enterprise
+	@./tunnel-node
+
+build/enterprise:
+	@echo "+ $@ $(DESCRIPTION) (enterprise)"
+	go build -ldflags="$(GO_LDFLAGS_ENTERPRISE)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
+
+docker/build/enterprise:
+	@echo "+ $@ $(DOCKER_IMAGE_ENTERPRISE)"
+	docker build $(DOCKER_BUILD_ARGS) --tag $(DOCKER_IMAGE_ENTERPRISE) --build-arg TARGET="build/enterprise" --file ./docker/tunnel/Dockerfile .
+
+docker/push/enterprise:
+	@echo "+ $@ $(DOCKER_IMAGE_ENTERPRISE)"
+	@docker push $(DOCKER_IMAGE_ENTERPRISE)
+
 
 test:
 	@echo "+ $@"
