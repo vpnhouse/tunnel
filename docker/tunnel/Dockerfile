@@ -4,7 +4,7 @@ RUN apk add gcc make git musl-dev
 
 FROM toolset as builder
 
-ARG TARGET=build/linux
+ARG TARGET=build/personal
 
 COPY . /build
 WORKDIR /build

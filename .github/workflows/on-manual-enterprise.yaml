@@ -1,10 +1,10 @@
-name: "Manually/personal: build image"
+name: "Manually/enterprise: build image"
 
 on: workflow_dispatch
 
 jobs:
   build_image:
-    name: "personal :: build image"
+    name: "enterprise :: build image"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -24,7 +24,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          build-args: TARGET=build/linux/personal
+          build-args: TARGET=build/enterprise
           file: docker/tunnel/Dockerfile
           push: true
-          tags: codenameuranium/tunnel:personal-${{ env.GITHUB_REF_SHORT }}
+          tags: codenameuranium/tunnel:${{ env.GITHUB_REF_SHORT }}

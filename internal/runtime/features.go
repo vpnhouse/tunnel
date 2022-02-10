@@ -18,20 +18,20 @@ const (
 type FeatureSet map[string]bool
 
 func NewFeatureSet() FeatureSet {
-	if version.IsPersonal() {
+	if version.IsEnterprise() {
 		return FeatureSet{
-			featureGrpc:       false,
-			featureEventlog:   false,
-			featureFederation: false,
-			featurePublicAPI:  false,
+			featureGrpc:       true,
+			featureEventlog:   true,
+			featureFederation: true,
+			featurePublicAPI:  true,
 		}
 	}
 
 	return FeatureSet{
-		featureGrpc:       true,
-		featureEventlog:   true,
-		featureFederation: true,
-		featurePublicAPI:  true,
+		featureGrpc:       false,
+		featureEventlog:   false,
+		featureFederation: false,
+		featurePublicAPI:  false,
 	}
 }
 

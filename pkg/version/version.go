@@ -11,7 +11,7 @@ const (
 )
 
 var (
-	// tag and commit values must be set via -ldflags, for example:
+	// tag, commit, and feature values must be set via -ldflags, for example:
 	// go build \
 	//    -ldfalgs \
 	//        -X github.com/Codename-Uranium/common/version.tag=v1.2.3
@@ -20,7 +20,7 @@ var (
 	//    ...
 	tag     = ""
 	commit  = ""
-	feature = "dev"
+	feature = "personal"
 )
 
 // GetTag returns the version tag of this build.

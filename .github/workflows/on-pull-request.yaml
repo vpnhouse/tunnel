@@ -15,4 +15,4 @@ jobs:
         with:
           go-version: 1.16
       - name: do stuff
-        run: make test fmt vet build/linux
+        run: make test fmt vet build

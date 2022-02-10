@@ -22,11 +22,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: "cluster :: build and push image"
+      - name: "enterprise :: build and push image"
         uses: docker/build-push-action@v2
         with:
           context: .
-          build-args: TARGET=build/linux
+          build-args: TARGET=build/enterprise
           file: docker/tunnel/Dockerfile
           push: true
           tags: codenameuranium/tunnel:${{ steps.get_version.outputs.TAG_VERSION }}
@@ -35,7 +35,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          build-args: TARGET=build/linux/personal
+          build-args: TARGET=build/personal
           file: docker/tunnel/Dockerfile
           push: true
-          tags: codenameuranium/tunnel:personal-${{ steps.get_version.outputs.TAG_VERSION }}
+          tags: codenameuranium/tunnel:${{ steps.get_version.outputs.TAG_VERSION }}-personal
