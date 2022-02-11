@@ -13,6 +13,7 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/settings"
 	"github.com/Codename-Uranium/tunnel/pkg/control"
 	"github.com/Codename-Uranium/tunnel/pkg/validator"
+	"github.com/Codename-Uranium/tunnel/pkg/version"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"go.uber.org/zap"
@@ -30,6 +31,9 @@ func (tun *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 // AdminInitialSetup POST /api/tunnel/admin/initial-setup
 func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
+		if !version.IsPersonal() {
+			return nil, xerror.EForbidden("initial setup is disabled for `" + version.GetVersion() + "`")
+		}
 		if !tun.runtime.DynamicSettings.InitialSetupRequired() {
 			return nil, xerror.EForbidden("the initial configuration has already been applied")
 		}
