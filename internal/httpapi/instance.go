@@ -65,6 +65,8 @@ func (tun *TunnelAPI) RegisterHandlers(r chi.Router) {
 	webfs := http.FileServer(http.Dir(root))
 	r.Handle("/*", wrap404ToIndex(webfs))
 
+	r.Delete("/_debug/reset-initial", tun.TmpResetSettingsToDefault)
+
 	// admin API
 	adminAPI.HandlerWithOptions(tun, adminAPI.ChiServerOptions{
 		BaseRouter: r,

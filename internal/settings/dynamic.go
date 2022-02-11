@@ -177,6 +177,14 @@ func (dc *dynamicConfig) SetAdminPassword(plain string) error {
 	return nil
 }
 
+func (dc *dynamicConfig) CleanAdminPassword() {
+	dc.mu.Lock()
+	defer dc.mu.Unlock()
+
+	dc.conf.AdminPasswordHash = ""
+	dc.flush()
+}
+
 func (dc *dynamicConfig) VerifyAdminPassword(given string) error {
 	dc.mu.RLock()
 	defer dc.mu.RUnlock()
