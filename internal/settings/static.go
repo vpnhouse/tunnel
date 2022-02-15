@@ -12,9 +12,11 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
 	"github.com/Codename-Uranium/tunnel/pkg/sentry"
+	"github.com/Codename-Uranium/tunnel/pkg/validator"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 type StaticConfig struct {
@@ -37,7 +39,7 @@ type StaticConfig struct {
 	path string
 }
 
-func (s StaticConfig) GetPath() string {
+func (s StaticConfig) getPath() string {
 	return s.path
 }
 
@@ -131,4 +133,19 @@ func safeDefaults(rootDir string) StaticConfig {
 			DNS:        []string{"8.8.8.8", "8.8.4.4"},
 		},
 	}
+}
+
+// Write validates and writes static config to a YAML file
+func (s *StaticConfig) Write() error {
+	if err := validator.ValidateStruct(s); err != nil {
+		return xerror.EInvalidArgument("failed to validate static config", err)
+	}
+
+	bs, _ := yaml.Marshal(s)
+	path := s.getPath()
+	if err := os.WriteFile(path, bs, 0600); err != nil {
+		return xerror.WInternalError("config", "failed to write static config",
+			err, zap.String("path", path))
+	}
+	return nil
 }
