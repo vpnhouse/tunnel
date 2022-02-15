@@ -89,7 +89,7 @@ func validateInitialSetupRequest(req adminAPI.InitialSetupRequest) error {
 	return nil
 }
 
-// AdminUpdateSettings implements handler for PATCH /settings request
+// AdminUpdateSettings implements handler for PATCH /api/tunnel/admin/settings request
 func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		newSettings, err := openApiSettingsFromRequest(r)
@@ -107,7 +107,8 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 		}
 
 		tun.runtime.Events.EmitEvent(control.EventRestart)
-		return nil, nil
+		updated := settingsToOpenAPI(tun.runtime.Settings, tun.runtime.DynamicSettings)
+		return updated, nil
 	})
 }
 
