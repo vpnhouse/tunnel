@@ -7,7 +7,6 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/settings"
@@ -16,8 +15,6 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/version"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 // AdminGetSettings implements handler for GET /settings request
@@ -39,7 +36,7 @@ func (tun *TunnelAPI) TmpResetSettingsToDefault(w http.ResponseWriter, r *http.R
 		}
 
 		tun.runtime.Settings.Wireguard.Subnet = "10.235.0.0/24"
-		if err := validateAndWriteSettings(tun.runtime.Settings); err != nil {
+		if err := tun.runtime.Settings.Write(); err != nil {
 			return nil, err
 		}
 
@@ -67,7 +64,7 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		}
 
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
-		if err := validateAndWriteSettings(tun.runtime.Settings); err != nil {
+		if err := tun.runtime.Settings.Write(); err != nil {
 			return nil, err
 		}
 
@@ -102,27 +99,13 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 		}
 
 		static := mergeStaticSettings(tun.runtime.Settings, newSettings)
-		if err := validateAndWriteSettings(static); err != nil {
+		if err := static.Write(); err != nil {
 			return nil, err
 		}
 
 		tun.runtime.Events.EmitEvent(control.EventRestart)
 		return nil, nil
 	})
-}
-
-func validateAndWriteSettings(newSettings settings.StaticConfig) error {
-	if err := validator.ValidateStruct(newSettings); err != nil {
-		return xerror.EInvalidArgument("failed to validate static config", err)
-	}
-
-	bs, _ := yaml.Marshal(newSettings)
-	path := newSettings.GetPath()
-	if err := os.WriteFile(path, bs, 0600); err != nil {
-		return xerror.WInternalError("config", "failed to write static config",
-			err, zap.String("path", path))
-	}
-	return nil
 }
 
 func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminAPI.Settings {

@@ -59,6 +59,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			return err
 		}
 		runtime.Settings.Wireguard.ServerIPv4 = publicIP.String()
+		if err := runtime.Settings.Write(); err != nil {
+			return err
+		}
 	}
 
 	// Initialize sqlite storage
