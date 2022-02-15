@@ -14,6 +14,7 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/federation_keys"
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
 	"github.com/Codename-Uranium/tunnel/internal/httpapi"
+	"github.com/Codename-Uranium/tunnel/internal/ipdiscover"
 	"github.com/Codename-Uranium/tunnel/internal/manager"
 	"github.com/Codename-Uranium/tunnel/internal/runtime"
 	"github.com/Codename-Uranium/tunnel/internal/settings"
@@ -50,6 +51,14 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		if err := sentry.ConfigureGlobal(*runtime.Settings.Sentry, version.GetVersion()); err != nil {
 			return err
 		}
+	}
+
+	if len(runtime.Settings.Wireguard.ServerIPv4) == 0 {
+		publicIP, err := ipdiscover.New().Discover()
+		if err != nil {
+			return err
+		}
+		runtime.Settings.Wireguard.ServerIPv4 = publicIP.String()
 	}
 
 	// Initialize sqlite storage

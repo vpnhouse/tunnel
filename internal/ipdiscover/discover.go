@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Codename-Uranium/tunnel/internal/wireguard"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"go.uber.org/zap"
@@ -21,42 +20,39 @@ const (
 	requestTimeout = 10 * time.Second
 )
 
-type ipv4discover struct {
-	wgcfg wireguard.Config
-}
+type ipv4discover struct{}
 
 // New returns new public IPv4 discovery service
 // that returns the pre-configured IP address (if any)
 // or resolve one via the external service (checkip@aws or wtfismyip).
-func New(wgcfg wireguard.Config) *ipv4discover {
-	return &ipv4discover{wgcfg: wgcfg}
+func New() *ipv4discover {
+	return &ipv4discover{}
 }
 
-func (ipd *ipv4discover) Discover() (xnet.IP, error) {
-	if len(ipd.wgcfg.ServerIPv4) > 0 {
-		ipa := xnet.ParseIP(ipd.wgcfg.ServerIPv4)
-		if ipa.IP == nil {
-			// must never happen since we always validate the settings at the application startup
-			panic("failed to parse settings.Wireguard.ServerIPv4 field")
-		}
-		return ipa, nil
-	}
-
+// Discover lookups the public IP address by calling an external service.
+func (disco *ipv4discover) Discover() (xnet.IP, error) {
 	// TODO(nikonov): the point for further improvement:
 	//  call several URLs simultaneously and use the fastest one.
 	// (nikonov)Worth mentioning that the AWS ip checker works just ok for several years.
-	return ipd.discoverAWS()
+
+	ipa, err := disco.discoverAWS()
+	if err != nil {
+		return xnet.IP{}, err
+	}
+
+	zap.L().Debug("public ipv4 discovered", zap.String("addr", ipa.String()))
+	return ipa, nil
 }
 
-func (ipd *ipv4discover) discoverAWS() (xnet.IP, error) {
-	return ipd.discoverWithHttpCall("https://checkip.amazonaws.com/")
+func (disco *ipv4discover) discoverAWS() (xnet.IP, error) {
+	return disco.discoverWithHttpCall("https://checkip.amazonaws.com/")
 }
 
-func (ipd *ipv4discover) discoverWTF() (xnet.IP, error) {
-	return ipd.discoverWithHttpCall("https://wtfismyip.com/text")
+func (disco *ipv4discover) discoverWTF() (xnet.IP, error) {
+	return disco.discoverWithHttpCall("https://wtfismyip.com/text")
 }
 
-func (ipd *ipv4discover) discoverWithHttpCall(url string) (xnet.IP, error) {
+func (disco *ipv4discover) discoverWithHttpCall(url string) (xnet.IP, error) {
 	zap.L().Debug("discovering public ipv4 via the external service", zap.String("url", url))
 
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
@@ -80,7 +76,6 @@ func (ipd *ipv4discover) discoverWithHttpCall(url string) (xnet.IP, error) {
 	defer resp.Body.Close()
 	// 20 bytes is more than enough to store 4 octets with EOL
 	raw, err := bufio.NewReaderSize(resp.Body, 20).ReadString('\n')
-	// n, err := resp.Body.Read(in)
 	if err != nil {
 		return xnet.IP{}, xerror.WInternalError(warnLabel, "failed to read the response body", err)
 	}
