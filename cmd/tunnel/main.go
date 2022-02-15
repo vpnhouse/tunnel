@@ -54,13 +54,13 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	if len(runtime.Settings.Wireguard.ServerIPv4) == 0 {
-		publicIP, err := ipdiscover.New().Discover()
-		if err != nil {
-			return err
-		}
-		runtime.Settings.Wireguard.ServerIPv4 = publicIP.String()
-		if err := runtime.Settings.Write(); err != nil {
-			return err
+		// it's ok to fail here, ip checking host may not be available
+		// or machine may not have access to the internet.
+		if publicIP, err := ipdiscover.New().Discover(); err == nil {
+			runtime.Settings.Wireguard.ServerIPv4 = publicIP.String()
+			if err := runtime.Settings.Write(); err != nil {
+				return err
+			}
 		}
 	}
 
