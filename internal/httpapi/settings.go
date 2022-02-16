@@ -17,7 +17,7 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 )
 
-// AdminGetSettings implements handler for GET /settings request
+// AdminGetSettings implements handler for GET /api/tunnel/admin/settings request
 func (tun *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		s := settingsToOpenAPI(tun.runtime.Settings, tun.runtime.DynamicSettings)

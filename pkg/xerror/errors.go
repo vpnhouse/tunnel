@@ -47,6 +47,7 @@ var (
 	EUnavailableType           = &ErrorType{http.StatusServiceUnavailable, openapi.ErrorResultSERVICEUNAVAILABLE}
 	EConfigurationRequiredType = &ErrorType{http.StatusConflict, openapi.ErrorResultCONFIGURATIONREQUIRED}
 	EForbiddenType             = &ErrorType{http.StatusForbidden, openapi.ErrorResultFORBIDDEN}
+	EInvalidConfigurationType  = &ErrorType{http.StatusInternalServerError, openapi.ErrorResultINVALIDCONFIGURATION}
 )
 
 func EInternalError(description string, err error, fields ...zap.Field) *Error {
@@ -143,6 +144,10 @@ func EConfigurationRequired(msg string) *Error {
 
 func EForbidden(msg string) *Error {
 	return newError(EForbiddenType, msg, defaultSerializer, nil, nil)
+}
+
+func EInvalidConfiguration(msg string, field string) *Error {
+	return newError(EInvalidConfigurationType, msg, defaultSerializer, nil, &field)
 }
 
 type errorSerializerFunc func(error *Error) (int, []byte)
