@@ -64,6 +64,12 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		}
 
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
+		if req.EnableSsl {
+			tun.runtime.Settings.SSL = &settings.SSLConfig{
+				ListenAddr: ":443",
+				Domain:     req.DomainName,
+			}
+		}
 		if err := tun.runtime.Settings.Write(); err != nil {
 			return nil, err
 		}
@@ -79,10 +85,12 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 }
 
 func validateInitialSetupRequest(req adminAPI.InitialSetupRequest) error {
+	if len(req.DomainName) > 0 && !req.EnableSsl {
+		return xerror.EInvalidField("domain name without SSL enabled is meaningless", "domain_name", nil)
+	}
 	if len(req.AdminPassword) < 6 {
 		return xerror.EInvalidField("password too short", "admin_password", nil)
 	}
-
 	return nil
 }
 

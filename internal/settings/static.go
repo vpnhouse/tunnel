@@ -19,6 +19,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type SSLConfig struct {
+	// ListenAddr for HTTPS server, default: ":443"
+	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`
+	// Domain name to issue the certificate for,
+	// self-signed certificate is used if name is empty.
+	Domain string `yaml:"domain" valid:"dns,optional"`
+	// Email is an optional field to receive the LE notifications
+	Email string `yaml:"email" valid:"email,optional"`
+}
+
 type StaticConfig struct {
 	LogLevel       string           `yaml:"log_level"`
 	SQLitePath     string           `yaml:"sqlite_path" valid:"path,required"`
@@ -27,6 +37,7 @@ type StaticConfig struct {
 	Wireguard      wireguard.Config `yaml:"wireguard"`
 
 	// optional configuration
+	SSL                *SSLConfig              `yaml:"ssl"`
 	AdminAPI           *AdminAPIConfig         `yaml:"admin_api,omitempty"`
 	PublicAPI          *PublicAPIConfig        `yaml:"public_api,omitempty"`
 	GRPC               *grpc.Config            `yaml:"grpc,omitempty"`
@@ -41,6 +52,10 @@ type StaticConfig struct {
 
 func (s StaticConfig) getPath() string {
 	return s.path
+}
+
+func (s StaticConfig) ConfigDir() string {
+	return filepath.Dir(s.path)
 }
 
 func (s StaticConfig) GetAdminAPConfig() *AdminAPIConfig {

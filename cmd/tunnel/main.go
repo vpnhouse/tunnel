@@ -119,18 +119,43 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Prepare tunneling HTTP API
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keystore, ipv4Pool)
 
+	var xHttpServer *xhttp.Server
+	var xHttpAddr string
+	if runtime.Settings.SSL != nil {
+		redirectOnly := xhttp.NewRedirectToSSL(runtime.Settings.SSL.Domain)
+		// we must start the redirect-only server before passing its Router
+		// to the certificate issuer.
+		if err := redirectOnly.Run(runtime.Settings.HTTPListenAddr); err != nil {
+			return err
+		}
+
+		issuer, err := xhttp.NewIssuer(runtime.Settings.ConfigDir(), redirectOnly.Router(), runtime.Settings.SSL.Email)
+		if err != nil {
+			return err
+		}
+
+		tlscfg, err := issuer.TLSForDomain(runtime.Settings.SSL.Domain)
+		if err != nil {
+			return err
+		}
+
+		xHttpAddr = runtime.Settings.SSL.ListenAddr
+		xHttpServer = xhttp.NewDefaultSSL(tlscfg)
+	} else {
+		xHttpAddr = runtime.Settings.HTTPListenAddr
+		xHttpServer = xhttp.NewDefault()
+	}
 	// register handlers of all modules
-	hs := xhttp.NewDefault()
-	tunnelAPI.RegisterHandlers(hs.Router())
+	tunnelAPI.RegisterHandlers(xHttpServer.Router())
 	if runtime.Settings.Rapidoc {
-		rapidoc.RegisterHandlers(hs.Router())
+		rapidoc.RegisterHandlers(xHttpServer.Router())
 	}
 
 	// Startup HTTP API
-	if err := hs.Run(runtime.Settings.HTTPListenAddr); err != nil {
+	if err := xHttpServer.Run(xHttpAddr); err != nil {
 		return err
 	}
-	runtime.Services.RegisterService("httpServer", hs)
+	runtime.Services.RegisterService("httpServer", xHttpServer)
 
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
