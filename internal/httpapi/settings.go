@@ -131,6 +131,7 @@ func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) set
 	if s.LogLevel != nil {
 		current.LogLevel = (string)(*s.LogLevel)
 	}
+	// TODO(all): does this makes any sense since primary env is docker?
 	if s.HttpListenAddr != nil {
 		current.HTTPListenAddr = *s.HttpListenAddr
 	}
@@ -140,9 +141,6 @@ func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) set
 	}
 	if s.WireguardKeepalive != nil {
 		current.Wireguard.Keepalive = *s.WireguardKeepalive
-	}
-	if s.WireguardServerPort != nil {
-		current.Wireguard.ServerPort = *s.WireguardServerPort
 	}
 	if s.WireguardServerIpv4 != nil {
 		current.Wireguard.ServerIPv4 = *s.WireguardServerIpv4
