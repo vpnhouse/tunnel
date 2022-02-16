@@ -129,7 +129,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			return err
 		}
 
-		issuer, err := xhttp.NewIssuer(runtime.Settings.ConfigDir(), redirectOnly.Router(), runtime.Settings.SSL.Email)
+		issuer, err := xhttp.NewIssuer(runtime.Settings.ConfigDir(), redirectOnly.Router())
 		if err != nil {
 			return err
 		}

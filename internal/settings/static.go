@@ -25,8 +25,6 @@ type SSLConfig struct {
 	// Domain name to issue the certificate for,
 	// self-signed certificate is used if name is empty.
 	Domain string `yaml:"domain" valid:"dns,optional"`
-	// Email is an optional field to receive the LE notifications
-	Email string `yaml:"email" valid:"email,optional"`
 }
 
 type StaticConfig struct {
@@ -136,7 +134,7 @@ func safeDefaults(rootDir string) StaticConfig {
 		path: filepath.Join(rootDir, staticConfigFileName),
 
 		LogLevel:       "debug",
-		HTTPListenAddr: ":8084",
+		HTTPListenAddr: ":80",
 		Rapidoc:        true,
 		SQLitePath:     filepath.Join(rootDir, "db.sqlite3"),
 		Wireguard: wireguard.Config{

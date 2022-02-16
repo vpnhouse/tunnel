@@ -55,7 +55,7 @@ type Issuer struct {
 	email string
 }
 
-func NewIssuer(dir string, r chi.Router, email string) (*Issuer, error) {
+func NewIssuer(dir string, r chi.Router) (*Issuer, error) {
 	fi, err := os.Stat(dir)
 	if err != nil {
 		return nil, err
@@ -64,11 +64,11 @@ func NewIssuer(dir string, r chi.Router, email string) (*Issuer, error) {
 		return nil, errors.New(dir + ": not a directory")
 	}
 
-	if len(email) == 0 {
-		email = "noreply@dummy.org"
-	}
-
-	return &Issuer{certdir: dir, email: email, router: r}, nil
+	return &Issuer{
+		router:  r,
+		certdir: dir,
+		email:   "noreply@dummy.org",
+	}, nil
 }
 
 // TLSForDomain issues new certificate via LE or loads one from a cache, if any.

@@ -124,7 +124,6 @@ func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminA
 		AdminUserName:       &s.GetAdminAPConfig().UserName,
 		ConnectionTimeout:   &s.GetPublicAPIConfig().PeerTTL,
 		Dns:                 &s.Wireguard.DNS,
-		HttpListenAddr:      &s.HTTPListenAddr,
 		LogLevel:            (*adminAPI.SettingsLogLevel)(&s.LogLevel),
 		PingInterval:        &s.GetPublicAPIConfig().PingInterval,
 		WireguardKeepalive:  &s.Wireguard.Keepalive,
@@ -138,10 +137,6 @@ func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminA
 func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) settings.StaticConfig {
 	if s.LogLevel != nil {
 		current.LogLevel = (string)(*s.LogLevel)
-	}
-	// TODO(all): does this makes any sense since primary env is docker?
-	if s.HttpListenAddr != nil {
-		current.HTTPListenAddr = *s.HttpListenAddr
 	}
 
 	if s.Dns != nil {

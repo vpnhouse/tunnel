@@ -156,7 +156,13 @@ func NewRedirectToSSL(to string) *Server {
 	r := chi.NewRouter()
 	r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		url2 := *r.URL
-		url2.Host = to
+		if len(to) > 0 {
+			// override host if present,
+			// if we have ssl enabled with self-signed
+			// certificate and no domain - redirect to the
+			// required IP but with https schema.
+			url2.Host = to
+		}
 		url2.Scheme = "https"
 		w.Header().Set("Location", url2.String())
 		w.WriteHeader(http.StatusTemporaryRedirect)
