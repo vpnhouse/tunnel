@@ -3,7 +3,7 @@ module github.com/Codename-Uranium/tunnel
 go 1.17
 
 require (
-	github.com/Codename-Uranium/api v0.0.0-20220211091751-4c0e6035502e
+	github.com/Codename-Uranium/api v0.0.0-20220217095802-ae8443152d50
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.5.1

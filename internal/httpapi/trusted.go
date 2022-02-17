@@ -9,7 +9,7 @@ import (
 	"io"
 	"net/http"
 
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
+	mgmtAPI "github.com/Codename-Uranium/api/go/server/tunnel_mgmt"
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
@@ -25,7 +25,7 @@ func (tun *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.Reques
 			return nil, err
 		}
 
-		result := make([]adminAPI.TrustedKeyRecord, len(keys))
+		result := make([]mgmtAPI.TrustedKeyRecord, len(keys))
 		for i, k := range keys {
 			keyInfo, err := k.Unwrap()
 			if err != nil {
@@ -36,7 +36,7 @@ func (tun *TunnelAPI) AdminListTrustedKeys(w http.ResponseWriter, r *http.Reques
 			keyBytes, _ := xcrypto.MarshalPublicKey(keyInfo.Key)
 
 			result[i].Id = k.ID
-			result[i].Key = adminAPI.TrustedKey(keyBytes)
+			result[i].Key = mgmtAPI.TrustedKey(keyBytes)
 		}
 		return result, nil
 	})
