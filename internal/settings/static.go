@@ -14,6 +14,7 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/sentry"
 	"github.com/Codename-Uranium/tunnel/pkg/validator"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -27,6 +28,7 @@ type StaticConfig struct {
 	Wireguard      wireguard.Config `yaml:"wireguard"`
 
 	// optional configuration
+	SSL                *xhttp.SSLConfig        `yaml:"ssl"`
 	AdminAPI           *AdminAPIConfig         `yaml:"admin_api,omitempty"`
 	PublicAPI          *PublicAPIConfig        `yaml:"public_api,omitempty"`
 	GRPC               *grpc.Config            `yaml:"grpc,omitempty"`
@@ -41,6 +43,10 @@ type StaticConfig struct {
 
 func (s StaticConfig) getPath() string {
 	return s.path
+}
+
+func (s StaticConfig) ConfigDir() string {
+	return filepath.Dir(s.path)
 }
 
 func (s StaticConfig) GetAdminAPConfig() *AdminAPIConfig {
@@ -121,7 +127,7 @@ func safeDefaults(rootDir string) StaticConfig {
 		path: filepath.Join(rootDir, staticConfigFileName),
 
 		LogLevel:       "debug",
-		HTTPListenAddr: ":8084",
+		HTTPListenAddr: ":80",
 		Rapidoc:        true,
 		SQLitePath:     filepath.Join(rootDir, "db.sqlite3"),
 		Wireguard: wireguard.Config{
