@@ -42,14 +42,20 @@ func (m *ServiceMap) RegisterService(name string, service ServiceController) {
 	zap.L().Info("Registered service", zap.String("name", name))
 }
 
-func (m *ServiceMap) Service(name string) ServiceController {
-	c, ok := m.services[name]
+func (m *ServiceMap) Replace(name string, s ServiceController) error {
+	old, ok := m.services[name]
 	if !ok {
-		zap.L().Fatal("Service is not registered", zap.String("name", name))
-		return nil
+		// log, not fail, we can safely replace nothing with the service
+		return xerror.WInternalError("services", "replace: service is not registered", nil, zap.String("name", name))
 	}
 
-	return c
+	if err := old.Shutdown(); err != nil {
+		return xerror.WInternalError("services", "replace: failed to shutdown", err, zap.String("name", name))
+	}
+
+	m.services[name] = s
+	zap.L().Debug("service has been replaced successfully", zap.String("name", name))
+	return nil
 }
 
 func (m *ServiceMap) Shutdown() error {

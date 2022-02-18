@@ -64,6 +64,12 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		}
 
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
+		if req.EnableSsl {
+			tun.runtime.Settings.SSL = &xhttp.SSLConfig{
+				ListenAddr: ":443",
+				Domain:     req.DomainName,
+			}
+		}
 		if err := tun.runtime.Settings.Write(); err != nil {
 			return nil, err
 		}
@@ -79,10 +85,12 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 }
 
 func validateInitialSetupRequest(req adminAPI.InitialSetupRequest) error {
+	if len(req.DomainName) > 0 && !req.EnableSsl {
+		return xerror.EInvalidField("domain name without SSL enabled is meaningless", "domain_name", nil)
+	}
 	if len(req.AdminPassword) < 6 {
 		return xerror.EInvalidField("password too short", "admin_password", nil)
 	}
-
 	return nil
 }
 
@@ -116,7 +124,6 @@ func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminA
 		AdminUserName:       &s.GetAdminAPConfig().UserName,
 		ConnectionTimeout:   &s.GetPublicAPIConfig().PeerTTL,
 		Dns:                 &s.Wireguard.DNS,
-		HttpListenAddr:      &s.HTTPListenAddr,
 		LogLevel:            (*adminAPI.SettingsLogLevel)(&s.LogLevel),
 		PingInterval:        &s.GetPublicAPIConfig().PingInterval,
 		WireguardKeepalive:  &s.Wireguard.Keepalive,
@@ -130,10 +137,6 @@ func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminA
 func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) settings.StaticConfig {
 	if s.LogLevel != nil {
 		current.LogLevel = (string)(*s.LogLevel)
-	}
-	// TODO(all): does this makes any sense since primary env is docker?
-	if s.HttpListenAddr != nil {
-		current.HTTPListenAddr = *s.HttpListenAddr
 	}
 
 	if s.Dns != nil {
