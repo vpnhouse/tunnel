@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
@@ -29,15 +30,17 @@ import (
 	"go.uber.org/zap"
 )
 
-// CertData holds the SSL certificate data
-// within th renew info for LetsEncrypt.
-type CertData struct {
+// certData holds the SSL certificate data
+// within the renewal info for LetsEncrypt.
+// The `certData` struct can be serialized
+// to store the certificate on a disk.
+type certData struct {
 	Domain string `json:"domain"`
 	// Cert is a pem-encoded certificate bytes
 	Cert []byte `json:"cert"`
 	// key is a pem-encoded certificate key
 	Key []byte `json:"key"`
-	// URL is a renew url for a certificate
+	// URL is a letsEncryptRenew url for a certificate
 	URL string `json:"url"`
 
 	// cert is a parsed tls certificate
@@ -45,18 +48,21 @@ type CertData struct {
 	cert tls.Certificate
 }
 
-func (data *CertData) load() error {
+// parseX509 loads Cert and Key bytes into x509 certificate
+// with the leaf fields. Have to be called after issuing certificate from
+// LE or loading the cached one from a disk.
+func (data *certData) parseX509() error {
 	// convert certificate for stdlib's tls.Certificate
 	incert, err := tls.X509KeyPair(data.Cert, data.Key)
 	if err != nil {
-		return err
+		return xerror.WInternalError("ssl", "failed to parse x509 key pair", err)
 	}
 
 	// Parse extra fields, especially we want to get
 	// incert.Leaf.NotAfter and incert.Leaf.NotBefore
 	incert.Leaf, err = x509.ParseCertificate(incert.Certificate[0])
 	if err != nil {
-		return err
+		return xerror.WInternalError("ssl", "failed to parse the leaf", err)
 	}
 
 	data.cert = incert
@@ -64,7 +70,7 @@ func (data *CertData) load() error {
 }
 
 // https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29
-func (data *CertData) intoTLS() *tls.Config {
+func (data *certData) intoTLS() *tls.Config {
 	if len(data.cert.Certificate) == 0 {
 		panic("certificate not parsed")
 	}
@@ -92,65 +98,74 @@ func (data *CertData) intoTLS() *tls.Config {
 	}
 }
 
+type SSLConfig struct {
+	// Domain name to issue the certificate for,
+	// self-signed certificate is used if name is empty but ssl has been enabled,
+	// or if external issuer failed.
+	Domain string `yaml:"domain" valid:"dns"`
+	// Email to notify about certificates expiration, optional.
+	Email string `yaml:"email" valid:"email"`
+	// ListenAddr for HTTPS server, default: ":443"
+	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`
+	// Dir to store cached certificates, use sub-directory of cfgDir if possible.
+	Dir string `yaml:"dir" valid:"path"`
+}
+
 // Issuer should be named like certManager
 type Issuer struct {
-	// path to a certificate cache dir
-	certdir string
 	// router of the http (not https!) server
 	router chi.Router
-	// email for LetsEncrypt registration
-	email string
+	log    *zap.Logger
 
+	// cli is a cached LE client
+	// with a valid registration field(s).
+	cli *lego.Client
+
+	cfg             SSLConfig
 	restartCallback func(newCert *tls.Config)
 }
 
-func NewIssuer(dir string, r chi.Router) (*Issuer, error) {
-	fi, err := os.Stat(dir)
+func NewIssuer(cfg SSLConfig, r chi.Router, cb func(c *tls.Config)) (*Issuer, error) {
+	fi, err := os.Stat(cfg.Dir)
 	if err != nil {
 		return nil, err
 	}
 	if !fi.IsDir() {
-		return nil, errors.New(dir + ": not a directory")
+		return nil, errors.New(cfg.Dir + ": not a directory")
+	}
+	if len(cfg.Email) == 0 {
+		cfg.Email = "noreply@dummy.org"
 	}
 
 	return &Issuer{
-		router:  r,
-		certdir: dir,
-		email:   "noreply@dummy.org",
+		router:          r,
+		cfg:             cfg,
+		restartCallback: cb,
+		log:             zap.L().With(zap.String("domain", cfg.Domain)),
 	}, nil
 }
 
-func (is *Issuer) getConfig() {
-	// try load from a disk
-	// try issue from LE
-	// if not LE - return self-signed, start retrying
-	// if OK LE - return LE, stop retrying,	start update routine
-
-	// implement restartCallback that accepts new tls.Config,
-	// must be used for the web server restarting (probably inplace).
-}
-
-// TLSForDomain issues new certificate via LE or loads one from a cache, if any.
-// Returns TLS config for the http.Server.
-func (is *Issuer) TLSForDomain(domain string) (*tls.Config, error) {
-	certData, err := is.loadCachedCertificate(domain)
+// TLSConfig issues new certificate via LE or loads one from a cache, if any.
+// Returns TLS config for the http.Server using the issued cert.
+func (is *Issuer) TLSConfig() (*tls.Config, error) {
+	certData, err := is.loadCachedCertificate()
 	if err == nil {
 		return certData.intoTLS(), nil
 	}
 
-	certData, err = is.issueAndSaveCertificate(domain)
+	certData, err = is.issueAndSaveCertificate()
 	if err == nil {
-		is.renew(certData)
+		go is.letsEncryptRenew(certData)
 		return certData.intoTLS(), nil
 	}
 
 	go func() {
-		certData := is.retryIssue(domain)
+		certData := is.retryIssue()
 		is.restartCallback(certData.intoTLS())
-		is.renew(certData)
+		is.letsEncryptRenew(certData)
 	}()
 
-	selfSigned, err := is.selfSigned(domain)
+	selfSigned, err := is.selfSigned()
 	if err != nil {
 		return nil, err
 	}
@@ -158,103 +173,124 @@ func (is *Issuer) TLSForDomain(domain string) (*tls.Config, error) {
 	return selfSigned.intoTLS(), nil
 }
 
-func (is *Issuer) loadCachedCertificate(dom string) (CertData, error) {
-	cached := is.certCachePath(dom)
+func (is *Issuer) loadCachedCertificate() (certData, error) {
+	cached := is.cachedCertPath()
 	bs, err := os.ReadFile(cached)
 	if err != nil {
 		// do not wrap error, we'll check for os.IsNotExists
-		return CertData{}, err
+		return certData{}, err
 	}
 
-	var cdata CertData
+	var cdata certData
 	if err := json.Unmarshal(bs, &cdata); err != nil {
-		return CertData{}, err
+		return certData{}, err
 	}
 
-	if err := cdata.load(); err != nil {
-		return CertData{}, err
+	if err := cdata.parseX509(); err != nil {
+		return certData{}, err
 	}
 
-	zap.L().Debug("using an existing certificate", zap.String("domain", dom))
+	is.log.Debug("using an existing certificate", zap.String("path", cached))
 	return cdata, nil
 }
 
-func (is *Issuer) certCachePath(dom string) string {
-	return filepath.Join(is.certdir, dom+".json")
+func (is *Issuer) cachedCertPath() string {
+	return filepath.Join(is.cfg.Dir, is.cfg.Domain+".json")
 }
 
-func (is *Issuer) issueAndSaveCertificate(dom string) (CertData, error) {
-	cdata, err := is.issue(dom)
+func (is *Issuer) issueAndSaveCertificate() (certData, error) {
+	cdata, err := is.issue()
 	if err != nil {
-		return CertData{}, err
+		return certData{}, err
 	}
 
+	if err := is.writeCert(cdata); err != nil {
+		return certData{}, err
+	}
+
+	return cdata, nil
+}
+
+func (is *Issuer) writeCert(cdata certData) error {
 	bs, err := json.Marshal(cdata)
 	if err != nil {
-		return CertData{}, err
+		return xerror.WInternalError("ssl", "failed to marshal cert data", err)
 	}
 
-	dataFile := is.certCachePath(dom)
+	dataFile := is.cachedCertPath()
 	if err := os.WriteFile(dataFile, bs, 0600); err != nil {
-		return CertData{}, err
+		return xerror.WInternalError("ssl", "failed to write cert data to a file",
+			err, zap.String("path", dataFile))
 	}
 
-	zap.L().Debug("certificate saved", zap.String("domain", dom), zap.String("path", dataFile))
-	return cdata, nil
+	is.log.Debug("certificate saved", zap.String("path", dataFile))
+	return nil
 }
 
-func (is *Issuer) issue(dom string) (CertData, error) {
-	myUser := newUser(is.email)
+func (is *Issuer) getLEClient() (*lego.Client, error) {
+	if is.cli == nil {
+		myUser := newUser(is.cfg.Email)
 
-	config := lego.NewConfig(&myUser)
-	// A client facilitates communication with the CA server.
-	client, err := lego.NewClient(config)
+		config := lego.NewConfig(&myUser)
+		// A client facilitates communication with the CA server.
+		client, err := lego.NewClient(config)
+		if err != nil {
+			return nil, xerror.WInternalError("ssl", "failed to create LE client", err)
+		}
+
+		h01p := newHttp01provider(is.router)
+		if err := client.Challenge.SetHTTP01Provider(h01p); err != nil {
+			return nil, xerror.WInternalError("ssl", "failed to set http-01 provider", err)
+		}
+
+		// register new user
+		reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+		if err != nil {
+			return nil, xerror.WInternalError("ssl", "failed to register user", err)
+		}
+
+		myUser.registration = reg
+		is.cli = client
+	}
+
+	return is.cli, nil
+}
+
+func (is *Issuer) issue() (certData, error) {
+	cli, err := is.getLEClient()
 	if err != nil {
-		return CertData{}, err
+		return certData{}, err
 	}
-
-	h01p := newHttp01provider(is.router)
-	if err := client.Challenge.SetHTTP01Provider(h01p); err != nil {
-		return CertData{}, err
-	}
-
-	// register new user
-	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
-	if err != nil {
-		return CertData{}, err
-	}
-	myUser.registration = reg
 
 	request := certificate.ObtainRequest{
-		Domains: []string{dom},
+		Domains: []string{is.cfg.Domain},
 		Bundle:  true,
 	}
-
-	certificates, err := client.Certificate.Obtain(request)
+	certificates, err := cli.Certificate.Obtain(request)
 	if err != nil {
-		return CertData{}, err
+		return certData{}, xerror.WInternalError("ssl", "failed to obtain certificate", err)
 	}
 
-	cd := CertData{
-		Domain: dom,
+	cd := certData{
+		Domain: is.cfg.Domain,
 		Cert:   certificates.Certificate,
 		Key:    certificates.PrivateKey,
 		URL:    certificates.CertURL,
 	}
 
-	if err := cd.load(); err != nil {
-		return CertData{}, err
+	if err := cd.parseX509(); err != nil {
+		return certData{}, err
 	}
 
-	zap.L().Info("certificate issued", zap.String("domain", dom))
+	is.log.Info("certificate issued")
 	return cd, nil
 }
 
-func (is *Issuer) selfSigned(dom string) (CertData, error) {
-	zap.L().Warn("using self-signed certificate")
+func (is *Issuer) selfSigned() (certData, error) {
+	is.log.Warn("using self-signed certificate")
 	priv, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
-		return CertData{}, err
+		return certData{}, xerror.WInternalError("ssl", "failed to generate ecdsa key", err)
 	}
 
 	notBefore := time.Now()
@@ -262,11 +298,11 @@ func (is *Issuer) selfSigned(dom string) (CertData, error) {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return CertData{}, err
+		return certData{}, xerror.WInternalError("ssl", "failed to randomize serial number", err)
 	}
 
 	template := x509.Certificate{
-		DNSNames: []string{dom},
+		DNSNames: []string{is.cfg.Domain},
 		// IPAddresses    []net.IP // << TODO?
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -282,50 +318,52 @@ func (is *Issuer) selfSigned(dom string) (CertData, error) {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, priv.Public(), priv)
 	if err != nil {
-		return CertData{}, err
+		return certData{}, xerror.WInternalError("ssl", "failed to create certificate from a template", err)
 	}
 
 	// Create public key
 	pubBuf := new(bytes.Buffer)
 	err = pem.Encode(pubBuf, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	if err != nil {
-		return CertData{}, err
+		return certData{}, xerror.WInternalError("ssl", "failed to encode certificate into PEM", err)
 	}
 
 	// Create private key
 	privBuf := new(bytes.Buffer)
 	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
 	if err != nil {
-		return CertData{}, err
+		return certData{}, xerror.WInternalError("ssl", "failed to marshal the private key", err)
 	}
 
 	err = pem.Encode(privBuf, &pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
 	if err != nil {
-		return CertData{}, err
+		return certData{}, xerror.WInternalError("ssl", "failed to encode the private key", err)
 	}
 
 	cert, err := tls.X509KeyPair(pubBuf.Bytes(), privBuf.Bytes())
 	if err != nil {
-
+		return certData{}, xerror.WInternalError("ssl", "failed to derive x509 certificate", err)
 	}
 
-	cdata := CertData{
-		Domain: dom,
+	cdata := certData{
+		Domain: is.cfg.Domain,
 		cert:   cert,
 	}
 
-	zap.L().Debug("using self-signed certificate", zap.String("domain", dom))
+	is.log.Debug("using self-signed certificate")
 	return cdata, nil
 }
 
-func (is *Issuer) retryIssue(dom string) CertData {
+func (is *Issuer) retryIssue() certData {
+	is.log.Debug("failed to issue the certificate, retrying")
+
 	t := time.NewTicker(3 * time.Minute)
 	defer t.Stop()
 
 	for {
 		select {
 		case <-t.C:
-			cdata, err := is.issueAndSaveCertificate(dom)
+			cdata, err := is.issueAndSaveCertificate()
 			if err == nil {
 				return cdata
 			}
@@ -333,6 +371,55 @@ func (is *Issuer) retryIssue(dom string) CertData {
 	}
 }
 
-func (is *Issuer) renew(cdata CertData) {
-	// TODO(nikonov): ???
+func (is *Issuer) letsEncryptRenew(cdata certData) {
+	t := time.NewTimer(10 * time.Minute)
+	defer t.Stop()
+
+	previousOK := true
+	for {
+		select {
+		case <-t.C:
+			previousOK = is.renewOnce(cdata, previousOK)
+		}
+	}
+}
+
+func (is *Issuer) renewOnce(existing certData, previousOK bool) bool {
+	expiresSoon := existing.cert.Leaf.NotAfter.Sub(time.Now()) <= 24*time.Hour
+	if previousOK && !expiresSoon {
+		return true
+	}
+
+	client, err := is.getLEClient()
+	if err != nil {
+		return false
+	}
+
+	newCert, err := client.Certificate.Renew(certificate.Resource{
+		Domain:      existing.Domain,
+		CertURL:     existing.URL,
+		PrivateKey:  existing.Key,
+		Certificate: existing.Cert,
+	}, true, false, "")
+	if err != nil {
+		is.log.Warn("renew failed", zap.Error(err))
+		return false
+	}
+
+	cdata := certData{
+		Domain: existing.Domain,
+		Cert:   newCert.Certificate,
+		Key:    newCert.PrivateKey,
+		URL:    newCert.CertURL,
+	}
+	if err := cdata.parseX509(); err != nil {
+		return false
+	}
+
+	if err := is.writeCert(cdata); err != nil {
+		return false
+	}
+
+	is.restartCallback(cdata.intoTLS())
+	return true
 }

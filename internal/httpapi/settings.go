@@ -65,7 +65,7 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
 		if req.EnableSsl {
-			tun.runtime.Settings.SSL = &settings.SSLConfig{
+			tun.runtime.Settings.SSL = &xhttp.SSLConfig{
 				ListenAddr: ":443",
 				Domain:     req.DomainName,
 			}

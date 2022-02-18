@@ -14,18 +14,11 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/sentry"
 	"github.com/Codename-Uranium/tunnel/pkg/validator"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
-
-type SSLConfig struct {
-	// ListenAddr for HTTPS server, default: ":443"
-	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`
-	// Domain name to issue the certificate for,
-	// self-signed certificate is used if name is empty.
-	Domain string `yaml:"domain" valid:"dns,optional"`
-}
 
 type StaticConfig struct {
 	LogLevel       string           `yaml:"log_level"`
@@ -35,7 +28,7 @@ type StaticConfig struct {
 	Wireguard      wireguard.Config `yaml:"wireguard"`
 
 	// optional configuration
-	SSL                *SSLConfig              `yaml:"ssl"`
+	SSL                *xhttp.SSLConfig        `yaml:"ssl"`
 	AdminAPI           *AdminAPIConfig         `yaml:"admin_api,omitempty"`
 	PublicAPI          *PublicAPIConfig        `yaml:"public_api,omitempty"`
 	GRPC               *grpc.Config            `yaml:"grpc,omitempty"`

@@ -5,6 +5,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"math/rand"
 	"time"
@@ -129,12 +130,25 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			return err
 		}
 
-		issuer, err := xhttp.NewIssuer(runtime.Settings.ConfigDir(), redirectOnly.Router())
+		if len(runtime.Settings.SSL.Dir) == 0 {
+			runtime.Settings.SSL.Dir = runtime.Settings.ConfigDir()
+		}
+
+		// callback handles the xhttp.Server restarts on certificate updates
+		issuer, err := xhttp.NewIssuer(*runtime.Settings.SSL, redirectOnly.Router(), func(c *tls.Config) {
+			newHttp := xhttp.NewDefaultSSL(c)
+			if err := newHttp.Run(runtime.Settings.SSL.ListenAddr); err != nil {
+				zap.L().Fatal("failed to start new https server", zap.Error(err))
+			}
+			if err := runtime.Services.Replace("httpServer", newHttp); err != nil {
+				zap.L().Fatal("failed to replace the httpServer service", zap.Error(err))
+			}
+		})
 		if err != nil {
 			return err
 		}
 
-		tlscfg, err := issuer.TLSForDomain(runtime.Settings.SSL.Domain)
+		tlscfg, err := issuer.TLSConfig()
 		if err != nil {
 			return err
 		}
