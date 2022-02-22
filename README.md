@@ -78,20 +78,20 @@ but the one suggested by the creation form is perfectly valid and can be used.
 
 1. [Download &rarr;](https://www.wireguard.com/install/) the official WireGuard client for your OS/device.
 
-2. Use the QR-code to set-up your mobile client, [or follow our step-by-step guide](https://gist.github.com/sshaman1101/5ff23788f91330d1705489e79213f88f).
+2. Use the QR-code to set-up your mobile client, [or follow our step-by-step guide](https://github.com/Codename-Uranium/tunnel/blob/main/docs/mobile.md).
 
 
 <img src="https://media.nikonov.tech/config-qr.png" style="width: 60%; max-width: 240px" alt="QR" />
 
 
-3. The "Show config" button shows the configuration in the text format. Use it for the desktop client, [or follow our step-by-step guide](https://gist.github.com/sshaman1101/593f62c9c93957358047ff10ae67c8b8).
+3. The "Show config" button shows the configuration in the text format. Use it for the desktop client, [or follow our step-by-step guide](https://github.com/Codename-Uranium/tunnel/blob/main/docs/desktop.md).
 
 <img src="https://media.nikonov.tech/config-text.png" style="width: 60%; max-width: 240px" alt="QR" />
 
 
 ### Deep dive
 
-* [Configuration file reference](https://gist.github.com/50013210baa6ef4ca292b3a68996966e)
+* [Configuration file reference](https://github.com/Codename-Uranium/tunnel/blob/main/docs/config.md)
 
-* [Building it locally](https://gist.github.com/03476826514cef439949ca6934b4bbaf)
+* [Building it locally](https://github.com/Codename-Uranium/tunnel/blob/main/docs/building.md)
 
