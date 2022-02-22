@@ -106,8 +106,8 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 			return nil, err
 		}
 
-		static := mergeStaticSettings(tun.runtime.Settings, newSettings)
-		if err := static.Write(); err != nil {
+		tun.runtime.Settings = mergeStaticSettings(tun.runtime.Settings, newSettings)
+		if err := tun.runtime.Settings.Write(); err != nil {
 			return nil, err
 		}
 
@@ -120,14 +120,17 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminAPI.Settings {
 	public := d.GetWireguardPrivateKey().Public().Unwrap().String()
 	subnet := string(s.Wireguard.Subnet)
+	wgPublicPort := s.Wireguard.ClientPort()
 	return adminAPI.Settings{
-		AdminUserName:       &s.GetAdminAPConfig().UserName,
-		ConnectionTimeout:   &s.GetPublicAPIConfig().PeerTTL,
-		Dns:                 &s.Wireguard.DNS,
-		LogLevel:            (*adminAPI.SettingsLogLevel)(&s.LogLevel),
-		PingInterval:        &s.GetPublicAPIConfig().PingInterval,
-		WireguardKeepalive:  &s.Wireguard.Keepalive,
-		WireguardListenPort: &s.Wireguard.ServerPort,
+		AdminUserName:      &s.GetAdminAPConfig().UserName,
+		ConnectionTimeout:  &s.GetPublicAPIConfig().PeerTTL,
+		Dns:                &s.Wireguard.DNS,
+		LogLevel:           (*adminAPI.SettingsLogLevel)(&s.LogLevel),
+		PingInterval:       &s.GetPublicAPIConfig().PingInterval,
+		WireguardKeepalive: &s.Wireguard.Keepalive,
+		//  note: return both ports, allow to update only the `WireguardServerPort` value.
+		WireguardListenPort: &s.Wireguard.ListenPort,
+		WireguardServerPort: &wgPublicPort,
 		WireguardPublicKey:  &public,
 		WireguardServerIpv4: &s.Wireguard.ServerIPv4,
 		WireguardSubnet:     &subnet,
@@ -150,6 +153,9 @@ func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) set
 	}
 	if s.WireguardSubnet != nil {
 		current.Wireguard.Subnet = validator.Subnet(*s.WireguardSubnet)
+	}
+	if s.WireguardServerPort != nil {
+		current.Wireguard.NATedPort = *s.WireguardServerPort
 	}
 
 	return current

@@ -44,7 +44,7 @@ func New(config Config, privateKey types.WGPrivateKey) (*Wireguard, error) {
 	key := privateKey.Unwrap()
 	wgConfig := wgtypes.Config{
 		PrivateKey: &key,
-		ListenPort: &config.ServerPort,
+		ListenPort: &config.ListenPort,
 	}
 
 	wg := &Wireguard{

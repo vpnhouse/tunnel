@@ -18,10 +18,26 @@ import (
 type Config struct {
 	Interface  string           `yaml:"interface" valid:"alphanum,required"`
 	ServerIPv4 string           `yaml:"server_ipv4" valid:"ipv4"`
-	ServerPort int              `yaml:"server_port" valid:"port,required"`
 	Keepalive  int              `yaml:"keepalive" valid:"natural,required"`
 	Subnet     validator.Subnet `yaml:"subnet" valid:"subnet,required"`
 	DNS        []string         `yaml:"dns" valid:"ipv4list"`
+
+	// Listen port for wireguard connections.
+	ListenPort int `yaml:"server_port" valid:"port,required"`
+	// NAT'ed port to access the Listen one, this one announced to the client
+	// as part of its configuration. If not specified - `ListenPort` is used.
+	// e.g container starts with the -p 3333:3000 option, 3000 here is ListenPort value,
+	// so NATedPort must be set to `3333` to push the valid configuration to the client.
+	NATedPort int `yaml:"nated_port,omitempty" valid:"port"`
+}
+
+// ClientPort  returns the port to announce to a client.
+// See Config.NATedPort for details.
+func (c Config) ClientPort() int {
+	if c.NATedPort > 0 {
+		return c.NATedPort
+	}
+	return c.ListenPort
 }
 
 // ServerAddr returns IPAddr/mask to use as a wireguard interface address.
