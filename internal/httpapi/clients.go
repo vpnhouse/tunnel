@@ -92,7 +92,7 @@ func (tun *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
 				Dns:             wgSettings.DNS,
 				Keepalive:       wgSettings.Keepalive,
 				ServerIpv4:      wgSettings.ServerIPv4,
-				ServerPort:      wgSettings.ServerPort,
+				ServerPort:      wgSettings.ListenPort,
 				ServerPublicKey: tun.runtime.DynamicSettings.GetWireguardPrivateKey().Public().Unwrap().String(),
 				PingInterval:    tun.runtime.Settings.GetPublicAPIConfig().PingInterval,
 			},
@@ -181,7 +181,7 @@ PersistentKeepalive = %d
 			privateKey.String(),
 			tun.runtime.DynamicSettings.GetWireguardPrivateKey().Public().Unwrap().String(),
 			settings.ServerIPv4,
-			settings.ServerPort,
+			settings.ListenPort,
 			settings.Keepalive,
 		)
 

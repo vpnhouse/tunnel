@@ -28,7 +28,7 @@ type StaticConfig struct {
 	Wireguard      wireguard.Config `yaml:"wireguard"`
 
 	// optional configuration
-	SSL                *xhttp.SSLConfig        `yaml:"ssl"`
+	SSL                *xhttp.SSLConfig        `yaml:"ssl,omitempty"`
 	AdminAPI           *AdminAPIConfig         `yaml:"admin_api,omitempty"`
 	PublicAPI          *PublicAPIConfig        `yaml:"public_api,omitempty"`
 	GRPC               *grpc.Config            `yaml:"grpc,omitempty"`
@@ -133,7 +133,7 @@ func safeDefaults(rootDir string) StaticConfig {
 		Wireguard: wireguard.Config{
 			Interface:  "uwg0",
 			ServerIPv4: "",
-			ServerPort: 3000,
+			ListenPort: 3000,
 			Keepalive:  60,
 			Subnet:     "10.235.0.0/16",
 			DNS:        []string{"8.8.8.8", "8.8.4.4"},
