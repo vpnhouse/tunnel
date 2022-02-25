@@ -15,7 +15,7 @@ type Wireguard struct {
 	running bool
 }
 
-func New(config Config, privateKey types.WGPrivateKey) (*Wireguard, error) {
+func New(config Config) (*Wireguard, error) {
 	return &Wireguard{running: true}, nil
 }
 

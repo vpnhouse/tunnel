@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	TunnelUnknown   int = iota
-	TunnelWireguard     = iota
+	_               = iota
+	TunnelWireguard = iota
 )
 
 type WireguardInfo struct {

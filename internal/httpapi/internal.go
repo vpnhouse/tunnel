@@ -61,11 +61,11 @@ func wrap404ToIndex(h http.Handler) http.HandlerFunc {
 
 // adminCheckBasicAuth only checks if basic authentication is successful
 func (tun *TunnelAPI) adminCheckBasicAuth(username string, password string) error {
-	if username != tun.runtime.Settings.GetAdminAPConfig().UserName {
+	if username != tun.runtime.Settings.AdminAPI.UserName {
 		return xerror.EAuthenticationFailed("invalid credentials", nil)
 	}
 
-	if err := tun.runtime.DynamicSettings.VerifyAdminPassword(password); err != nil {
+	if err := tun.runtime.Settings.VerifyAdminPassword(password); err != nil {
 		return err
 	}
 
@@ -100,7 +100,7 @@ func (tun *TunnelAPI) versionRestrictionsMiddleware(next http.HandlerFunc) http.
 
 func (tun *TunnelAPI) initialSetupMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if tun.runtime.DynamicSettings.InitialSetupRequired() {
+		if tun.runtime.Settings.InitialSetupRequired() {
 			if r.URL.Path != "/api/tunnel/admin/initial-setup" {
 				xhttp.WriteJsonError(w, xerror.EConfigurationRequired("initial configuration required"))
 				return

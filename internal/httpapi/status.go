@@ -37,7 +37,7 @@ func (tun *TunnelAPI) AdminConnectionInfoWireguard(w http.ResponseWriter, r *htt
 			Keepalive:       tun.runtime.Settings.Wireguard.Keepalive,
 			ServerIpv4:      tun.runtime.Settings.Wireguard.ServerIPv4,
 			ServerPort:      tun.runtime.Settings.Wireguard.ClientPort(),
-			ServerPublicKey: tun.runtime.DynamicSettings.GetWireguardPrivateKey().Public().Unwrap().String(),
+			ServerPublicKey: tun.runtime.Settings.Wireguard.GetPrivateKey().Public().Unwrap().String(),
 		}
 		return opts, nil
 	})

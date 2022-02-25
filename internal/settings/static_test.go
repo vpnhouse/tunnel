@@ -17,7 +17,7 @@ func TestEmptyFile(t *testing.T) {
 	path := "/tmp/foo/bar/conf"
 	err := f.MkdirAll(path, 0700)
 	require.NoError(t, err)
-	_, err = f.Create("/tmp/foo/bar/conf/" + staticConfigFileName)
+	_, err = f.Create("/tmp/foo/bar/conf/" + configFileName)
 	require.NoError(t, err)
 
 	_, err = staticConfigFromFS(f, path)

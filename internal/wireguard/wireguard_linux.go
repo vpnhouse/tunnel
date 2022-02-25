@@ -34,14 +34,14 @@ func (wl *wireguardLink) Type() string {
 	return "wireguard"
 }
 
-func New(config Config, privateKey types.WGPrivateKey) (*Wireguard, error) {
+func New(config Config) (*Wireguard, error) {
 	linkAttrs := wireguardLink{name: config.Interface}
 	client, err := wgctrl.New()
 	if err != nil {
 		return nil, xerror.ETunnelError("can't create wireguard controller", err)
 	}
 
-	key := privateKey.Unwrap()
+	key := config.GetPrivateKey().Unwrap()
 	wgConfig := wgtypes.Config{
 		PrivateKey: &key,
 		ListenPort: &config.ListenPort,
