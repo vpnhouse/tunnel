@@ -18,7 +18,7 @@ import (
 )
 
 func (manager *Manager) peers() ([]types.PeerInfo, error) {
-	return manager.storage.SearchPeers(&types.PeerInfo{})
+	return manager.storage.SearchPeers(nil)
 }
 
 // restore peers on startup

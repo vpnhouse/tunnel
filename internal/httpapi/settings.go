@@ -15,31 +15,21 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/version"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 )
 
 // AdminGetSettings implements handler for GET /api/tunnel/admin/settings request
 func (tun *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		s := settingsToOpenAPI(tun.runtime.Settings, tun.runtime.DynamicSettings)
+		s := settingsToOpenAPI(tun.runtime.Settings)
 		return s, nil
 	})
 }
 
-type passwordCleaner interface {
-	CleanAdminPassword()
-}
-
 func (tun *TunnelAPI) TmpResetSettingsToDefault(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		if c, ok := tun.runtime.DynamicSettings.(passwordCleaner); ok {
-			c.CleanAdminPassword()
-		}
-
 		tun.runtime.Settings.Wireguard.Subnet = "10.235.0.0/24"
-		if err := tun.runtime.Settings.Write(); err != nil {
-			return nil, err
-		}
-
+		tun.runtime.Settings.CleanAdminPassword()
 		return nil, nil
 	})
 }
@@ -50,7 +40,7 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		if !version.IsPersonal() {
 			return nil, xerror.EForbidden("initial setup is disabled for `" + version.GetVersion() + "`")
 		}
-		if !tun.runtime.DynamicSettings.InitialSetupRequired() {
+		if !tun.runtime.Settings.InitialSetupRequired() {
 			return nil, xerror.EForbidden("the initial configuration has already been applied")
 		}
 
@@ -70,12 +60,9 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 				Domain:     req.DomainName,
 			}
 		}
-		if err := tun.runtime.Settings.Write(); err != nil {
-			return nil, err
-		}
 
 		// setting the password resets the "initial setup required" flag.
-		if err := tun.runtime.DynamicSettings.SetAdminPassword(req.AdminPassword); err != nil {
+		if err := tun.runtime.Settings.SetAdminPassword(req.AdminPassword); err != nil {
 			return nil, err
 		}
 
@@ -102,27 +89,22 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 			return nil, err
 		}
 
-		if err := updateDynamicSettings(tun.runtime.DynamicSettings, newSettings); err != nil {
-			return nil, err
-		}
-
-		tun.runtime.Settings = mergeStaticSettings(tun.runtime.Settings, newSettings)
-		if err := tun.runtime.Settings.Write(); err != nil {
+		if err := mergeStaticSettings(tun.runtime.Settings, newSettings); err != nil {
 			return nil, err
 		}
 
 		tun.runtime.Events.EmitEvent(control.EventRestart)
-		updated := settingsToOpenAPI(tun.runtime.Settings, tun.runtime.DynamicSettings)
+		updated := settingsToOpenAPI(tun.runtime.Settings)
 		return updated, nil
 	})
 }
 
-func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminAPI.Settings {
-	public := d.GetWireguardPrivateKey().Public().Unwrap().String()
+func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
+	public := s.Wireguard.GetPrivateKey().Public().Unwrap().String()
 	subnet := string(s.Wireguard.Subnet)
 	wgPublicPort := s.Wireguard.ClientPort()
 	return adminAPI.Settings{
-		AdminUserName:      &s.GetAdminAPConfig().UserName,
+		AdminUserName:      &s.AdminAPI.UserName,
 		ConnectionTimeout:  &s.GetPublicAPIConfig().PeerTTL,
 		Dns:                &s.Wireguard.DNS,
 		LogLevel:           (*adminAPI.SettingsLogLevel)(&s.LogLevel),
@@ -137,9 +119,24 @@ func settingsToOpenAPI(s settings.StaticConfig, d settings.DynamicConfig) adminA
 	}
 }
 
-func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) settings.StaticConfig {
+func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
 	if s.LogLevel != nil {
 		current.LogLevel = (string)(*s.LogLevel)
+	}
+
+	if s.AdminPassword != nil {
+		if err := current.SetAdminPassword(*s.AdminPassword); err != nil {
+			return err
+		}
+	}
+	if s.WireguardServerIpv4 != nil {
+		newip := xnet.ParseIP(*s.WireguardServerIpv4)
+		if newip.IP == nil {
+			return xerror.WInvalidField("settings", "failed to parse IPv4 address", "wireguard_server_ipv4", nil)
+		}
+		if err := current.SetPublicIP(newip); err != nil {
+			return err
+		}
 	}
 
 	if s.Dns != nil {
@@ -148,9 +145,6 @@ func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) set
 	if s.WireguardKeepalive != nil {
 		current.Wireguard.Keepalive = *s.WireguardKeepalive
 	}
-	if s.WireguardServerIpv4 != nil {
-		current.Wireguard.ServerIPv4 = *s.WireguardServerIpv4
-	}
 	if s.WireguardSubnet != nil {
 		current.Wireguard.Subnet = validator.Subnet(*s.WireguardSubnet)
 	}
@@ -158,15 +152,6 @@ func mergeStaticSettings(current settings.StaticConfig, s adminAPI.Settings) set
 		current.Wireguard.NATedPort = *s.WireguardServerPort
 	}
 
-	return current
-}
-
-func updateDynamicSettings(d settings.DynamicConfig, s adminAPI.Settings) error {
-	if s.AdminPassword != nil && len(*s.AdminPassword) > 0 {
-		if err := d.SetAdminPassword(*s.AdminPassword); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
