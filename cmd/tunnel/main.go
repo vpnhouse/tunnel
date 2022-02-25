@@ -58,8 +58,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		// it's ok to fail here, ip checking host may not be available
 		// or machine may not have access to the internet.
 		if publicIP, err := ipdiscover.New().Discover(); err == nil {
-			runtime.Settings.Wireguard.ServerIPv4 = publicIP.String()
-			if err := runtime.Settings.Write(); err != nil {
+			if err := runtime.Settings.SetPublicIP(publicIP); err != nil {
 				return err
 			}
 		}
@@ -97,7 +96,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	runtime.Services.RegisterService("ipv4Pool", ipv4Pool)
 
 	// Initialize wireguard controller
-	wireguardController, err := wireguard.New(runtime.Settings.Wireguard, runtime.DynamicSettings.GetWireguardPrivateKey())
+	wireguardController, err := wireguard.New(runtime.Settings.Wireguard)
 	if err != nil {
 		return err
 	}
@@ -126,7 +125,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		redirectOnly := xhttp.NewRedirectToSSL(runtime.Settings.SSL.Domain)
 		// we must start the redirect-only server before passing its Router
 		// to the certificate issuer.
-		if err := redirectOnly.Run(runtime.Settings.HTTPListenAddr); err != nil {
+		if err := redirectOnly.Run(runtime.Settings.HTTP.ListenAddr); err != nil {
 			return err
 		}
 
@@ -156,7 +155,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		xHttpAddr = runtime.Settings.SSL.ListenAddr
 		xHttpServer = xhttp.NewDefaultSSL(tlscfg)
 	} else {
-		xHttpAddr = runtime.Settings.HTTPListenAddr
+		xHttpAddr = runtime.Settings.HTTP.ListenAddr
 		xHttpServer = xhttp.NewDefault()
 	}
 	// register handlers of all modules
@@ -197,12 +196,7 @@ func main() {
 		panic(err)
 	}
 
-	dynamicConf, err := settings.LoadDynamic(*cfgDirFlag)
-	if err != nil {
-		panic(err)
-	}
-
 	rand.Seed(time.Now().UnixNano())
-	r := runtime.New(staticConf, dynamicConf, initServices)
+	r := runtime.New(staticConf, initServices)
 	control.Exec(r)
 }

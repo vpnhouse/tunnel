@@ -73,8 +73,7 @@ func (manager *Manager) ListPeers() ([]types.PeerInfo, error) {
 	}
 	defer manager.unlock()
 
-	peer := types.PeerInfo{}
-	return manager.storage.SearchPeers(&peer)
+	return manager.storage.SearchPeers(nil)
 }
 
 func (manager *Manager) ConnectPeer(info *types.PeerInfo) error {

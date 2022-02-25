@@ -17,30 +17,28 @@ type Flags struct {
 type ServicesInitFunc func(runtime *TunnelRuntime) error
 
 type TunnelRuntime struct {
-	SetLogLevel     control.ChangeLevelFunc
-	Events          *control.EventManager
-	Services        *control.ServiceMap
-	Settings        settings.StaticConfig
-	DynamicSettings settings.DynamicConfig
-	Flags           Flags
-	Features        FeatureSet
-	starter         ServicesInitFunc
+	SetLogLevel control.ChangeLevelFunc
+	Events      *control.EventManager
+	Services    *control.ServiceMap
+	Settings    *settings.Config
+	Flags       Flags
+	Features    FeatureSet
+	starter     ServicesInitFunc
 }
 
 func (runtime *TunnelRuntime) EventChannel() chan control.Event {
 	return runtime.Events.EventChannel()
 }
 
-func New(static settings.StaticConfig, dynamic settings.DynamicConfig, starter ServicesInitFunc) *TunnelRuntime {
+func New(static *settings.Config, starter ServicesInitFunc) *TunnelRuntime {
 	updateLogLevelFn := control.InitLogger(static.LogLevel)
 	return &TunnelRuntime{
-		Features:        NewFeatureSet(),
-		Settings:        static,
-		DynamicSettings: dynamic,
-		SetLogLevel:     updateLogLevelFn,
-		Events:          control.NewEventManager(),
-		Services:        control.NewServiceMap(),
-		starter:         starter,
+		Features:    NewFeatureSet(),
+		Settings:    static,
+		SetLogLevel: updateLogLevelFn,
+		Events:      control.NewEventManager(),
+		Services:    control.NewServiceMap(),
+		starter:     starter,
 	}
 }
 

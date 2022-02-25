@@ -29,6 +29,13 @@ type Config struct {
 	// e.g container starts with the -p 3333:3000 option, 3000 here is ListenPort value,
 	// so NATedPort must be set to `3333` to push the valid configuration to the client.
 	NATedPort int `yaml:"nated_port,omitempty" valid:"port"`
+
+	// PrivateKey of WireGuard, serialized to the string.
+	// Generated automatically on the startup.
+	PrivateKey string `yaml:"private_key"`
+
+	// parsed version of the field above
+	privateKey types.WGPrivateKey
 }
 
 // ClientPort  returns the port to announce to a client.
@@ -45,6 +52,25 @@ func (c Config) ServerAddr() string {
 	a := c.Subnet.Unwrap()
 	ones, _ := a.Mask().Size()
 	return fmt.Sprintf("%s/%d", a.FirstUsable().String(), ones)
+}
+
+func (c Config) GetPrivateKey() types.WGPrivateKey {
+	return c.privateKey
+}
+
+func DefaultConfig() Config {
+	privKey, _ := wgtypes.GeneratePrivateKey()
+	return Config{
+		Interface:  "uwg0",
+		ServerIPv4: "",
+		ListenPort: 3000,
+		Keepalive:  60,
+		Subnet:     "10.235.0.0/16",
+		DNS:        []string{"8.8.8.8", "8.8.4.4"},
+
+		PrivateKey: privKey.String(),
+		privateKey: (types.WGPrivateKey)(privKey),
+	}
 }
 
 // getPeerConfig generates wireguard configuration for a peer.
