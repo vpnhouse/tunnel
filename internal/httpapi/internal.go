@@ -29,34 +29,28 @@ const (
 	contextKeyAuthkeyOwner = "auth.owner"
 )
 
-type notFoundWriter struct {
+// skipNotFoundWriter is the `http.ResponseWriter`
+// that writes everything but 404 responses.
+// Check the status value to handle notFounds by hand.
+// Use this to serve single-page webapps that manages
+// the in-browser routing by themselves.
+type skipNotFoundWriter struct {
 	http.ResponseWriter
 	status int
 }
 
-func (w *notFoundWriter) WriteHeader(status int) {
+func (w *skipNotFoundWriter) WriteHeader(status int) {
 	w.status = status // Store the status for our own use
 	if status != http.StatusNotFound {
 		w.ResponseWriter.WriteHeader(status)
 	}
 }
 
-func (w *notFoundWriter) Write(p []byte) (int, error) {
+func (w *skipNotFoundWriter) Write(p []byte) (int, error) {
 	if w.status != http.StatusNotFound {
 		return w.ResponseWriter.Write(p)
 	}
-	return len(p), nil // Lie that we successfully written it
-}
-
-func wrap404ToIndex(h http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		nfrw := &notFoundWriter{ResponseWriter: w}
-		h.ServeHTTP(nfrw, r)
-		if nfrw.status == http.StatusNotFound {
-			zap.L().Debug("Redirecting to index.html.", zap.String("uri", r.RequestURI))
-			http.Redirect(w, r, "/index.html", http.StatusFound)
-		}
-	}
+	return len(p), nil // Lie that we have successfully written it
 }
 
 // adminCheckBasicAuth only checks if basic authentication is successful
