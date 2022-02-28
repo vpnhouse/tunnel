@@ -357,9 +357,10 @@ func (is *Issuer) selfSigned() (certData, error) {
 func (is *Issuer) retryIssue() certData {
 	is.log.Debug("failed to issue the certificate, retrying")
 
-	t := time.NewTicker(3 * time.Minute)
+	t := time.NewTimer(time.Minute)
 	defer t.Stop()
 
+	backoff := 1
 	for {
 		select {
 		case <-t.C:
@@ -367,26 +368,54 @@ func (is *Issuer) retryIssue() certData {
 			if err == nil {
 				return cdata
 			}
+
+			next := timepow(backoff)
+			// handle overflow
+			backoff++
+			if backoff > 8 {
+				backoff = 8
+			}
+
+			t.Reset(next)
 		}
 	}
 }
 
+// letsEncryptRenew tracks the LE renewal process.
+// The following timings are applied here:
+// - every 24 hours if expiration >= 60 days but < 89 days;
+// - backoff timer with range of 1...256 minutes if the cert is valid for less than 24 hours;
+// - same backoff used to retry in case of errors from LE;
 func (is *Issuer) letsEncryptRenew(cdata certData) {
-	t := time.NewTimer(10 * time.Minute)
+	next := 24 * time.Hour
+	t := time.NewTimer(next)
 	defer t.Stop()
 
-	previousOK := true
+	backoff := 1
 	for {
 		select {
 		case <-t.C:
-			previousOK = is.renewOnce(cdata, previousOK)
+			next = 24 * time.Hour
+			if ok := is.renewOnce(cdata); !ok {
+				next = timepow(backoff)
+				backoff++
+				if backoff > 8 {
+					backoff = 8
+				}
+			}
+
+			t.Reset(next)
 		}
 	}
 }
 
-func (is *Issuer) renewOnce(existing certData, previousOK bool) bool {
-	expiresSoon := existing.cert.Leaf.NotAfter.Sub(time.Now()) <= 24*time.Hour
-	if previousOK && !expiresSoon {
+// renewOnce attempts to renew the existing certificate via the LE
+func (is *Issuer) renewOnce(existing certData) bool {
+	const t30days = 30 * 24 * time.Hour
+	expiresIn := existing.cert.Leaf.NotAfter.Sub(time.Now())
+	is30daysToExpire := expiresIn > t30days
+	if !is30daysToExpire {
+		is.log.Debug("more than 30 days to expire, nothing to do", zap.Duration("expire_in", expiresIn))
 		return true
 	}
 
@@ -422,4 +451,9 @@ func (is *Issuer) renewOnce(existing certData, previousOK bool) bool {
 
 	is.restartCallback(cdata.intoTLS())
 	return true
+}
+
+func timepow(backoff int) time.Duration {
+	v := 1 << backoff
+	return time.Duration(v) * time.Minute
 }
