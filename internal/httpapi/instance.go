@@ -5,6 +5,7 @@
 package httpapi
 
 import (
+	"io"
 	"net/http"
 
 	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
@@ -16,8 +17,10 @@ import (
 	"github.com/Codename-Uranium/tunnel/internal/runtime"
 	"github.com/Codename-Uranium/tunnel/internal/storage"
 	"github.com/Codename-Uranium/tunnel/pkg/auth"
+	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type IpPool interface {
@@ -60,10 +63,35 @@ func NewTunnelHandlers(
 }
 
 func (tun *TunnelAPI) RegisterHandlers(r chi.Router) {
+	webroot := http.Dir(tun.runtime.Settings.AdminAPI.StaticRoot)
+	webfs := http.FileServer(webroot)
 	// handle frontend redirects
-	root := tun.runtime.Settings.AdminAPI.StaticRoot
-	webfs := http.FileServer(http.Dir(root))
-	r.Handle("/*", wrap404ToIndex(webfs))
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		nfrw := &skipNotFoundWriter{ResponseWriter: w}
+		webfs.ServeHTTP(nfrw, r)
+		// note that skipNotFoundWriter acts as a normal Writer
+		//  for all status codes except the NotFound.
+		//  So handle it explicitly below.
+		if nfrw.status == http.StatusNotFound {
+			w.Header().Set("content-type", "text/html")
+			// try to load and serve index html instead of non-existing file:
+			//  we need that because very likely the client asks for some /path
+			//  that is handled by the SPAs router. So we always have to serve
+			//  the frontend app instead of the requested path.
+			fd, err := webroot.Open("index.html")
+			if err != nil {
+				zap.L().Warn("no `index.html` found on webFS, telling user that there is no frontend deployed")
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("Error: no frontend files deployed."))
+				return
+			}
+
+			defer fd.Close()
+			if _, err := io.Copy(w, fd); err != nil {
+				_ = xerror.WInternalError("xhttp", "failed to write index.html bytes to the http connection", err)
+			}
+		}
+	})
 
 	r.Delete("/_debug/reset-initial", tun.TmpResetSettingsToDefault)
 
