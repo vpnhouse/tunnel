@@ -53,8 +53,9 @@ func New(config Config) (*Wireguard, error) {
 		link:   &linkAttrs,
 	}
 
-	err = netlink.LinkAdd(wg.link)
-	if err != nil {
+	if err := netlink.LinkAdd(wg.link); err != nil {
+		// TODO(nikonov): maybe try to takeover the existing interface?
+		//  actual for the host-mode only, in docker we'll always have an empty "machine" on restart.
 		return nil, xerror.ETunnelError("can't add link", err, zap.Any("iface", wg.link.name))
 	}
 
@@ -70,18 +71,15 @@ func New(config Config) (*Wireguard, error) {
 		return nil, xerror.EInvalidArgument("can't parse wireguard subnet", err, zap.String("subnet", string(config.Subnet)))
 	}
 
-	err = netlink.AddrAdd(wg.link, addr)
-	if err != nil {
+	if err := netlink.AddrAdd(wg.link, addr); err != nil {
 		return nil, xerror.ETunnelError("can't add address", err, zap.Any("addr", addr))
 	}
 
-	err = wg.client.ConfigureDevice(config.Interface, wg.config)
-	if err != nil {
+	if err := wg.client.ConfigureDevice(config.Interface, wg.config); err != nil {
 		return nil, xerror.ETunnelError("can't configure wireguard interface", err, zap.Any("config", wg.config))
 	}
 
-	err = netlink.LinkSetUp(wg.link)
-	if err != nil {
+	if err := netlink.LinkSetUp(wg.link); err != nil {
 		return nil, xerror.ETunnelError("can't set link up", err, zap.Any("iface", wg.link.name), zap.Stringer("addr", addr))
 	}
 
@@ -90,7 +88,7 @@ func New(config Config) (*Wireguard, error) {
 }
 
 func (wg *Wireguard) Shutdown() error {
-	zap.L().Info("Removing wireguard interface")
+	zap.L().Info("removing wireguard interface")
 	err := netlink.LinkDel(wg.link)
 	if err != nil {
 		return xerror.ETunnelError("can't remove wireguard interface", err)
@@ -107,7 +105,7 @@ func (wg *Wireguard) Running() bool {
 // SetPeer sets peer on wireguard interface
 // Note: it's caller responsibility to provide fully valid peer
 func (wg *Wireguard) SetPeer(info types.PeerInfo) error {
-	zap.L().Debug("Set peer", zap.Any("peer", info))
+	zap.L().Debug("set peer", zap.Any("peer", info))
 
 	config, err := wg.getPeerConfig(info, false)
 	if err != nil {
@@ -125,7 +123,7 @@ func (wg *Wireguard) SetPeer(info types.PeerInfo) error {
 // UnsetPeer removes peer from wireguard interface
 // Note: it's caller responsibility to provide fully valid peer
 func (wg *Wireguard) UnsetPeer(info types.PeerInfo) error {
-	zap.L().Debug("Unset peer", zap.Any("peer", info))
+	zap.L().Debug("unset peer", zap.Any("peer", info))
 
 	config, err := wg.getPeerConfig(info, true)
 	if err != nil {
@@ -141,7 +139,7 @@ func (wg *Wireguard) UnsetPeer(info types.PeerInfo) error {
 }
 
 // GetPeers returns peers configured for the underlying device.
-// Map key is a peer's public key string.
+// Map's key is a peer's public key string.
 func (wg *Wireguard) GetPeers() (map[string]wgtypes.Peer, error) {
 	dev, err := wg.client.Device(wg.link.name)
 	if err != nil {
