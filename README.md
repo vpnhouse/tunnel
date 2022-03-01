@@ -45,7 +45,7 @@ $ docker run -d \
     -p 80:80 \             # publish web admin port
     -p 443:443 \           # publish web admin port (SSL)
     -p 3000:3000/udp \     # publish Wireguard port
-    -v uranium-data:/opt/uranium/tunnel/ \  # mount a host directory with configs
+    -v $(pwd)/uranium-data/:/opt/uranium/tunnel/ \  # mount a host directory with configs
     codenameuranium/tunnel:latest-personal
 ```
 
