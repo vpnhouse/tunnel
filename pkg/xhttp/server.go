@@ -15,6 +15,7 @@ import (
 	openapi "github.com/Codename-Uranium/api/go/server/common"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
@@ -47,6 +48,25 @@ func WithMetrics() Option {
 		})
 		// route to obtain metrics
 		w.router.Handle("/metrics", promhttp.Handler())
+	}
+}
+
+func WithCORS() Option {
+	return func(w *Server) {
+		cfg := cors.Options{
+			AllowedOrigins: []string{"*"},
+			AllowedMethods: []string{
+				http.MethodHead,
+				http.MethodGet,
+				http.MethodPost,
+				http.MethodPut,
+				http.MethodPatch,
+				http.MethodDelete,
+			},
+			AllowedHeaders:   []string{"*"},
+			AllowCredentials: true,
+		}
+		w.router.Use(cors.Handler(cfg))
 	}
 }
 
@@ -140,6 +160,7 @@ func New(opts ...Option) *Server {
 func NewDefault() *Server {
 	return New(
 		WithLogger(),
+		// WithMetrics must be declared last
 		WithMetrics(),
 	)
 }

@@ -69,6 +69,8 @@ func (s *Config) GetPublicAPIConfig() *PublicAPIConfig {
 type HttpConfig struct {
 	// ListenAddr for HTTP server, default: ":80"
 	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`
+	// CORS enables corresponding middleware for the local development
+	CORS bool `yaml:"cors"`
 }
 
 type AdminAPIConfig struct {

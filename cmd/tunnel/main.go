@@ -119,8 +119,14 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Prepare tunneling HTTP API
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keystore, ipv4Pool)
 
-	var xHttpServer *xhttp.Server
-	var xHttpAddr string
+	xHttpAddr := runtime.Settings.HTTP.ListenAddr
+	xhttpOpts := []xhttp.Option{
+		xhttp.WithLogger(),
+		xhttp.WithMetrics(),
+	}
+	if runtime.Settings.HTTP.CORS {
+		xhttpOpts = append([]xhttp.Option{xhttp.WithCORS()}, xhttpOpts...)
+	}
 	if runtime.Settings.SSL != nil {
 		redirectOnly := xhttp.NewRedirectToSSL(runtime.Settings.SSL.Domain)
 		// we must start the redirect-only server before passing its Router
@@ -152,12 +158,11 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			return err
 		}
 
-		xHttpAddr = runtime.Settings.SSL.ListenAddr
-		xHttpServer = xhttp.NewDefaultSSL(tlscfg)
-	} else {
-		xHttpAddr = runtime.Settings.HTTP.ListenAddr
-		xHttpServer = xhttp.NewDefault()
+		xhttpOpts = append([]xhttp.Option{xhttp.WithSSL(tlscfg)}, xhttpOpts...)
 	}
+
+	xHttpServer := xhttp.New(xhttpOpts...)
+
 	// register handlers of all modules
 	tunnelAPI.RegisterHandlers(xHttpServer.Router())
 	if runtime.Settings.Rapidoc {
