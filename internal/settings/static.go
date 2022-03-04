@@ -6,10 +6,12 @@ package settings
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"sync"
 
+	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/eventlog"
 	"github.com/Codename-Uranium/tunnel/internal/grpc"
 	"github.com/Codename-Uranium/tunnel/internal/wireguard"
@@ -40,6 +42,7 @@ type Config struct {
 
 	// optional configuration
 	SSL                *xhttp.SSLConfig        `yaml:"ssl,omitempty"`
+	Domain             *xhttp.DomainConfig     `yaml:"domain,omitempty"`
 	AdminAPI           *AdminAPIConfig         `yaml:"admin_api,omitempty"`
 	PublicAPI          *PublicAPIConfig        `yaml:"public_api,omitempty"`
 	GRPC               *grpc.Config            `yaml:"grpc,omitempty"`
@@ -57,6 +60,32 @@ type Config struct {
 
 func (s *Config) ConfigDir() string {
 	return filepath.Dir(s.path)
+}
+
+// PublicURL returns a URL of this node.
+// Use SSL configuration if given, otherwise
+// it returns http://wireguard_ip:http_listen_port
+func (s *Config) PublicURL() string {
+	host := s.Wireguard.ServerIPv4
+	if s.Domain != nil {
+		host = s.Domain.Name
+	}
+
+	if s.SSL != nil {
+		port := ""
+		if _, p, _ := net.SplitHostPort(s.SSL.ListenAddr); p != "443" {
+			// use non-standard https port
+			port = ":" + p
+		}
+		return "https://" + host + port
+	}
+
+	port := ""
+	if _, p, _ := net.SplitHostPort(s.HTTP.ListenAddr); p != "80" {
+		port = ":" + p
+	}
+
+	return "http://" + host + port
 }
 
 func (s *Config) GetPublicAPIConfig() *PublicAPIConfig {
@@ -143,16 +172,53 @@ func loadStaticConfig(fs afero.Fs, path string) (*Config, error) {
 	if c.AdminAPI == nil {
 		c.AdminAPI = defaultAdminAPIConfig()
 	}
-
 	c.path = path
+
+	// do extra validation of cross-related fields,
+	// all fields (including the private ones!) must be filled.
+	if err := c.validate(); err != nil {
+		return nil, err
+	}
+
 	return c, nil
+}
+
+// validate validates dependent fields, prevents from
+// logical errors in configurations.
+func (s *Config) validate() error {
+	if s.Domain != nil {
+		if err := s.Domain.Validate(); err != nil {
+			return err
+		}
+
+		mustIssue := s.Domain.Mode == string(adminAPI.DomainConfigModeDirect) && s.Domain.IssueSSL
+		if mustIssue && (s.SSL == nil || len(s.SSL.ListenAddr) == 0) {
+			return xerror.EInternalError("domain.issue_ssl is set but no SSL server configuration is given", nil)
+		}
+
+		if len(s.Domain.Dir) == 0 {
+			s.Domain.Dir = s.ConfigDir()
+		}
+	}
+
+	if s.SSL != nil {
+		if len(s.SSL.ListenAddr) == 0 {
+			return xerror.EInternalError("ssl.listen_addr is required", nil)
+		}
+
+		if s.Domain == nil || len(s.Domain.Name) == 0 {
+			return xerror.EInternalError("SSL server is enabled, but no domain name is set", nil)
+		}
+	}
+
+	return nil
 }
 
 // safeDefaults provides safe static config with paths started with the rootDir
 func safeDefaults(rootDir string) *Config {
-	adminAPI := defaultAdminAPIConfig()
+	adminAPIConfig := defaultAdminAPIConfig()
 	if version.IsEnterprise() {
-		adminAPI.PasswordHash, _ = generateAdminPasswordHash()
+		adminAPIConfig.PasswordHash, _ = generateAdminPasswordHash()
 	}
 	return &Config{
 		path: filepath.Join(rootDir, configFileName),
@@ -164,7 +230,7 @@ func safeDefaults(rootDir string) *Config {
 		Rapidoc:    true,
 		SQLitePath: filepath.Join(rootDir, "db.sqlite3"),
 		Wireguard:  wireguard.DefaultConfig(),
-		AdminAPI:   adminAPI,
+		AdminAPI:   adminAPIConfig,
 	}
 }
 
