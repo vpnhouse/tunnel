@@ -53,11 +53,25 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			return nil, err
 		}
 
+		var dc *xhttp.DomainConfig
+		if req.Domain != nil {
+			dc = &xhttp.DomainConfig{
+				Mode:     string(req.Domain.Mode),
+				Name:     req.Domain.DomainName,
+				IssueSSL: req.Domain.IssueSsl,
+				Schema:   string(req.Domain.Schema),
+				Dir:      tun.runtime.Settings.ConfigDir(),
+			}
+			if err := dc.Validate(); err != nil {
+				return nil, err
+			}
+		}
+
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
-		if req.EnableSsl {
+		tun.runtime.Settings.Domain = dc
+		if dc != nil && dc.IssueSSL {
 			tun.runtime.Settings.SSL = &xhttp.SSLConfig{
 				ListenAddr: ":443",
-				Domain:     req.DomainName,
 			}
 		}
 
@@ -72,12 +86,10 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 }
 
 func validateInitialSetupRequest(req adminAPI.InitialSetupRequest) error {
-	if len(req.DomainName) > 0 && !req.EnableSsl {
-		return xerror.EInvalidField("domain name without SSL enabled is meaningless", "domain_name", nil)
-	}
 	if len(req.AdminPassword) < 6 {
 		return xerror.EInvalidField("password too short", "admin_password", nil)
 	}
+
 	return nil
 }
 

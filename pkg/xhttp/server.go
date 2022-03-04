@@ -173,18 +173,12 @@ func NewDefaultSSL(cfg *tls.Config) *Server {
 	)
 }
 
-func NewRedirectToSSL(to string) *Server {
+func NewRedirectToSSL() *Server {
 	r := chi.NewRouter()
 	r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		url2 := *r.URL
-		if len(to) > 0 {
-			// override host if present,
-			// if we have ssl enabled with self-signed
-			// certificate and no domain - redirect to the
-			// required IP but with https schema.
-			url2.Host = to
-		}
 		url2.Scheme = "https"
+		url2.Host = r.Host
 		w.Header().Set("Location", url2.String())
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	})

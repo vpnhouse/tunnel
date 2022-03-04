@@ -127,28 +127,33 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.Settings.HTTP.CORS {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithCORS()}, xhttpOpts...)
 	}
+	// assume that config validation does not pass
+	// the SSL enabled without the domain name configuration
 	if runtime.Settings.SSL != nil {
-		redirectOnly := xhttp.NewRedirectToSSL(runtime.Settings.SSL.Domain)
+		redirectOnly := xhttp.NewRedirectToSSL()
 		// we must start the redirect-only server before passing its Router
 		// to the certificate issuer.
 		if err := redirectOnly.Run(runtime.Settings.HTTP.ListenAddr); err != nil {
 			return err
 		}
 
-		if len(runtime.Settings.SSL.Dir) == 0 {
-			runtime.Settings.SSL.Dir = runtime.Settings.ConfigDir()
-		}
+		opts := xhttp.IssuerOpts{
+			Domain:   runtime.Settings.Domain.Name,
+			CacheDir: runtime.Settings.Domain.Dir,
+			Router:   redirectOnly.Router(),
 
-		// callback handles the xhttp.Server restarts on certificate updates
-		issuer, err := xhttp.NewIssuer(*runtime.Settings.SSL, redirectOnly.Router(), func(c *tls.Config) {
-			newHttp := xhttp.NewDefaultSSL(c)
-			if err := newHttp.Run(runtime.Settings.SSL.ListenAddr); err != nil {
-				zap.L().Fatal("failed to start new https server", zap.Error(err))
-			}
-			if err := runtime.Services.Replace("httpServer", newHttp); err != nil {
-				zap.L().Fatal("failed to replace the httpServer service", zap.Error(err))
-			}
-		})
+			// Callback handles the xhttp.Server restarts on certificate updates
+			Callback: func(c *tls.Config) {
+				newHttp := xhttp.NewDefaultSSL(c)
+				if err := newHttp.Run(runtime.Settings.SSL.ListenAddr); err != nil {
+					zap.L().Fatal("failed to start new https server", zap.Error(err))
+				}
+				if err := runtime.Services.Replace("httpServer", newHttp); err != nil {
+					zap.L().Fatal("failed to replace the httpServer service", zap.Error(err))
+				}
+			},
+		}
+		issuer, err := xhttp.NewIssuer(opts)
 		if err != nil {
 			return err
 		}
@@ -158,6 +163,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			return err
 		}
 
+		xHttpAddr = runtime.Settings.SSL.ListenAddr
 		xhttpOpts = append([]xhttp.Option{xhttp.WithSSL(tlscfg)}, xhttpOpts...)
 	}
 

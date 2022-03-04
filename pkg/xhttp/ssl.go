@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"time"
 
+	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/lego"
@@ -99,49 +100,103 @@ func (data *certData) intoTLS() *tls.Config {
 }
 
 type SSLConfig struct {
-	// Domain name to issue the certificate for,
-	// self-signed certificate is used if name is empty but ssl has been enabled,
-	// or if external issuer failed.
-	Domain string `yaml:"domain" valid:"dns"`
-	// Email to notify about certificates expiration, optional.
-	Email string `yaml:"email" valid:"email"`
 	// ListenAddr for HTTPS server, default: ":443"
 	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`
+}
+
+// DomainConfig is the YAML version of the `adminAPI.DomainConfig` struct.
+type DomainConfig struct {
+	Mode     string `yaml:"mode" valid:"required"`
+	Name     string `yaml:"name" valid:"dns,required"`
+	IssueSSL bool   `yaml:"issue_ssl"`
+	Schema   string `yaml:"schema"`
+
 	// Dir to store cached certificates, use sub-directory of cfgDir if possible.
 	Dir string `yaml:"dir" valid:"path"`
 }
 
+func (c *DomainConfig) Validate() error {
+	modes := map[string]struct{}{
+		string(adminAPI.DomainConfigModeReverseProxy): {},
+		string(adminAPI.DomainConfigModeDirect):       {},
+	}
+	schemas := map[string]struct{}{
+		"http":  {},
+		"https": {},
+	}
+
+	if len(c.Name) == 0 {
+		return xerror.EInternalError("domain.name is required", nil)
+	}
+	if len(c.Mode) == 0 {
+		return xerror.EInternalError("domain.mode is required", nil)
+	}
+	if _, ok := modes[c.Mode]; !ok {
+		return xerror.EInternalError("domain.mode got unknown value, expecting `direct` or `reverse-proxy`", nil)
+	}
+
+	if c.Mode == string(adminAPI.DomainConfigModeReverseProxy) {
+		if len(c.Schema) == 0 {
+			return xerror.EInternalError("domain.schema is required for the reverse-proxy mode", nil)
+		}
+		if _, ok := schemas[c.Schema]; !ok {
+			return xerror.EInternalError("domain.schema got unknown value, expecting `http` or `https`", nil)
+		}
+	}
+
+	return nil
+}
+
+type IssuerOpts struct {
+	Domain   string
+	CacheDir string
+	Email    string
+
+	// Router of the http (not https!) server
+	Router chi.Router
+	// Restart callback fired when the valid certificate issued;
+	// accepts the configuration of the new cert.
+	Callback func(c *tls.Config)
+}
+
+func (opts IssuerOpts) cachedCertPath() string {
+	return filepath.Join(opts.CacheDir, opts.Domain+".json")
+}
+
 // Issuer should be named like certManager
 type Issuer struct {
-	// router of the http (not https!) server
-	router chi.Router
-	log    *zap.Logger
+	opts IssuerOpts
+
+	// log is a named logger with a domain name
+	log *zap.Logger
 
 	// cli is a cached LE client
 	// with a valid registration field(s).
 	cli *lego.Client
-
-	cfg             SSLConfig
-	restartCallback func(newCert *tls.Config)
 }
 
-func NewIssuer(cfg SSLConfig, r chi.Router, cb func(c *tls.Config)) (*Issuer, error) {
-	fi, err := os.Stat(cfg.Dir)
+func NewIssuer(opts IssuerOpts) (*Issuer, error) {
+	if opts.Callback == nil {
+		return nil, errors.New("no callback is given")
+	}
+	if opts.Router == nil {
+		return nil, errors.New("no http router is given")
+	}
+
+	fi, err := os.Stat(opts.CacheDir)
 	if err != nil {
 		return nil, err
 	}
 	if !fi.IsDir() {
-		return nil, errors.New(cfg.Dir + ": not a directory")
+		return nil, errors.New(opts.CacheDir + ": not a directory")
 	}
-	if len(cfg.Email) == 0 {
-		cfg.Email = "noreply@dummy.org"
+	if len(opts.Email) == 0 {
+		opts.Email = "noreply@dummy.org"
 	}
 
 	return &Issuer{
-		router:          r,
-		cfg:             cfg,
-		restartCallback: cb,
-		log:             zap.L().With(zap.String("domain", cfg.Domain)),
+		opts: opts,
+		log:  zap.L().With(zap.String("domain", opts.Domain)),
 	}, nil
 }
 
@@ -161,7 +216,7 @@ func (is *Issuer) TLSConfig() (*tls.Config, error) {
 
 	go func() {
 		certData := is.retryIssue()
-		is.restartCallback(certData.intoTLS())
+		is.opts.Callback(certData.intoTLS())
 		is.letsEncryptRenew(certData)
 	}()
 
@@ -174,7 +229,7 @@ func (is *Issuer) TLSConfig() (*tls.Config, error) {
 }
 
 func (is *Issuer) loadCachedCertificate() (certData, error) {
-	cached := is.cachedCertPath()
+	cached := is.opts.cachedCertPath()
 	bs, err := os.ReadFile(cached)
 	if err != nil {
 		// do not wrap error, we'll check for os.IsNotExists
@@ -192,10 +247,6 @@ func (is *Issuer) loadCachedCertificate() (certData, error) {
 
 	is.log.Debug("using an existing certificate", zap.String("path", cached))
 	return cdata, nil
-}
-
-func (is *Issuer) cachedCertPath() string {
-	return filepath.Join(is.cfg.Dir, is.cfg.Domain+".json")
 }
 
 func (is *Issuer) issueAndSaveCertificate() (certData, error) {
@@ -217,7 +268,7 @@ func (is *Issuer) writeCert(cdata certData) error {
 		return xerror.WInternalError("ssl", "failed to marshal cert data", err)
 	}
 
-	dataFile := is.cachedCertPath()
+	dataFile := is.opts.cachedCertPath()
 	if err := os.WriteFile(dataFile, bs, 0600); err != nil {
 		return xerror.WInternalError("ssl", "failed to write cert data to a file",
 			err, zap.String("path", dataFile))
@@ -229,7 +280,7 @@ func (is *Issuer) writeCert(cdata certData) error {
 
 func (is *Issuer) getLEClient() (*lego.Client, error) {
 	if is.cli == nil {
-		myUser := newUser(is.cfg.Email)
+		myUser := newUser(is.opts.Email)
 
 		config := lego.NewConfig(&myUser)
 		// A client facilitates communication with the CA server.
@@ -238,7 +289,7 @@ func (is *Issuer) getLEClient() (*lego.Client, error) {
 			return nil, xerror.WInternalError("ssl", "failed to create LE client", err)
 		}
 
-		h01p := newHttp01provider(is.router)
+		h01p := newHttp01provider(is.opts.Router)
 		if err := client.Challenge.SetHTTP01Provider(h01p); err != nil {
 			return nil, xerror.WInternalError("ssl", "failed to set http-01 provider", err)
 		}
@@ -263,7 +314,7 @@ func (is *Issuer) issue() (certData, error) {
 	}
 
 	request := certificate.ObtainRequest{
-		Domains: []string{is.cfg.Domain},
+		Domains: []string{is.opts.Domain},
 		Bundle:  true,
 	}
 	certificates, err := cli.Certificate.Obtain(request)
@@ -272,7 +323,7 @@ func (is *Issuer) issue() (certData, error) {
 	}
 
 	cd := certData{
-		Domain: is.cfg.Domain,
+		Domain: is.opts.Domain,
 		Cert:   certificates.Certificate,
 		Key:    certificates.PrivateKey,
 		URL:    certificates.CertURL,
@@ -302,7 +353,7 @@ func (is *Issuer) selfSigned() (certData, error) {
 	}
 
 	template := x509.Certificate{
-		DNSNames: []string{is.cfg.Domain},
+		DNSNames: []string{is.opts.Domain},
 		// IPAddresses    []net.IP // << TODO?
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -346,7 +397,7 @@ func (is *Issuer) selfSigned() (certData, error) {
 	}
 
 	cdata := certData{
-		Domain: is.cfg.Domain,
+		Domain: is.opts.Domain,
 		cert:   cert,
 	}
 
@@ -449,7 +500,7 @@ func (is *Issuer) renewOnce(existing certData) bool {
 		return false
 	}
 
-	is.restartCallback(cdata.intoTLS())
+	is.opts.Callback(cdata.intoTLS())
 	return true
 }
 
