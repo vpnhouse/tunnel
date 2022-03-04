@@ -66,6 +66,12 @@ func (s *Config) ConfigDir() string {
 // Use SSL configuration if given, otherwise
 // it returns http://wireguard_ip:http_listen_port
 func (s *Config) PublicURL() string {
+	if s.Domain != nil {
+		if s.Domain.Mode == string(adminAPI.DomainConfigModeReverseProxy) {
+			return s.Domain.Schema + "://" + s.Domain.Name
+		}
+	}
+
 	host := s.Wireguard.ServerIPv4
 	if s.Domain != nil {
 		host = s.Domain.Name
