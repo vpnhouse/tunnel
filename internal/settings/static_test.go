@@ -7,6 +7,7 @@ package settings
 import (
 	"testing"
 
+	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )
@@ -22,4 +23,39 @@ func TestEmptyFile(t *testing.T) {
 
 	_, err = staticConfigFromFS(f, path)
 	require.Error(t, err)
+}
+
+func TestXValidation(t *testing.T) {
+	c := &Config{
+		Domain: nil,
+		SSL:    nil,
+	}
+	require.NoError(t, c.validate())
+
+	c = &Config{
+		Domain: nil,
+		SSL:    &xhttp.SSLConfig{ListenAddr: ":1234"},
+	}
+	require.Error(t, c.validate())
+
+	c = &Config{
+		Domain: &xhttp.DomainConfig{
+			Mode:     "direct",
+			Name:     "the.foo.bar",
+			IssueSSL: true,
+		},
+		SSL: nil,
+	}
+	require.Error(t, c.validate())
+
+	c = &Config{
+		Domain: &xhttp.DomainConfig{
+			Mode:   "reverse-proxy",
+			Name:   "the.foo.bar",
+			Schema: "https",
+		},
+		SSL: nil,
+	}
+	require.NoError(t, c.validate())
+
 }
