@@ -14,6 +14,7 @@ import (
 	"github.com/Codename-Uranium/tunnel/pkg/xtime"
 	"github.com/Codename-Uranium/tunnel/proto"
 	"github.com/google/uuid"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 const (
@@ -43,6 +44,9 @@ type PeerInfo struct {
 	Updated *xtime.Time `db:"updated"`
 	Expires *xtime.Time `db:"expires"`
 	Claims  *string     `db:"claims"`
+
+	SharingKey           *string     `db:"sharing_key"`
+	SharingKeyExpiration *xtime.Time `db:"sharing_key_expiration"`
 }
 
 func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
@@ -145,8 +149,13 @@ func (peer *PeerInfo) Validate(omit ...string) error {
 	if peer.Type != nil {
 		switch *peer.Type {
 		case TunnelWireguard:
-			if peer.WireguardPublicKey == nil {
-				return xerror.EInvalidArgument("wireguard tunnel must have public key set", nil)
+			if peer.WireguardPublicKey == nil && (peer.SharingKey == nil || len(*peer.SharingKey) == 0) {
+				return xerror.EInvalidField("wireguard tunnel must have public key set", "wireguard_key", nil)
+			}
+
+			k := *peer.WireguardPublicKey
+			if _, err := wgtypes.ParseKey(k); err != nil {
+				return xerror.EInvalidField("invalid wireguard key given", "wireguard_key", err)
 			}
 		default:
 			return xerror.EInvalidArgument("unknown tunnel type", nil)

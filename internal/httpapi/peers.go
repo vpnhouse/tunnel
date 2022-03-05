@@ -7,11 +7,14 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	"github.com/Codename-Uranium/tunnel/pkg/xtime"
+	"github.com/google/uuid"
 )
 
 // getPeerFromRequest parses peer information from request body.
@@ -116,6 +119,35 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 		}
 
 		return record, nil
+	})
+}
+
+// AdminCreateSharedPeer implements POST method on /api/admin/peers/shared endpoint
+func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Request) {
+	xhttp.JSONResponse(w, func() (interface{}, error) {
+		peer, err := getPeerFromRequest(r, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := peer.Validate("ID", "Ipv4"); err != nil {
+			return nil, err
+		}
+
+		sk := uuid.New().String()
+		xt := xtime.Time{Time: time.Now().Add(24 * time.Hour)}
+
+		peer.SharingKey = &sk
+		peer.SharingKeyExpiration = &xt
+		if _, err := tun.storage.CreatePeer(peer); err != nil {
+			return nil, err
+		}
+
+		url := tun.runtime.Settings.PublicURL()
+		link := adminAPI.PeerLink{
+			Link: url + "/public/shared/" + sk,
+		}
+		return link, nil
 	})
 }
 

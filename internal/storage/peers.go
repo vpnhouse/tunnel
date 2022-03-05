@@ -109,24 +109,16 @@ func (storage *Storage) UpdatePeer(peer types.PeerInfo) (int64, error) {
 }
 
 func (storage *Storage) GetPeer(id int64) (types.PeerInfo, error) {
-	filter := &types.PeerInfo{ID: id}
-	peers, err := storage.SearchPeers(filter)
-	if err != nil {
-		return types.PeerInfo{}, err
+	row := storage.db.QueryRowx("select * from peers where id = $1", id)
+	if err := row.Err(); err != nil {
+		return types.PeerInfo{}, xerror.EStorageError("peer not found", err, zap.Int64("id", id))
 	}
 
-	if len(peers) == 0 {
-		zap.L().Warn("Peer not found", zap.Any("id", id))
-		return types.PeerInfo{}, nil
+	var peer types.PeerInfo
+	if err := row.StructScan(&peer); err != nil {
+		return types.PeerInfo{}, xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.Int64("id", id))
 	}
 
-	if len(peers) > 1 {
-		// TODO(nikonov): must hever happen since we have a PK/UK constraint on the ID field,
-		//  maybe worth panic()-ing right here.
-		return types.PeerInfo{}, xerror.EStorageError("too many entries in request by ID", nil, zap.Int64("id", id))
-	}
-
-	peer := peers[0]
 	if err := peer.Validate(); err != nil {
 		return types.PeerInfo{}, err
 	}
