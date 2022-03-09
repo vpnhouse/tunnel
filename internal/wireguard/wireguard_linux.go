@@ -35,7 +35,6 @@ func (wl *wireguardLink) Type() string {
 }
 
 func New(config Config) (*Wireguard, error) {
-	linkAttrs := wireguardLink{name: config.Interface}
 	client, err := wgctrl.New()
 	if err != nil {
 		return nil, xerror.ETunnelError("can't create wireguard controller", err)
@@ -47,6 +46,7 @@ func New(config Config) (*Wireguard, error) {
 		ListenPort: &config.ListenPort,
 	}
 
+	linkAttrs := wireguardLink{name: config.Interface}
 	wg := &Wireguard{
 		client: client,
 		config: wgConfig,

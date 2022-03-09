@@ -186,6 +186,11 @@ func loadStaticConfig(fs afero.Fs, path string) (*Config, error) {
 		return nil, err
 	}
 
+	// apply on-load hooks here
+	if err := c.Wireguard.OnLoad(); err != nil {
+		return nil, err
+	}
+
 	return c, nil
 }
 
