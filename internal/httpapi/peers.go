@@ -10,11 +10,13 @@ import (
 	"time"
 
 	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
+	"github.com/Codename-Uranium/tunnel/internal/storage"
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
 	"github.com/Codename-Uranium/tunnel/pkg/xtime"
 	"github.com/google/uuid"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 // getPeerFromRequest parses peer information from request body.
@@ -102,23 +104,7 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 
-		// query back with all defaults
-		insertedPeer, err := tun.manager.GetPeer(peer.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		oPeer, err := exportPeer(insertedPeer)
-		if err != nil {
-			return nil, err
-		}
-
-		record := adminAPI.PeerRecord{
-			Id:   peer.ID,
-			Peer: oPeer,
-		}
-
-		return record, nil
+		return getPeerForSerialization(tun.storage, peer.ID)
 	})
 }
 
@@ -148,6 +134,38 @@ func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Reque
 			Link: url + "/public/shared/" + sk,
 		}
 		return link, nil
+	})
+}
+
+func (tun *TunnelAPI) AdminActivateSharedPeer(w http.ResponseWriter, r *http.Request, slug string) {
+	xhttp.JSONResponse(w, func() (interface{}, error) {
+		peer, err := getPeerFromRequest(r, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		if peer.WireguardPublicKey == nil || len(*peer.WireguardPublicKey) == 0 {
+			return nil, xerror.EInvalidField("wireguard_key: required field", "wireguard_key", nil)
+		}
+
+		pubkey := *peer.WireguardPublicKey
+		if _, err := wgtypes.ParseKey(pubkey); err != nil {
+			return nil, xerror.EInvalidField("wireguard_key: invalid key given", "wireguard_key", nil)
+		}
+
+		if err := tun.storage.ActivateSharedPeer(slug, pubkey); err != nil {
+			return nil, err
+		}
+
+		fullPeer, err := getPeerForSerialization(tun.storage, peer.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		return map[string]interface{}{
+			"peer":            fullPeer,
+			"connection_info": wireguardConnectionInfo(tun.runtime.Settings.Wireguard),
+		}, nil
 	})
 }
 
@@ -185,4 +203,23 @@ func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id
 
 		return info, nil
 	})
+}
+
+func getPeerForSerialization(db *storage.Storage, id int64) (adminAPI.PeerRecord, error) {
+	insertedPeer, err := db.GetPeer(id)
+	if err != nil {
+		return adminAPI.PeerRecord{}, err
+	}
+
+	oPeer, err := exportPeer(insertedPeer)
+	if err != nil {
+		return adminAPI.PeerRecord{}, err
+	}
+
+	record := adminAPI.PeerRecord{
+		Id:   id,
+		Peer: oPeer,
+	}
+
+	return record, nil
 }

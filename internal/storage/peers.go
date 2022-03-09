@@ -5,6 +5,8 @@
 package storage
 
 import (
+	"time"
+
 	"github.com/Codename-Uranium/tunnel/internal/types"
 	"github.com/Codename-Uranium/tunnel/pkg/xerror"
 	"github.com/Codename-Uranium/tunnel/pkg/xtime"
@@ -135,5 +137,35 @@ func (storage *Storage) DeletePeer(id int64) error {
 		return xerror.EStorageError("failed to delete peer", err, zap.Int64("id", id))
 	}
 
+	return nil
+}
+
+func (storage *Storage) ActivateSharedPeer(sharingKey string, pubkey string) error {
+	q := `select * from peers where sharing_key = $1 and sharing_key_expiration > $2`
+	now := time.Now().Unix()
+
+	txx, err := storage.db.Beginx()
+	if err != nil {
+		return xerror.EInternalError("failed to start the transaction", err)
+	}
+
+	row := txx.QueryRowx(q, sharingKey, now)
+	var peer types.PeerInfo
+	if err := row.StructScan(&peer); err != nil {
+		_ = txx.Rollback()
+		return xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.String("key", sharingKey))
+	}
+
+	emptyString := ""
+	peer.SharingKey = &emptyString
+	peer.SharingKeyExpiration = &xtime.Time{}
+	peer.WireguardPublicKey = &pubkey
+
+	if _, err := storage.UpdatePeer(peer); err != nil {
+		_ = txx.Rollback()
+		return err
+	}
+
+	zap.L().Debug("shared peer activated", zap.Int64("id", peer.ID), zap.String("sharing_key", sharingKey))
 	return nil
 }
