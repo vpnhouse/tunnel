@@ -5,6 +5,8 @@
 package storage
 
 import (
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/comradevpn/tunnel/internal/types"
@@ -140,32 +142,33 @@ func (storage *Storage) DeletePeer(id int64) error {
 	return nil
 }
 
-func (storage *Storage) ActivateSharedPeer(sharingKey string, pubkey string) error {
+func (storage *Storage) ActivateSharedPeer(sharingKey string, pubkey string) (int64, error) {
 	q := `select * from peers where sharing_key = $1 and sharing_key_expiration > $2`
 	now := time.Now().Unix()
 
 	txx, err := storage.db.Beginx()
 	if err != nil {
-		return xerror.EInternalError("failed to start the transaction", err)
+		return -1, xerror.EInternalError("failed to start the transaction", err)
 	}
 
 	row := txx.QueryRowx(q, sharingKey, now)
 	var peer types.PeerInfo
 	if err := row.StructScan(&peer); err != nil {
 		_ = txx.Rollback()
-		return xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.String("key", sharingKey))
+
+		if errors.Is(err, sql.ErrNoRows) {
+			return -1, xerror.EEntryNotFound("no peer with a given sharing key where found", nil)
+		}
+		return -1, xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.String("key", sharingKey))
 	}
 
-	emptyString := ""
-	peer.SharingKey = &emptyString
-	peer.SharingKeyExpiration = &xtime.Time{}
-	peer.WireguardPublicKey = &pubkey
-
-	if _, err := storage.UpdatePeer(peer); err != nil {
+	q = `update peers set sharing_key = '', sharing_key_expiration = 0, wireguard_key = $1 where id = $2`
+	if _, err := txx.Exec(q, pubkey, peer.ID); err != nil {
 		_ = txx.Rollback()
-		return err
+		return -1, xerror.EStorageError("failed to update peer", err)
 	}
 
-	zap.L().Debug("shared peer activated", zap.Int64("id", peer.ID), zap.String("sharing_key", sharingKey))
-	return nil
+	_ = txx.Commit()
+	zap.L().Info("shared peer activated", zap.Int64("id", peer.ID), zap.String("sharing_key", sharingKey))
+	return peer.ID, nil
 }

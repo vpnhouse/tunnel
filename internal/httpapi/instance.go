@@ -26,6 +26,7 @@ import (
 type IpPool interface {
 	Available() (xnet.IP, error)
 	IsAvailable(ip xnet.IP) bool
+	Alloc() (xnet.IP, error)
 }
 
 type TunnelAPI struct {

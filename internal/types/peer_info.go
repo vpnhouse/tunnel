@@ -36,8 +36,9 @@ type PeerInfo struct {
 	WireguardInfo
 	PeerIdentifiers
 
-	ID      int64       `db:"id"`
-	Label   *string     `db:"label"`
+	ID    int64   `db:"id"`
+	Label *string `db:"label"`
+	// Deprecated: we support only wireguard, this field is useless
 	Type    *int        `db:"type"`
 	Ipv4    *xnet.IP    `db:"ipv4" json:"-"`
 	Created *xtime.Time `db:"created"`
@@ -140,25 +141,14 @@ func (peer *PeerInfo) Validate(omit ...string) error {
 		}
 	}
 
-	// Check mandatory fields
-	if peer.Type == nil {
-		return xerror.EInvalidArgument("empty peer type", nil)
+	if peer.WireguardPublicKey == nil && (peer.SharingKey == nil || len(*peer.SharingKey) == 0) {
+		return xerror.EInvalidField("peer must have public key set", "wireguard_key", nil)
 	}
 
-	// Check tunnel information match
-	if peer.Type != nil {
-		switch *peer.Type {
-		case TunnelWireguard:
-			if peer.WireguardPublicKey == nil && (peer.SharingKey == nil || len(*peer.SharingKey) == 0) {
-				return xerror.EInvalidField("wireguard tunnel must have public key set", "wireguard_key", nil)
-			}
-
-			k := *peer.WireguardPublicKey
-			if _, err := wgtypes.ParseKey(k); err != nil {
-				return xerror.EInvalidField("invalid wireguard key given", "wireguard_key", err)
-			}
-		default:
-			return xerror.EInvalidArgument("unknown tunnel type", nil)
+	if peer.WireguardPublicKey != nil {
+		k := *peer.WireguardPublicKey
+		if _, err := wgtypes.ParseKey(k); err != nil {
+			return xerror.EInvalidField("invalid wireguard key given to a peer", "wireguard_key", err)
 		}
 	}
 

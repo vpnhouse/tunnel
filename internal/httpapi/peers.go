@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	tunnelAPI "github.com/comradevpn/api/go/server/tunnel"
 	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
 	"github.com/comradevpn/tunnel/internal/storage"
 	"github.com/comradevpn/tunnel/internal/types"
@@ -116,9 +117,11 @@ func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Reque
 			return nil, err
 		}
 
-		if err := peer.Validate("ID", "Ipv4"); err != nil {
+		ipa, err := tun.ippool.Alloc()
+		if err != nil {
 			return nil, err
 		}
+		peer.Ipv4 = &ipa
 
 		sk := uuid.New().String()
 		xt := xtime.Time{Time: time.Now().Add(24 * time.Hour)}
@@ -139,25 +142,26 @@ func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Reque
 
 func (tun *TunnelAPI) PublicPeerActivate(w http.ResponseWriter, r *http.Request, slug string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		peer, err := getPeerFromRequest(r, 0)
-		if err != nil {
-			return nil, err
+		var wgPeer tunnelAPI.PeerWireguard
+		if err := json.NewDecoder(r.Body).Decode(&wgPeer); err != nil {
+			return nil, xerror.EInvalidArgument("failed to decode given JSON body", err)
 		}
 
-		if peer.WireguardPublicKey == nil || len(*peer.WireguardPublicKey) == 0 {
+		if wgPeer.PublicKey == nil || len(*wgPeer.PublicKey) == 0 {
 			return nil, xerror.EInvalidField("wireguard_key: required field", "wireguard_key", nil)
 		}
 
-		pubkey := *peer.WireguardPublicKey
+		pubkey := *wgPeer.PublicKey
 		if _, err := wgtypes.ParseKey(pubkey); err != nil {
 			return nil, xerror.EInvalidField("wireguard_key: invalid key given", "wireguard_key", nil)
 		}
 
-		if err := tun.storage.ActivateSharedPeer(slug, pubkey); err != nil {
+		peerID, err := tun.storage.ActivateSharedPeer(slug, pubkey)
+		if err != nil {
 			return nil, err
 		}
 
-		fullPeer, err := getPeerForSerialization(tun.storage, peer.ID)
+		fullPeer, err := getPeerForSerialization(tun.storage, peerID)
 		if err != nil {
 			return nil, err
 		}
