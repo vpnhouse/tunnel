@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )

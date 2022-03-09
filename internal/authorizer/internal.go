@@ -5,8 +5,8 @@
 package authorizer
 
 import (
-	"github.com/Codename-Uranium/tunnel/pkg/auth"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/auth"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 )
 
 type JWTAuthorizer struct {

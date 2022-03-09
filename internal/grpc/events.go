@@ -8,8 +8,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Codename-Uranium/tunnel/internal/eventlog"
-	"github.com/Codename-Uranium/tunnel/proto"
+	"github.com/comradevpn/tunnel/internal/eventlog"
+	"github.com/comradevpn/tunnel/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

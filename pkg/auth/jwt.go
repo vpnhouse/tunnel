@@ -8,8 +8,8 @@ import (
 	"crypto/rsa"
 	"fmt"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xap"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xap"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"go.uber.org/zap"

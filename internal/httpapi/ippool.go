@@ -8,10 +8,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
+	"github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/xnet"
 )
 
 // AdminIppoolSuggest suggests an available IP address by the server pool

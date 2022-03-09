@@ -7,10 +7,10 @@ package httpapi
 import (
 	"net/http"
 
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/internal/wireguard"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/internal/wireguard"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
 )
 
 // AdminGetStatus returns current server status

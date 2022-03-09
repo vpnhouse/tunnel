@@ -11,8 +11,8 @@ import (
 	"os"
 	"runtime"
 
-	openapi "github.com/Codename-Uranium/api/go/server/common"
-	"github.com/Codename-Uranium/tunnel/pkg/version"
+	openapi "github.com/comradevpn/api/go/server/common"
+	"github.com/comradevpn/tunnel/pkg/version"
 	"github.com/getsentry/sentry-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"

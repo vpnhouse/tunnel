@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"time"
 
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/internal/storage"
-	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/Codename-Uranium/tunnel/pkg/xtime"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/internal/storage"
+	"github.com/comradevpn/tunnel/internal/types"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/xtime"
 	"github.com/google/uuid"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -137,7 +137,7 @@ func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-func (tun *TunnelAPI) AdminActivateSharedPeer(w http.ResponseWriter, r *http.Request, slug string) {
+func (tun *TunnelAPI) PublicPeerActivate(w http.ResponseWriter, r *http.Request, slug string) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		peer, err := getPeerFromRequest(r, 0)
 		if err != nil {

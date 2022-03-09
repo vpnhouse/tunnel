@@ -12,8 +12,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/Codename-Uranium/tunnel/internal/eventlog"
-	"github.com/Codename-Uranium/tunnel/proto"
+	"github.com/comradevpn/tunnel/internal/eventlog"
+	"github.com/comradevpn/tunnel/proto"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

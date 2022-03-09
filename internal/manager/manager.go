@@ -7,11 +7,11 @@ package manager
 import (
 	"sync"
 
-	"github.com/Codename-Uranium/tunnel/internal/eventlog"
-	"github.com/Codename-Uranium/tunnel/internal/runtime"
-	"github.com/Codename-Uranium/tunnel/internal/storage"
-	"github.com/Codename-Uranium/tunnel/internal/wireguard"
-	"github.com/Codename-Uranium/tunnel/pkg/ippool"
+	"github.com/comradevpn/tunnel/internal/eventlog"
+	"github.com/comradevpn/tunnel/internal/runtime"
+	"github.com/comradevpn/tunnel/internal/storage"
+	"github.com/comradevpn/tunnel/internal/wireguard"
+	"github.com/comradevpn/tunnel/pkg/ippool"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/zap"
 )

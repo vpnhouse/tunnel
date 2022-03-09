@@ -7,7 +7,7 @@ package eventlog
 import (
 	"context"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 )
 
 func NewDummy() *dummyEventManager {

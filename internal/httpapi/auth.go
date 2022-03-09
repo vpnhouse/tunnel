@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	tunnelAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
 	"github.com/dgrijalva/jwt-go"
 	"go.uber.org/zap"
 )

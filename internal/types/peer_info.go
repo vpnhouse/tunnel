@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
-	"github.com/Codename-Uranium/tunnel/pkg/xtime"
-	"github.com/Codename-Uranium/tunnel/proto"
+	tunnelAPI "github.com/comradevpn/api/go/server/tunnel"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xnet"
+	"github.com/comradevpn/tunnel/pkg/xtime"
+	"github.com/comradevpn/tunnel/proto"
 	"github.com/google/uuid"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )

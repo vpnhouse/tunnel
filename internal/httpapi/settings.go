@@ -8,14 +8,14 @@ import (
 	"encoding/json"
 	"net/http"
 
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/internal/settings"
-	"github.com/Codename-Uranium/tunnel/pkg/control"
-	"github.com/Codename-Uranium/tunnel/pkg/validator"
-	"github.com/Codename-Uranium/tunnel/pkg/version"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/internal/settings"
+	"github.com/comradevpn/tunnel/pkg/control"
+	"github.com/comradevpn/tunnel/pkg/validator"
+	"github.com/comradevpn/tunnel/pkg/version"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/xnet"
 )
 
 // AdminGetSettings implements handler for GET /api/tunnel/admin/settings request

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/validator"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/internal/types"
+	"github.com/comradevpn/tunnel/pkg/validator"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )

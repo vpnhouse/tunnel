@@ -1,9 +1,8 @@
-module github.com/Codename-Uranium/tunnel
+module github.com/comradevpn/tunnel
 
 go 1.17
 
 require (
-	github.com/Codename-Uranium/api v0.0.0-20220305140408-56935bda10e9
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.5.1
@@ -34,6 +33,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/comradevpn/api v0.0.0-20220309123303-ba8a7a10b83f // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.9.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
