@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	tunnelAPI "github.com/comradevpn/api/go/server/tunnel"
 	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/comradevpn/tunnel/pkg/xnet"
 	"github.com/comradevpn/tunnel/pkg/xtime"
@@ -36,10 +35,8 @@ type PeerInfo struct {
 	WireguardInfo
 	PeerIdentifiers
 
-	ID    int64   `db:"id"`
-	Label *string `db:"label"`
-	// Deprecated: we support only wireguard, this field is useless
-	Type    *int        `db:"type"`
+	ID      int64       `db:"id"`
+	Label   *string     `db:"label"`
 	Ipv4    *xnet.IP    `db:"ipv4" json:"-"`
 	Created *xtime.Time `db:"created"`
 	Updated *xtime.Time `db:"updated"`
@@ -65,9 +62,6 @@ func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
 	if peer.SessionId != nil {
 		p.SessionID = peer.SessionId.String()
 	}
-	if peer.Type != nil {
-		p.PeerType = proto.PeerInfo_PeerType(*peer.Type)
-	}
 	if peer.Created != nil {
 		p.Created = proto.TimestampFromTime(peer.Created.Time)
 	}
@@ -78,19 +72,6 @@ func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
 		p.Expires = proto.TimestampFromTime(peer.Expires.Time)
 	}
 	return p
-}
-
-func (peer *PeerInfo) TypeName() tunnelAPI.PeerType {
-	if peer == nil || peer.Type == nil {
-		return ""
-	}
-
-	switch *peer.Type {
-	case TunnelWireguard:
-		return tunnelAPI.PeerTypeWireguard
-	default:
-		return ""
-	}
 }
 
 // in provides case-insensitive match of field name across a list of fields

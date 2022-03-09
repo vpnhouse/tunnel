@@ -132,12 +132,10 @@ func (tun *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Request
 		expires := xtime.Time{
 			Time: time.Unix(claims.ExpiresAt, 0),
 		}
-		tunType := types.TunnelWireguard
 		installationId := uuid.NewMD5(unsafeUUIDSpace, []byte(claims.Subject))
 		sessionId, _ := uuid.NewRandom()
 		peer := types.PeerInfo{
 			Label:   nil,
-			Type:    &tunType,
 			Ipv4:    nil,
 			Created: nil,
 			Updated: nil,

@@ -53,14 +53,8 @@ func (manager *Manager) restorePeers() {
 			}
 		}
 
-		switch *peer.Type {
-		case types.TunnelWireguard:
-			_ = manager.wireguard.SetPeer(peer)
-			allPeersGauge.Inc()
-		default:
-			zap.L().Error("unsupported tunnel type", zap.Any("type", peer.TypeName()))
-			continue
-		}
+		_ = manager.wireguard.SetPeer(peer)
+		allPeersGauge.Inc()
 	}
 }
 
@@ -157,14 +151,6 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 	oldPeer, err := manager.storage.GetPeer(newPeer.ID)
 	if err != nil {
 		return err
-	}
-
-	if *oldPeer.Type != *newPeer.Type {
-		return xerror.EInvalidArgument("changing peer type is not allowed", nil, zap.Any("newPeer", newPeer), zap.Any("oldPeer", oldPeer))
-	}
-
-	if *newPeer.Type != types.TunnelWireguard {
-		return xerror.EInvalidArgument("updating this tunnel type is not supported yet", nil, zap.Any("newPeer", newPeer))
 	}
 
 	ipOK, dbOK, wgOK, err := func() (bool, bool, bool, error) {

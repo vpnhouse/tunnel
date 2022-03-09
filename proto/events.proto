@@ -18,15 +18,9 @@ enum EventType {
 
 // PeerInfo describes the peer interacting with the tunnel node
 message PeerInfo {
-  enum PeerType {
-    Unknown = 0;
-    WireGuard = 1;
-  }
-
   string userID = 1;
   string installationID = 2;
   string sessionID = 3;
-  PeerType peerType = 4;
   Timestamp created = 5;
   Timestamp updated = 6;
   Timestamp expires = 7;
