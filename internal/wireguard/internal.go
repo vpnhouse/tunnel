@@ -38,6 +38,16 @@ type Config struct {
 	privateKey types.WGPrivateKey
 }
 
+func (c *Config) OnLoad() error {
+	k, err := wgtypes.ParseKey(c.PrivateKey)
+	if err != nil {
+		return xerror.EInternalError("failed to parse wireguard's private key", err)
+	}
+
+	c.privateKey = (types.WGPrivateKey)(k)
+	return nil
+}
+
 // ClientPort  returns the port to announce to a client.
 // See Config.NATedPort for details.
 func (c Config) ClientPort() int {
