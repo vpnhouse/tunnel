@@ -166,9 +166,9 @@ func (tun *TunnelAPI) PublicPeerActivate(w http.ResponseWriter, r *http.Request,
 			return nil, err
 		}
 
-		return map[string]interface{}{
-			"peer":            fullPeer,
-			"connection_info": wireguardConnectionInfo(tun.runtime.Settings.Wireguard),
+		return adminAPI.PeerActivationResponse{
+			Peer:             fullPeer,
+			WireguardOptions: wireguardConnectionInfo(tun.runtime.Settings.Wireguard),
 		}, nil
 	})
 }

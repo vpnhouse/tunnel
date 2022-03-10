@@ -60,7 +60,6 @@ func (tun *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
 
 		// Prepare openapi peer representation
 		oPeer := adminAPI.Peer{
-			Type:          &oConnectRequest.Type,
 			InfoWireguard: oConnectRequest.InfoWireguard,
 			Expires:       tun.getExpiration(),
 			Claims:        &claimsString,
