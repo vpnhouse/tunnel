@@ -23,15 +23,12 @@ import (
 // getPeerFromRequest parses peer information from request body.
 // WARNING! This function does not do any verification of imported data! Caller must do it itself!
 func getPeerFromRequest(r *http.Request, id int64) (types.PeerInfo, error) {
-	var oPeer adminAPI.Peer
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-
-	if err := dec.Decode(&oPeer); err != nil {
+	var peer adminAPI.Peer
+	if err := json.NewDecoder(r.Body).Decode(&peer); err != nil {
 		return types.PeerInfo{}, xerror.EInvalidArgument("invalid peer info", err)
 	}
 
-	return importPeer(oPeer, id)
+	return importPeer(peer, id)
 }
 
 // AdminListPeers implements GET method on /api/admin/peers endpoint
