@@ -124,7 +124,6 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 	subnet := string(s.Wireguard.Subnet)
 	wgPublicPort := s.Wireguard.ClientPort()
 	return adminAPI.Settings{
-		AdminUserName:      &s.AdminAPI.UserName,
 		ConnectionTimeout:  &s.GetPublicAPIConfig().PeerTTL,
 		Dns:                &s.Wireguard.DNS,
 		LogLevel:           (*adminAPI.SettingsLogLevel)(&s.LogLevel),
@@ -180,7 +179,6 @@ func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
 func openApiSettingsFromRequest(r *http.Request) (adminAPI.Settings, error) {
 	var oSettings adminAPI.Settings
 	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&oSettings); err != nil {
 		return adminAPI.Settings{}, xerror.EInvalidArgument("invalid settings", err)

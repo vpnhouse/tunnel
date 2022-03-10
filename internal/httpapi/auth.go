@@ -21,11 +21,9 @@ func (tun *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
 		authOK := false
 
 		// Check if basic authentication is successful
-		username, password, haveBasic := r.BasicAuth()
-		if haveBasic {
+		if _, password, ok := r.BasicAuth(); ok {
 			zap.L().Debug("found basic authentication")
-			err := tun.adminCheckBasicAuth(username, password)
-			if err != nil {
+			if err := tun.runtime.Settings.VerifyAdminPassword(password); err != nil {
 				return nil, err
 			}
 			authOK = true
