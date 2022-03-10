@@ -294,6 +294,12 @@ func (s *Config) SetPublicIP(newIP xnet.IP) error {
 	return s.flush()
 }
 
+func (s *Config) Flush() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.flush()
+}
+
 func (s *Config) flush() error {
 	bs, _ := yaml.Marshal(s)
 

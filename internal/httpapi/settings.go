@@ -53,7 +53,7 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			return nil, err
 		}
 
-		var dc *xhttp.DomainConfig
+		var dc *xhttp.DomainConfig = nil
 		if req.Domain != nil {
 			dc = &xhttp.DomainConfig{
 				Mode:     string(req.Domain.Mode),
@@ -80,6 +80,10 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			return nil, err
 		}
 
+		if err := tun.runtime.Settings.Flush(); err != nil {
+			return nil, err
+		}
+
 		tun.runtime.Events.EmitEvent(control.EventRestart)
 		return nil, nil
 	})
@@ -102,6 +106,10 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 		}
 
 		if err := mergeStaticSettings(tun.runtime.Settings, newSettings); err != nil {
+			return nil, err
+		}
+
+		if err := tun.runtime.Settings.Flush(); err != nil {
 			return nil, err
 		}
 
