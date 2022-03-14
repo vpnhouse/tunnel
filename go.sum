@@ -129,6 +129,8 @@ github.com/comradevpn/api v0.0.0-20220310075122-beb59e259781 h1:UDF8D3+f0Yu2yJ+n
 github.com/comradevpn/api v0.0.0-20220310075122-beb59e259781/go.mod h1:hkv8OsLmxx0KLu+9a50EdshWgwp7xH26nj1KfPfrHVU=
 github.com/comradevpn/api v0.0.0-20220310120306-34a63cf7e3bb h1:SdJbaPu9149m2lYe5IQEh1o3GERSmZLpPyqHkACgJz0=
 github.com/comradevpn/api v0.0.0-20220310120306-34a63cf7e3bb/go.mod h1:hkv8OsLmxx0KLu+9a50EdshWgwp7xH26nj1KfPfrHVU=
+github.com/comradevpn/api v0.0.0-20220314120906-6f70fee55f94 h1:2nBcVjdY4Qq8lWbfgeUC9Cn5ruxja4fRL3p2Lro2Ouo=
+github.com/comradevpn/api v0.0.0-20220314120906-6f70fee55f94/go.mod h1:hkv8OsLmxx0KLu+9a50EdshWgwp7xH26nj1KfPfrHVU=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=

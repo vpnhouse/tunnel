@@ -123,10 +123,18 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 	public := s.Wireguard.GetPrivateKey().Public().Unwrap().String()
 	subnet := string(s.Wireguard.Subnet)
 	wgPublicPort := s.Wireguard.ClientPort()
+	var dc *adminAPI.DomainConfig = nil
+	if s.Domain != nil {
+		dc = &adminAPI.DomainConfig{
+			DomainName: s.Domain.Name,
+			IssueSsl:   s.Domain.IssueSSL,
+			Mode:       adminAPI.DomainConfigMode(s.Domain.Mode),
+			Schema:     adminAPI.DomainConfigSchema(s.Domain.Schema),
+		}
+	}
 	return adminAPI.Settings{
 		ConnectionTimeout:  &s.GetPublicAPIConfig().PeerTTL,
 		Dns:                &s.Wireguard.DNS,
-		LogLevel:           (*adminAPI.SettingsLogLevel)(&s.LogLevel),
 		PingInterval:       &s.GetPublicAPIConfig().PingInterval,
 		WireguardKeepalive: &s.Wireguard.Keepalive,
 		//  note: return both ports, allow to update only the `WireguardServerPort` value.
@@ -135,14 +143,11 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 		WireguardPublicKey:  &public,
 		WireguardServerIpv4: &s.Wireguard.ServerIPv4,
 		WireguardSubnet:     &subnet,
+		Domain:              dc,
 	}
 }
 
 func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
-	if s.LogLevel != nil {
-		current.LogLevel = (string)(*s.LogLevel)
-	}
-
 	if s.AdminPassword != nil {
 		if err := current.SetAdminPassword(*s.AdminPassword); err != nil {
 			return err
@@ -169,6 +174,18 @@ func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
 	}
 	if s.WireguardServerPort != nil {
 		current.Wireguard.NATedPort = *s.WireguardServerPort
+	}
+	if s.Domain != nil {
+		tmpDC := &xhttp.DomainConfig{
+			Name:     s.Domain.DomainName,
+			Mode:     string(s.Domain.Mode),
+			IssueSSL: s.Domain.IssueSsl,
+			Schema:   string(s.Domain.Schema),
+		}
+		if err := tmpDC.Validate(); err != nil {
+			return err
+		}
+		current.Domain = tmpDC
 	}
 
 	return nil
