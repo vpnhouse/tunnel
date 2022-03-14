@@ -111,15 +111,11 @@ type HttpConfig struct {
 type AdminAPIConfig struct {
 	PasswordHash  string `yaml:"password_hash"`
 	StaticRoot    string `yaml:"static_root" valid:"path"`
-	UserName      string `yaml:"user_name" valid:"printableascii"`
 	TokenLifetime int    `yaml:"token_lifetime" valid:"natural"`
 }
 
 func defaultAdminAPIConfig() *AdminAPIConfig {
 	return &AdminAPIConfig{
-		// TODO(nikonov): better to embed frontend files in the future.
-		StaticRoot:    "/opt/uranium/web/tunnel",
-		UserName:      "admin",
 		TokenLifetime: 30 * 60, // 30min,
 	}
 }
