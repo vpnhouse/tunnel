@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"time"
 
-	openapi "github.com/Codename-Uranium/api/go/server/common"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	openapi "github.com/comradevpn/api/go/server/common"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

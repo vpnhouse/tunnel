@@ -5,8 +5,8 @@
 package wireguard
 
 import (
-	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/internal/types"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl"

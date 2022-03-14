@@ -5,7 +5,7 @@
 package control
 
 import (
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 )
 

@@ -7,7 +7,7 @@ package settings
 import (
 	"testing"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )

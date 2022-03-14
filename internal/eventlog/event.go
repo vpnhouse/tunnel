@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Codename-Uranium/tunnel/proto"
+	"github.com/comradevpn/tunnel/proto"
 )
 
 const (

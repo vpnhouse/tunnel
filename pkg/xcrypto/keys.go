@@ -12,7 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 )
 
 const KeySize = 2048

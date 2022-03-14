@@ -7,8 +7,8 @@ package rapidoc
 import (
 	"net/http"
 
-	apiDoc "github.com/Codename-Uranium/api"
-	"github.com/Codename-Uranium/tunnel/pkg/version"
+	apiDoc "github.com/comradevpn/api"
+	"github.com/comradevpn/tunnel/pkg/version"
 	"github.com/go-chi/chi/v5"
 
 	"go.uber.org/zap"

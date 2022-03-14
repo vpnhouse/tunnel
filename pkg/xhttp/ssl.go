@@ -22,8 +22,8 @@ import (
 	"path/filepath"
 	"time"
 
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"

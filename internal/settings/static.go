@@ -11,17 +11,17 @@ import (
 	"path/filepath"
 	"sync"
 
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/internal/eventlog"
-	"github.com/Codename-Uranium/tunnel/internal/grpc"
-	"github.com/Codename-Uranium/tunnel/internal/wireguard"
-	"github.com/Codename-Uranium/tunnel/pkg/sentry"
-	"github.com/Codename-Uranium/tunnel/pkg/validator"
-	"github.com/Codename-Uranium/tunnel/pkg/version"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
-	"github.com/Codename-Uranium/tunnel/pkg/xrand"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/internal/eventlog"
+	"github.com/comradevpn/tunnel/internal/grpc"
+	"github.com/comradevpn/tunnel/internal/wireguard"
+	"github.com/comradevpn/tunnel/pkg/sentry"
+	"github.com/comradevpn/tunnel/pkg/validator"
+	"github.com/comradevpn/tunnel/pkg/version"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/xnet"
+	"github.com/comradevpn/tunnel/pkg/xrand"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
 	"gopkg.in/hlandau/passlib.v1"
@@ -291,6 +291,12 @@ func (s *Config) SetPublicIP(newIP xnet.IP) error {
 	defer s.mu.Unlock()
 
 	s.Wireguard.ServerIPv4 = newIP.String()
+	return s.flush()
+}
+
+func (s *Config) Flush() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.flush()
 }
 

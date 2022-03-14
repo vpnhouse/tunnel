@@ -8,11 +8,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/ippool"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xtime"
-	"github.com/Codename-Uranium/tunnel/proto"
+	"github.com/comradevpn/tunnel/internal/types"
+	"github.com/comradevpn/tunnel/pkg/ippool"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xtime"
+	"github.com/comradevpn/tunnel/proto"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -53,14 +53,8 @@ func (manager *Manager) restorePeers() {
 			}
 		}
 
-		switch *peer.Type {
-		case types.TunnelWireguard:
-			_ = manager.wireguard.SetPeer(peer)
-			allPeersGauge.Inc()
-		default:
-			zap.L().Error("unsupported tunnel type", zap.Any("type", peer.TypeName()))
-			continue
-		}
+		_ = manager.wireguard.SetPeer(peer)
+		allPeersGauge.Inc()
 	}
 }
 
@@ -157,14 +151,6 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 	oldPeer, err := manager.storage.GetPeer(newPeer.ID)
 	if err != nil {
 		return err
-	}
-
-	if *oldPeer.Type != *newPeer.Type {
-		return xerror.EInvalidArgument("changing peer type is not allowed", nil, zap.Any("newPeer", newPeer), zap.Any("oldPeer", oldPeer))
-	}
-
-	if *newPeer.Type != types.TunnelWireguard {
-		return xerror.EInvalidArgument("updating this tunnel type is not supported yet", nil, zap.Any("newPeer", newPeer))
 	}
 
 	ipOK, dbOK, wgOK, err := func() (bool, bool, bool, error) {

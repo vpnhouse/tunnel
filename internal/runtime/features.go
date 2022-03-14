@@ -5,7 +5,7 @@
 package runtime
 
 import (
-	"github.com/Codename-Uranium/tunnel/pkg/version"
+	"github.com/comradevpn/tunnel/pkg/version"
 )
 
 const (

@@ -7,8 +7,8 @@ package auth
 import (
 	"crypto/rsa"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xcrypto"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"go.uber.org/zap"

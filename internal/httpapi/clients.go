@@ -10,14 +10,14 @@ import (
 	"net/http"
 	"time"
 
-	commonAPI "github.com/Codename-Uranium/api/go/server/common"
-	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/auth"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/Codename-Uranium/tunnel/pkg/xtime"
+	commonAPI "github.com/comradevpn/api/go/server/common"
+	tunnelAPI "github.com/comradevpn/api/go/server/tunnel"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/internal/types"
+	"github.com/comradevpn/tunnel/pkg/auth"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/xtime"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -60,7 +60,6 @@ func (tun *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
 
 		// Prepare openapi peer representation
 		oPeer := adminAPI.Peer{
-			Type:          &oConnectRequest.Type,
 			InfoWireguard: oConnectRequest.InfoWireguard,
 			Expires:       tun.getExpiration(),
 			Claims:        &claimsString,
@@ -132,12 +131,10 @@ func (tun *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Request
 		expires := xtime.Time{
 			Time: time.Unix(claims.ExpiresAt, 0),
 		}
-		tunType := types.TunnelWireguard
 		installationId := uuid.NewMD5(unsafeUUIDSpace, []byte(claims.Subject))
 		sessionId, _ := uuid.NewRandom()
 		peer := types.PeerInfo{
 			Label:   nil,
-			Type:    &tunType,
 			Ipv4:    nil,
 			Created: nil,
 			Updated: nil,

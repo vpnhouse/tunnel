@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	tunnelAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
 	"github.com/dgrijalva/jwt-go"
 	"go.uber.org/zap"
 )
@@ -21,11 +21,9 @@ func (tun *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
 		authOK := false
 
 		// Check if basic authentication is successful
-		username, password, haveBasic := r.BasicAuth()
-		if haveBasic {
+		if _, password, ok := r.BasicAuth(); ok {
 			zap.L().Debug("found basic authentication")
-			err := tun.adminCheckBasicAuth(username, password)
-			if err != nil {
+			if err := tun.runtime.Settings.VerifyAdminPassword(password); err != nil {
 				return nil, err
 			}
 			authOK = true

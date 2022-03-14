@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xnet"
 	"go.uber.org/zap"
 )
 

@@ -7,7 +7,7 @@ package auth
 import (
 	"regexp"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 )
 
 var (

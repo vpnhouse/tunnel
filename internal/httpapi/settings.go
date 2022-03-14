@@ -8,14 +8,14 @@ import (
 	"encoding/json"
 	"net/http"
 
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/internal/settings"
-	"github.com/Codename-Uranium/tunnel/pkg/control"
-	"github.com/Codename-Uranium/tunnel/pkg/validator"
-	"github.com/Codename-Uranium/tunnel/pkg/version"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/internal/settings"
+	"github.com/comradevpn/tunnel/pkg/control"
+	"github.com/comradevpn/tunnel/pkg/validator"
+	"github.com/comradevpn/tunnel/pkg/version"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/xnet"
 )
 
 // AdminGetSettings implements handler for GET /api/tunnel/admin/settings request
@@ -53,7 +53,7 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			return nil, err
 		}
 
-		var dc *xhttp.DomainConfig
+		var dc *xhttp.DomainConfig = nil
 		if req.Domain != nil {
 			dc = &xhttp.DomainConfig{
 				Mode:     string(req.Domain.Mode),
@@ -77,6 +77,10 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 
 		// setting the password resets the "initial setup required" flag.
 		if err := tun.runtime.Settings.SetAdminPassword(req.AdminPassword); err != nil {
+			return nil, err
+		}
+
+		if err := tun.runtime.Settings.Flush(); err != nil {
 			return nil, err
 		}
 
@@ -105,6 +109,10 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 			return nil, err
 		}
 
+		if err := tun.runtime.Settings.Flush(); err != nil {
+			return nil, err
+		}
+
 		tun.runtime.Events.EmitEvent(control.EventRestart)
 		updated := settingsToOpenAPI(tun.runtime.Settings)
 		return updated, nil
@@ -116,7 +124,6 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 	subnet := string(s.Wireguard.Subnet)
 	wgPublicPort := s.Wireguard.ClientPort()
 	return adminAPI.Settings{
-		AdminUserName:      &s.AdminAPI.UserName,
 		ConnectionTimeout:  &s.GetPublicAPIConfig().PeerTTL,
 		Dns:                &s.Wireguard.DNS,
 		LogLevel:           (*adminAPI.SettingsLogLevel)(&s.LogLevel),
@@ -172,7 +179,6 @@ func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
 func openApiSettingsFromRequest(r *http.Request) (adminAPI.Settings, error) {
 	var oSettings adminAPI.Settings
 	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&oSettings); err != nil {
 		return adminAPI.Settings{}, xerror.EInvalidArgument("invalid settings", err)

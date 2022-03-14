@@ -5,8 +5,8 @@
 package runtime
 
 import (
-	"github.com/Codename-Uranium/tunnel/internal/settings"
-	"github.com/Codename-Uranium/tunnel/pkg/control"
+	"github.com/comradevpn/tunnel/internal/settings"
+	"github.com/comradevpn/tunnel/pkg/control"
 	"go.uber.org/zap"
 )
 

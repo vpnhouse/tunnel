@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"

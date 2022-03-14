@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package proto;
-option go_package = "github.com/Codename-Uranium/tunnel/proto";
+option go_package = "github.com/comradevpn/tunnel/proto";
 
 
 service EventLogService {
