@@ -33,7 +33,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/comradevpn/api v0.0.0-20220310120306-34a63cf7e3bb // indirect
+	github.com/comradevpn/api v0.0.0-20220314120906-6f70fee55f94 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.9.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
