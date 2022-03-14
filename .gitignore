@@ -3,3 +3,4 @@ api/update.sh
 tunnel-node
 ./dynamic.yaml
 
+internal/frontend/dist/

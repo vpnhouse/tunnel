@@ -13,6 +13,7 @@ import (
 	mgmtAPI "github.com/comradevpn/api/go/server/tunnel_mgmt"
 	"github.com/comradevpn/tunnel/internal/authorizer"
 	"github.com/comradevpn/tunnel/internal/federation_keys"
+	"github.com/comradevpn/tunnel/internal/frontend"
 	"github.com/comradevpn/tunnel/internal/manager"
 	"github.com/comradevpn/tunnel/internal/runtime"
 	"github.com/comradevpn/tunnel/internal/storage"
@@ -64,36 +65,7 @@ func NewTunnelHandlers(
 }
 
 func (tun *TunnelAPI) RegisterHandlers(r chi.Router) {
-	webroot := http.Dir(tun.runtime.Settings.AdminAPI.StaticRoot)
-	webfs := http.FileServer(webroot)
-	// handle frontend redirects
-	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
-		nfrw := &skipNotFoundWriter{ResponseWriter: w}
-		webfs.ServeHTTP(nfrw, r)
-		// note that skipNotFoundWriter acts as a normal Writer
-		//  for all status codes except the NotFound.
-		//  So handle it explicitly below.
-		if nfrw.status == http.StatusNotFound {
-			w.Header().Set("content-type", "text/html")
-			// try to load and serve index html instead of non-existing file:
-			//  we need that because very likely the client asks for some /path
-			//  that is handled by the SPAs router. So we always have to serve
-			//  the frontend app instead of the requested path.
-			fd, err := webroot.Open("index.html")
-			if err != nil {
-				zap.L().Warn("no `index.html` found on webFS, telling user that there is no frontend deployed")
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("Error: no frontend files deployed."))
-				return
-			}
-
-			defer fd.Close()
-			if _, err := io.Copy(w, fd); err != nil {
-				_ = xerror.WInternalError("xhttp", "failed to write index.html bytes to the http connection", err)
-			}
-		}
-	})
-
+	tun.addStaticHandler(r)
 	r.Delete("/_debug/reset-initial", tun.TmpResetSettingsToDefault)
 
 	// admin API
@@ -120,4 +92,47 @@ func (tun *TunnelAPI) RegisterHandlers(r chi.Router) {
 			},
 		})
 	}
+}
+
+func (tun *TunnelAPI) addStaticHandler(r chi.Router) {
+	staticRoot := frontend.StaticRoot
+	if tun.runtime.Settings.AdminAPI != nil && len(tun.runtime.Settings.AdminAPI.StaticRoot) > 0 {
+		// use the filesystem directory if we have the directory configured
+		// (useful for the local development), otherwise - serve from the
+		// embedded static root.
+		staticRoot = http.Dir(tun.runtime.Settings.AdminAPI.StaticRoot)
+	}
+
+	tun.addStaticRoute(r, staticRoot)
+}
+
+func (tun *TunnelAPI) addStaticRoute(r chi.Router, staticFiles http.FileSystem) {
+	webfs := http.FileServer(staticFiles)
+	// handle frontend redirects
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		nfrw := &skipNotFoundWriter{ResponseWriter: w}
+		webfs.ServeHTTP(nfrw, r)
+		// note that skipNotFoundWriter acts as a normal Writer
+		//  for all status codes except the NotFound one.
+		//  So handle it explicitly by our own.
+		if nfrw.status == http.StatusNotFound {
+			w.Header().Set("content-type", "text/html")
+			// try to load and serve the `index.html` instead of the non-existing file:
+			//  we have to do so because very likely the client asks for some /path
+			//  that is handled by the SPAs router. So we always have to serve
+			//  the frontend app instead of the requested path.
+			fd, err := staticFiles.Open("index.html")
+			if err != nil {
+				zap.L().Warn("no `index.html` found on webFS, telling user that there is no frontend deployed")
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("Error: no frontend files deployed."))
+				return
+			}
+
+			defer fd.Close()
+			if _, err := io.Copy(w, fd); err != nil {
+				_ = xerror.WInternalError("xhttp", "failed to write index.html bytes to the http connection", err)
+			}
+		}
+	})
 }

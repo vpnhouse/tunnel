@@ -53,19 +53,6 @@ func (w *skipNotFoundWriter) Write(p []byte) (int, error) {
 	return len(p), nil // Lie that we have successfully written it
 }
 
-// adminCheckBasicAuth only checks if basic authentication is successful
-func (tun *TunnelAPI) adminCheckBasicAuth(username string, password string) error {
-	if username != tun.runtime.Settings.AdminAPI.UserName {
-		return xerror.EAuthenticationFailed("invalid credentials", nil)
-	}
-
-	if err := tun.runtime.Settings.VerifyAdminPassword(password); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (tun *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
 	var claims jwt.StandardClaims
 	err := tun.adminJWT.Parse(tokenStr, &claims)
