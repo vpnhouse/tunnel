@@ -5,9 +5,13 @@
 package storage
 
 import (
-	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xtime"
+	"database/sql"
+	"errors"
+	"time"
+
+	"github.com/comradevpn/tunnel/internal/types"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xtime"
 	"go.uber.org/zap"
 )
 
@@ -109,24 +113,16 @@ func (storage *Storage) UpdatePeer(peer types.PeerInfo) (int64, error) {
 }
 
 func (storage *Storage) GetPeer(id int64) (types.PeerInfo, error) {
-	filter := &types.PeerInfo{ID: id}
-	peers, err := storage.SearchPeers(filter)
-	if err != nil {
-		return types.PeerInfo{}, err
+	row := storage.db.QueryRowx("select * from peers where id = $1", id)
+	if err := row.Err(); err != nil {
+		return types.PeerInfo{}, xerror.EStorageError("peer not found", err, zap.Int64("id", id))
 	}
 
-	if len(peers) == 0 {
-		zap.L().Warn("Peer not found", zap.Any("id", id))
-		return types.PeerInfo{}, nil
+	var peer types.PeerInfo
+	if err := row.StructScan(&peer); err != nil {
+		return types.PeerInfo{}, xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.Int64("id", id))
 	}
 
-	if len(peers) > 1 {
-		// TODO(nikonov): must hever happen since we have a PK/UK constraint on the ID field,
-		//  maybe worth panic()-ing right here.
-		return types.PeerInfo{}, xerror.EStorageError("too many entries in request by ID", nil, zap.Int64("id", id))
-	}
-
-	peer := peers[0]
 	if err := peer.Validate(); err != nil {
 		return types.PeerInfo{}, err
 	}
@@ -144,4 +140,35 @@ func (storage *Storage) DeletePeer(id int64) error {
 	}
 
 	return nil
+}
+
+func (storage *Storage) ActivateSharedPeer(sharingKey string, pubkey string) (int64, error) {
+	q := `select * from peers where sharing_key = $1 and sharing_key_expiration > $2`
+	now := time.Now().Unix()
+
+	txx, err := storage.db.Beginx()
+	if err != nil {
+		return -1, xerror.EInternalError("failed to start the transaction", err)
+	}
+
+	row := txx.QueryRowx(q, sharingKey, now)
+	var peer types.PeerInfo
+	if err := row.StructScan(&peer); err != nil {
+		_ = txx.Rollback()
+
+		if errors.Is(err, sql.ErrNoRows) {
+			return -1, xerror.EEntryNotFound("no peer with a given sharing key where found", nil)
+		}
+		return -1, xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.String("key", sharingKey))
+	}
+
+	q = `update peers set sharing_key = '', sharing_key_expiration = 0, wireguard_key = $1 where id = $2`
+	if _, err := txx.Exec(q, pubkey, peer.ID); err != nil {
+		_ = txx.Rollback()
+		return -1, xerror.EStorageError("failed to update peer", err)
+	}
+
+	_ = txx.Commit()
+	zap.L().Info("shared peer activated", zap.Int64("id", peer.ID), zap.String("sharing_key", sharingKey))
+	return peer.ID, nil
 }

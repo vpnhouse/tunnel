@@ -7,7 +7,7 @@ package eventlog
 import (
 	"context"
 
-	"github.com/Codename-Uranium/tunnel/pkg/control"
+	"github.com/comradevpn/tunnel/pkg/control"
 )
 
 type EventPusher interface {

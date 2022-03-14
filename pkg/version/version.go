@@ -14,9 +14,9 @@ var (
 	// tag, commit, and feature values must be set via -ldflags, for example:
 	// go build \
 	//    -ldfalgs \
-	//        -X github.com/Codename-Uranium/common/version.tag=v1.2.3
-	//        -X github.com/Codename-Uranium/common/version.commit=abc123de567f
-	//        -X github.com/Codename-Uranium/common/version.feature=enterprise
+	//        -X github.com/comradevpn/common/version.tag=v1.2.3
+	//        -X github.com/comradevpn/common/version.commit=abc123de567f
+	//        -X github.com/comradevpn/common/version.feature=enterprise
 	//    ...
 	tag     = ""
 	commit  = ""

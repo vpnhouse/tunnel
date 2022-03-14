@@ -9,11 +9,11 @@ import (
 	"io"
 	"net/http"
 
-	mgmtAPI "github.com/Codename-Uranium/api/go/server/tunnel_mgmt"
-	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	mgmtAPI "github.com/comradevpn/api/go/server/tunnel_mgmt"
+	"github.com/comradevpn/tunnel/internal/types"
+	"github.com/comradevpn/tunnel/pkg/xcrypto"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
 	"github.com/google/uuid"
 )
 

@@ -7,25 +7,28 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	tunnelAPI "github.com/comradevpn/api/go/server/tunnel"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/internal/storage"
+	"github.com/comradevpn/tunnel/internal/types"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/xtime"
+	"github.com/google/uuid"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 // getPeerFromRequest parses peer information from request body.
 // WARNING! This function does not do any verification of imported data! Caller must do it itself!
 func getPeerFromRequest(r *http.Request, id int64) (types.PeerInfo, error) {
-	var oPeer adminAPI.Peer
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-
-	if err := dec.Decode(&oPeer); err != nil {
+	var peer adminAPI.Peer
+	if err := json.NewDecoder(r.Body).Decode(&peer); err != nil {
 		return types.PeerInfo{}, xerror.EInvalidArgument("invalid peer info", err)
 	}
 
-	return importPeer(oPeer, id)
+	return importPeer(peer, id)
 }
 
 // AdminListPeers implements GET method on /api/admin/peers endpoint
@@ -99,23 +102,71 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 
-		// query back with all defaults
-		insertedPeer, err := tun.manager.GetPeer(peer.ID)
+		return getPeerForSerialization(tun.storage, peer.ID)
+	})
+}
+
+// AdminCreateSharedPeer implements POST method on /api/admin/peers/shared endpoint
+func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Request) {
+	xhttp.JSONResponse(w, func() (interface{}, error) {
+		peer, err := getPeerFromRequest(r, 0)
 		if err != nil {
 			return nil, err
 		}
 
-		oPeer, err := exportPeer(insertedPeer)
+		ipa, err := tun.ippool.Alloc()
+		if err != nil {
+			return nil, err
+		}
+		peer.Ipv4 = &ipa
+
+		sk := uuid.New().String()
+		xt := xtime.Time{Time: time.Now().Add(24 * time.Hour)}
+
+		peer.SharingKey = &sk
+		peer.SharingKeyExpiration = &xt
+		if _, err := tun.storage.CreatePeer(peer); err != nil {
+			return nil, err
+		}
+
+		url := tun.runtime.Settings.PublicURL()
+		link := adminAPI.PeerLink{
+			Link: url + "/public/shared/" + sk,
+		}
+		return link, nil
+	})
+}
+
+func (tun *TunnelAPI) PublicPeerActivate(w http.ResponseWriter, r *http.Request, slug string) {
+	xhttp.JSONResponse(w, func() (interface{}, error) {
+		var wgPeer tunnelAPI.PeerWireguard
+		if err := json.NewDecoder(r.Body).Decode(&wgPeer); err != nil {
+			return nil, xerror.EInvalidArgument("failed to decode given JSON body", err)
+		}
+
+		if wgPeer.PublicKey == nil || len(*wgPeer.PublicKey) == 0 {
+			return nil, xerror.EInvalidField("wireguard_key: required field", "wireguard_key", nil)
+		}
+
+		pubkey := *wgPeer.PublicKey
+		if _, err := wgtypes.ParseKey(pubkey); err != nil {
+			return nil, xerror.EInvalidField("wireguard_key: invalid key given", "wireguard_key", nil)
+		}
+
+		peerID, err := tun.storage.ActivateSharedPeer(slug, pubkey)
 		if err != nil {
 			return nil, err
 		}
 
-		record := adminAPI.PeerRecord{
-			Id:   peer.ID,
-			Peer: oPeer,
+		fullPeer, err := getPeerForSerialization(tun.storage, peerID)
+		if err != nil {
+			return nil, err
 		}
 
-		return record, nil
+		return adminAPI.PeerActivationResponse{
+			Peer:             fullPeer,
+			WireguardOptions: wireguardConnectionInfo(tun.runtime.Settings.Wireguard),
+		}, nil
 	})
 }
 
@@ -153,4 +204,23 @@ func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id
 
 		return info, nil
 	})
+}
+
+func getPeerForSerialization(db *storage.Storage, id int64) (adminAPI.PeerRecord, error) {
+	insertedPeer, err := db.GetPeer(id)
+	if err != nil {
+		return adminAPI.PeerRecord{}, err
+	}
+
+	oPeer, err := exportPeer(insertedPeer)
+	if err != nil {
+		return adminAPI.PeerRecord{}, err
+	}
+
+	record := adminAPI.PeerRecord{
+		Id:   id,
+		Peer: oPeer,
+	}
+
+	return record, nil
 }

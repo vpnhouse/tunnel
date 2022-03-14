@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
 )

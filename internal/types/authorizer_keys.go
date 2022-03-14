@@ -7,7 +7,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xcrypto"
+	"github.com/comradevpn/tunnel/pkg/xcrypto"
 	"github.com/google/uuid"
 )
 

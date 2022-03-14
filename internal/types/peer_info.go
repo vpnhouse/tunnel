@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
-	"github.com/Codename-Uranium/tunnel/pkg/xtime"
-	"github.com/Codename-Uranium/tunnel/proto"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xnet"
+	"github.com/comradevpn/tunnel/pkg/xtime"
+	"github.com/comradevpn/tunnel/proto"
 	"github.com/google/uuid"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 const (
@@ -37,12 +37,14 @@ type PeerInfo struct {
 
 	ID      int64       `db:"id"`
 	Label   *string     `db:"label"`
-	Type    *int        `db:"type"`
 	Ipv4    *xnet.IP    `db:"ipv4" json:"-"`
 	Created *xtime.Time `db:"created"`
 	Updated *xtime.Time `db:"updated"`
 	Expires *xtime.Time `db:"expires"`
 	Claims  *string     `db:"claims"`
+
+	SharingKey           *string     `db:"sharing_key"`
+	SharingKeyExpiration *xtime.Time `db:"sharing_key_expiration"`
 }
 
 func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
@@ -60,9 +62,6 @@ func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
 	if peer.SessionId != nil {
 		p.SessionID = peer.SessionId.String()
 	}
-	if peer.Type != nil {
-		p.PeerType = proto.PeerInfo_PeerType(*peer.Type)
-	}
 	if peer.Created != nil {
 		p.Created = proto.TimestampFromTime(peer.Created.Time)
 	}
@@ -73,19 +72,6 @@ func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
 		p.Expires = proto.TimestampFromTime(peer.Expires.Time)
 	}
 	return p
-}
-
-func (peer *PeerInfo) TypeName() tunnelAPI.PeerType {
-	if peer == nil || peer.Type == nil {
-		return ""
-	}
-
-	switch *peer.Type {
-	case TunnelWireguard:
-		return tunnelAPI.PeerTypeWireguard
-	default:
-		return ""
-	}
 }
 
 // in provides case-insensitive match of field name across a list of fields
@@ -136,20 +122,14 @@ func (peer *PeerInfo) Validate(omit ...string) error {
 		}
 	}
 
-	// Check mandatory fields
-	if peer.Type == nil {
-		return xerror.EInvalidArgument("empty peer type", nil)
+	if peer.WireguardPublicKey == nil && (peer.SharingKey == nil || len(*peer.SharingKey) == 0) {
+		return xerror.EInvalidField("peer must have public key set", "wireguard_key", nil)
 	}
 
-	// Check tunnel information match
-	if peer.Type != nil {
-		switch *peer.Type {
-		case TunnelWireguard:
-			if peer.WireguardPublicKey == nil {
-				return xerror.EInvalidArgument("wireguard tunnel must have public key set", nil)
-			}
-		default:
-			return xerror.EInvalidArgument("unknown tunnel type", nil)
+	if peer.WireguardPublicKey != nil {
+		k := *peer.WireguardPublicKey
+		if _, err := wgtypes.ParseKey(k); err != nil {
+			return xerror.EInvalidField("invalid wireguard key given to a peer", "wireguard_key", err)
 		}
 	}
 

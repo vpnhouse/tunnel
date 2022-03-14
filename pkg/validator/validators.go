@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
 	"github.com/asaskevich/govalidator"
+	"github.com/comradevpn/tunnel/pkg/xnet"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"gopkg.in/hlandau/passlib.v1"
 	"gopkg.in/hlandau/passlib.v1/abstract"

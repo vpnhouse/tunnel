@@ -7,9 +7,10 @@ package httpapi
 import (
 	"net/http"
 
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/internal/wireguard"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
 )
 
 // AdminGetStatus returns current server status
@@ -30,15 +31,19 @@ func (tun *TunnelAPI) AdminConnectionInfoWireguard(w http.ResponseWriter, r *htt
 				"missing server public ipv4 option, please specify it in settings",
 				"wireguard_server_ipv4")
 		}
-		opts := adminAPI.ServerWireguardOptions{
-			AllowedIps:      []string{"0.0.0.0/1", "128.0.0.0/1"},
-			Subnet:          string(tun.runtime.Settings.Wireguard.Subnet),
-			Dns:             tun.runtime.Settings.Wireguard.DNS,
-			Keepalive:       tun.runtime.Settings.Wireguard.Keepalive,
-			ServerIpv4:      tun.runtime.Settings.Wireguard.ServerIPv4,
-			ServerPort:      tun.runtime.Settings.Wireguard.ClientPort(),
-			ServerPublicKey: tun.runtime.Settings.Wireguard.GetPrivateKey().Public().Unwrap().String(),
-		}
-		return opts, nil
+		info := wireguardConnectionInfo(tun.runtime.Settings.Wireguard)
+		return info, nil
 	})
+}
+
+func wireguardConnectionInfo(c wireguard.Config) adminAPI.WireguardOptions {
+	return adminAPI.WireguardOptions{
+		AllowedIps:      []string{"0.0.0.0/1", "128.0.0.0/1"},
+		Subnet:          string(c.Subnet),
+		Dns:             c.DNS,
+		Keepalive:       c.Keepalive,
+		ServerIpv4:      c.ServerIPv4,
+		ServerPort:      c.ClientPort(),
+		ServerPublicKey: c.GetPrivateKey().Public().Unwrap().String(),
+	}
 }

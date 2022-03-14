@@ -9,16 +9,16 @@ import (
 	"net/http"
 	"strings"
 
-	commonAPI "github.com/Codename-Uranium/api/go/server/common"
-	tunnelAPI "github.com/Codename-Uranium/api/go/server/tunnel"
-	adminAPI "github.com/Codename-Uranium/api/go/server/tunnel_admin"
-	"github.com/Codename-Uranium/tunnel/internal/types"
-	"github.com/Codename-Uranium/tunnel/pkg/auth"
-	"github.com/Codename-Uranium/tunnel/pkg/version"
-	"github.com/Codename-Uranium/tunnel/pkg/xerror"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
-	"github.com/Codename-Uranium/tunnel/pkg/xnet"
-	"github.com/Codename-Uranium/tunnel/pkg/xtime"
+	commonAPI "github.com/comradevpn/api/go/server/common"
+	tunnelAPI "github.com/comradevpn/api/go/server/tunnel"
+	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
+	"github.com/comradevpn/tunnel/internal/types"
+	"github.com/comradevpn/tunnel/pkg/auth"
+	"github.com/comradevpn/tunnel/pkg/version"
+	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/xnet"
+	"github.com/comradevpn/tunnel/pkg/xtime"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -180,19 +180,7 @@ func importIdentifiers(oIdentifiers *commonAPI.ConnectionIdentifiers) (*types.Pe
 // ImportPeer generates internal representation of a peer from openapi representation
 // Note: function does not expect to have all fields to be set, so caller must handle it by itself
 func importPeer(oPeer adminAPI.Peer, id int64) (types.PeerInfo, error) {
-	var tunnelType int
 	var wg types.WireguardInfo
-
-	// Handle tunnel type
-	if oPeer.Type != nil {
-		// Wireguard tunnel
-		if *oPeer.Type == "wireguard" {
-			tunnelType = types.TunnelWireguard
-		} else {
-			// Unknown tunnel type
-			return types.PeerInfo{}, xerror.EInvalidArgument("invalid tunnel type", nil, zap.Any("oPeer", oPeer))
-		}
-	}
 
 	// Fill in tunnel information, if any
 	if oPeer.InfoWireguard != nil {
@@ -218,7 +206,6 @@ func importPeer(oPeer adminAPI.Peer, id int64) (types.PeerInfo, error) {
 	peer := types.PeerInfo{
 		ID:              id,
 		Label:           oPeer.Label,
-		Type:            &tunnelType,
 		Ipv4:            &ip,
 		Expires:         xtime.FromTimePtr(oPeer.Expires),
 		Claims:          oPeer.Claims,
@@ -275,19 +262,9 @@ func exportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
 		return adminAPI.Peer{}, err
 	}
 
-	// Handle tunnel type
-	tunnelType := peer.TypeName()
-	if len(tunnelType) == 0 {
-		return adminAPI.Peer{}, xerror.EInvalidArgument("unknown tunnel type", nil)
-	}
-
 	// Handle wireguard information
-	var wg *tunnelAPI.PeerWireguard
-	switch *peer.Type {
-	case types.TunnelWireguard:
-		wg = &tunnelAPI.PeerWireguard{
-			PublicKey: peer.WireguardPublicKey,
-		}
+	wg := &tunnelAPI.PeerWireguard{
+		PublicKey: peer.WireguardPublicKey,
 	}
 
 	// Handle ipv4 address
@@ -295,7 +272,6 @@ func exportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
 
 	oPeer := adminAPI.Peer{
 		Label:         peer.Label,
-		Type:          &tunnelType,
 		Ipv4:          &ip,
 		InfoWireguard: wg,
 		Created:       peer.Created.TimePtr(),

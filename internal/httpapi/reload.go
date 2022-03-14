@@ -7,8 +7,8 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/Codename-Uranium/tunnel/pkg/control"
-	"github.com/Codename-Uranium/tunnel/pkg/xhttp"
+	"github.com/comradevpn/tunnel/pkg/control"
+	"github.com/comradevpn/tunnel/pkg/xhttp"
 )
 
 // AdminReloadService reloads server with new configuration
