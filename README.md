@@ -46,7 +46,7 @@ $ docker run -d \
     -p 443:443 \           # publish web admin port (SSL)
     -p 3000:3000/udp \     # publish Wireguard port
     -v $(pwd)/uranium-data/:/opt/uranium/tunnel/ \  # mount a host directory with configs
-    codenameuranium/tunnel:latest-personal
+    codenameuranium/tunnel:v0.2.1
 ```
 
 Or, you may use the following [docker-compose](https://gist.github.com/835d4ac1b3c2a203cd53f5d9fb5e7ab8) file.
