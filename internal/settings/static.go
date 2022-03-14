@@ -275,7 +275,7 @@ func (s *Config) VerifyAdminPassword(given string) error {
 	defer s.mu.RUnlock()
 
 	if err := passlib.VerifyNoUpgrade(given, s.AdminAPI.PasswordHash); err != nil {
-		return xerror.EInternalError("admin credentials verification failed", err)
+		return xerror.EAuthenticationFailed("invalid admin password given", nil)
 	}
 	return nil
 }
