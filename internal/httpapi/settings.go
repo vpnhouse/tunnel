@@ -186,6 +186,9 @@ func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
 			return err
 		}
 		current.Domain = tmpDC
+	} else {
+		// consider "domain: null" as "disabled for the whole option set"
+		current.Domain = nil
 	}
 
 	return nil
