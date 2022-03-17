@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -14,9 +14,9 @@ var (
 	// tag, commit, and feature values must be set via -ldflags, for example:
 	// go build \
 	//    -ldfalgs \
-	//        -X github.com/comradevpn/common/version.tag=v1.2.3
-	//        -X github.com/comradevpn/common/version.commit=abc123de567f
-	//        -X github.com/comradevpn/common/version.feature=enterprise
+	//        -X github.com/vpnhouse/common/version.tag=v1.2.3
+	//        -X github.com/vpnhouse/common/version.commit=abc123de567f
+	//        -X github.com/vpnhouse/common/version.feature=enterprise
 	//    ...
 	tag     = ""
 	commit  = ""

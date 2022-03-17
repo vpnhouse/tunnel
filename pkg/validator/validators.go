@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/comradevpn/tunnel/pkg/xnet"
+	"github.com/vpnhouse/tunnel/pkg/xnet"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"gopkg.in/hlandau/passlib.v1"
 	"gopkg.in/hlandau/passlib.v1/abstract"

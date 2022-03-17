@@ -28,7 +28,7 @@ go build -o tunnel-node cmd/tunnel/main.go
 Then run it with the configuration directory specified:
 
 ```shell
-./tunnel-node -cfg uranium-data
+./tunnel-node -cfg vpnhouse-data
 ```
 
 Note: you may have to use `sudo` since the tunnel needs an access to the
@@ -42,6 +42,6 @@ To build the docker image, define the `DOCKER_IMAGE` env variable
 with your Docker registry address, username, image name and version:
 
 ```shell
-DOCKER_IMAGE=username/uranium-tunnel:version make docker/build/personal
+DOCKER_IMAGE=username/tunnel:version make docker/build/personal
 ```
 

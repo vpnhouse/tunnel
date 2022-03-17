@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -7,9 +7,9 @@ package settings
 import (
 	"testing"
 
-	"github.com/comradevpn/tunnel/pkg/xhttp"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
+	"github.com/vpnhouse/tunnel/pkg/xhttp"
 )
 
 func TestEmptyFile(t *testing.T) {

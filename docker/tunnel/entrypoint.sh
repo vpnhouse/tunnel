@@ -1,7 +1,7 @@
 #!/bin/sh
 
-mkdir -p /opt/uranium/tunnel/trusted_rsa
-mkdir -p /opt/uranium/tunnel/config
+mkdir -p /opt/vpnhouse/tunnel/trusted_rsa
+mkdir -p /opt/vpnhouse/tunnel/config
 
 iptables -A POSTROUTING -t nat -j MASQUERADE
 
