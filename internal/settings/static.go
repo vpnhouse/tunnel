@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -11,25 +11,25 @@ import (
 	"path/filepath"
 	"sync"
 
-	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
-	"github.com/comradevpn/tunnel/internal/eventlog"
-	"github.com/comradevpn/tunnel/internal/grpc"
-	"github.com/comradevpn/tunnel/internal/wireguard"
-	"github.com/comradevpn/tunnel/pkg/sentry"
-	"github.com/comradevpn/tunnel/pkg/validator"
-	"github.com/comradevpn/tunnel/pkg/version"
-	"github.com/comradevpn/tunnel/pkg/xerror"
-	"github.com/comradevpn/tunnel/pkg/xhttp"
-	"github.com/comradevpn/tunnel/pkg/xnet"
-	"github.com/comradevpn/tunnel/pkg/xrand"
 	"github.com/spf13/afero"
+	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
+	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/grpc"
+	"github.com/vpnhouse/tunnel/internal/wireguard"
+	"github.com/vpnhouse/tunnel/pkg/sentry"
+	"github.com/vpnhouse/tunnel/pkg/validator"
+	"github.com/vpnhouse/tunnel/pkg/version"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/tunnel/pkg/xhttp"
+	"github.com/vpnhouse/tunnel/pkg/xnet"
+	"github.com/vpnhouse/tunnel/pkg/xrand"
 	"go.uber.org/zap"
 	"gopkg.in/hlandau/passlib.v1"
 	"gopkg.in/yaml.v3"
 )
 
 const (
-	defaultConfigDir = "/opt/uranium/tunnel/"
+	defaultConfigDir = "/opt/vpnhouse/tunnel/"
 	configFileName   = "config.yaml"
 )
 

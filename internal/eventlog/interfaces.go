@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -7,7 +7,7 @@ package eventlog
 import (
 	"context"
 
-	"github.com/comradevpn/tunnel/pkg/control"
+	"github.com/vpnhouse/tunnel/pkg/control"
 )
 
 type EventPusher interface {

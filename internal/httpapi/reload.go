@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -7,8 +7,8 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/comradevpn/tunnel/pkg/control"
-	"github.com/comradevpn/tunnel/pkg/xhttp"
+	"github.com/vpnhouse/tunnel/pkg/control"
+	"github.com/vpnhouse/tunnel/pkg/xhttp"
 )
 
 // AdminReloadService reloads server with new configuration

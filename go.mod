@@ -1,4 +1,4 @@
-module github.com/comradevpn/tunnel
+module github.com/vpnhouse/tunnel
 
 go 1.17
 
@@ -20,6 +20,7 @@ require (
 	github.com/spf13/afero v1.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/vishvananda/netlink v1.1.0
+	github.com/vpnhouse/api v0.0.0-20220317044220-602761dace74
 	go.uber.org/zap v1.20.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
 	google.golang.org/grpc v1.43.0
@@ -33,7 +34,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/comradevpn/api v0.0.0-20220314120906-6f70fee55f94 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.9.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect

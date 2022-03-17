@@ -1,5 +1,5 @@
-Uranium VPN
-===========
+VPN House 
+=========
 
 A basic, self-contained management service for WireGuard with a self-serve web UI.
 
@@ -37,16 +37,16 @@ A basic, self-contained management service for WireGuard with a self-serve web U
 Start the server in the Docker container:
 
 ```shell
-$ mkdir uranium-data # create a directory for the runtime data
+$ mkdir vpnhouse-data # create a directory for the runtime data
 $ docker run -d \
-    --name=uranium-tunnel \
+    --name=vpnhouse-tunnel \
     --restart=always \
     --cap-add NET_ADMIN \  # add extra privilege to manage Wireguard interface
     -p 80:80 \             # publish web admin port
     -p 443:443 \           # publish web admin port (SSL)
     -p 3000:3000/udp \     # publish Wireguard port
-    -v $(pwd)/uranium-data/:/opt/uranium/tunnel/ \  # mount a host directory with configs
-    codenameuranium/tunnel:v0.2.1
+    -v $(pwd)/vpnhouse-data/:/opt/vpnhouse/tunnel/ \  # mount a host directory with configs
+    vpnhouse/tunnel:v0.2.1
 ```
 
 Or, you may use the following [docker-compose](https://gist.github.com/835d4ac1b3c2a203cd53f5d9fb5e7ab8) file.
@@ -79,20 +79,20 @@ but the one suggested by the creation form is perfectly valid and can be used.
 
 1. [Download &rarr;](https://www.wireguard.com/install/) the official WireGuard client for your OS/device.
 
-2. Use the QR-code to set-up your mobile client, [or follow our step-by-step guide](https://github.com/comradevpn/tunnel/blob/main/docs/mobile.md).
+2. Use the QR-code to set-up your mobile client, [or follow our step-by-step guide](https://github.com/vpnhouse/tunnel/blob/main/docs/mobile.md).
 
 
 <img src="https://media.nikonov.tech/config-qr.png" style="width: 60%; max-width: 240px" alt="QR" />
 
 
-3. The "Show config" button shows the configuration in the text format. Use it for the desktop client, [or follow our step-by-step guide](https://github.com/comradevpn/tunnel/blob/main/docs/desktop.md).
+3. The "Show config" button shows the configuration in the text format. Use it for the desktop client, [or follow our step-by-step guide](https://github.com/vpnhouse/tunnel/blob/main/docs/desktop.md).
 
 <img src="https://media.nikonov.tech/config-text.png" style="width: 60%; max-width: 240px" alt="QR" />
 
 
 ### Deep dive
 
-* [Configuration file reference](https://github.com/comradevpn/tunnel/blob/main/docs/config.md)
+* [Configuration file reference](https://github.com/vpnhouse/tunnel/blob/main/docs/config.md)
 
-* [Building it locally](https://github.com/comradevpn/tunnel/blob/main/docs/building.md)
+* [Building it locally](https://github.com/vpnhouse/tunnel/blob/main/docs/building.md)
 

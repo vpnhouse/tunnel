@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -8,8 +8,8 @@ import (
 	"crypto/rsa"
 	"fmt"
 
-	"github.com/comradevpn/tunnel/pkg/xap"
-	"github.com/comradevpn/tunnel/pkg/xerror"
+	"github.com/vpnhouse/tunnel/pkg/xap"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"go.uber.org/zap"

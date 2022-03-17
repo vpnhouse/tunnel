@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -8,18 +8,18 @@ import (
 	"io"
 	"net/http"
 
-	tunnelAPI "github.com/comradevpn/api/go/server/tunnel"
-	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
-	mgmtAPI "github.com/comradevpn/api/go/server/tunnel_mgmt"
-	"github.com/comradevpn/tunnel/internal/authorizer"
-	"github.com/comradevpn/tunnel/internal/federation_keys"
-	"github.com/comradevpn/tunnel/internal/frontend"
-	"github.com/comradevpn/tunnel/internal/manager"
-	"github.com/comradevpn/tunnel/internal/runtime"
-	"github.com/comradevpn/tunnel/internal/storage"
-	"github.com/comradevpn/tunnel/pkg/auth"
-	"github.com/comradevpn/tunnel/pkg/xerror"
-	"github.com/comradevpn/tunnel/pkg/xnet"
+	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
+	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
+	mgmtAPI "github.com/vpnhouse/api/go/server/tunnel_mgmt"
+	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/internal/federation_keys"
+	"github.com/vpnhouse/tunnel/internal/frontend"
+	"github.com/vpnhouse/tunnel/internal/manager"
+	"github.com/vpnhouse/tunnel/internal/runtime"
+	"github.com/vpnhouse/tunnel/internal/storage"
+	"github.com/vpnhouse/tunnel/pkg/auth"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/tunnel/pkg/xnet"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
