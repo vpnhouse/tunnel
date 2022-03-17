@@ -130,7 +130,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// assume that config validation does not pass
 	// the SSL enabled without the domain name configuration
 	if runtime.Settings.SSL != nil {
-		redirectOnly := xhttp.NewRedirectToSSL()
+		redirectOnly := xhttp.NewRedirectToSSL(runtime.Settings.Domain.Name)
 		// we must start the redirect-only server before passing its Router
 		// to the certificate issuer.
 		if err := redirectOnly.Run(runtime.Settings.HTTP.ListenAddr); err != nil {

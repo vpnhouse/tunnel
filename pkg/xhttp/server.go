@@ -173,12 +173,16 @@ func NewDefaultSSL(cfg *tls.Config) *Server {
 	)
 }
 
-func NewRedirectToSSL() *Server {
+func NewRedirectToSSL(toHost string) *Server {
 	r := chi.NewRouter()
 	r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		url2 := *r.URL
 		url2.Scheme = "https"
-		url2.Host = r.Host
+		if len(toHost) > 0 {
+			url2.Host = toHost
+		} else {
+			url2.Host = r.Host
+		}
 		w.Header().Set("Location", url2.String())
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	})
