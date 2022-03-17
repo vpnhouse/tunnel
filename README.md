@@ -57,7 +57,7 @@ Then go to `http://host-ip/` for the initial setup.
 
 Provide an initial configuration using the simple configuration form:
 
-<img src="https://media.nikonov.tech/initial-with-ssl.png" style="width: 60%; max-width: 240px" alt="Peers" />
+<img src="https://media.nikonov.tech/initial-with-ssl2.png" style="width: 60%; max-width: 240px" alt="Peers" />
 
 You may also specify the domain name if you have one. We'll automatically issue
 the valid SSL certificate via LetsEncrypt.

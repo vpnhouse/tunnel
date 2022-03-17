@@ -65,6 +65,7 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			if err := dc.Validate(); err != nil {
 				return nil, err
 			}
+			// todo: it would be nice to issue the certificate ( run the first try ) right here
 		}
 
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
