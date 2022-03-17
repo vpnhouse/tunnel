@@ -12,14 +12,14 @@ import (
 	"net/http"
 	"time"
 
-	openapi "github.com/vpnhouse/api/go/server/common"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	middlewarestd "github.com/slok/go-http-metrics/middleware/std"
+	openapi "github.com/vpnhouse/api/go/server/common"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 )
 

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	commonAPI "github.com/vpnhouse/api/go/server/common"
 	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
@@ -18,7 +19,6 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )

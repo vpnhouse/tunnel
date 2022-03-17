@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 )
 

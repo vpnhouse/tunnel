@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	mgmtAPI "github.com/vpnhouse/api/go/server/tunnel_mgmt"
@@ -20,7 +21,6 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
-	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 

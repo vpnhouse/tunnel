@@ -11,9 +11,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/jmoiron/sqlx"
 	migrate "github.com/rubenv/sql-migrate"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 )
 

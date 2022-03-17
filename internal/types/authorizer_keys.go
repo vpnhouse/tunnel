@@ -7,8 +7,8 @@ package types
 import (
 	"fmt"
 
-	"github.com/vpnhouse/tunnel/pkg/xcrypto"
 	"github.com/google/uuid"
+	"github.com/vpnhouse/tunnel/pkg/xcrypto"
 )
 
 type AuthorizerKey struct {

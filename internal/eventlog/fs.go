@@ -8,8 +8,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/spf13/afero"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 )
 

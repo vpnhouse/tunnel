@@ -5,8 +5,8 @@
 package wireguard
 
 import (
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vishvananda/netlink"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )

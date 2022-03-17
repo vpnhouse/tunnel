@@ -10,6 +10,8 @@ import (
 	"math/rand"
 	"time"
 
+	sentryio "github.com/getsentry/sentry-go"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/federation_keys"
@@ -28,8 +30,6 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/sentry"
 	"github.com/vpnhouse/tunnel/pkg/version"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
-	sentryio "github.com/getsentry/sentry-go"
-	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
 )
 

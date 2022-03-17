@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/vpnhouse/tunnel/pkg/xnet"
 	"github.com/stretchr/testify/assert"
+	"github.com/vpnhouse/tunnel/pkg/xnet"
 )
 
 const parallelConcurrency = 64

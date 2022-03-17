@@ -7,12 +7,12 @@ package manager
 import (
 	"sync"
 
+	"github.com/vishvananda/netlink"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"github.com/vpnhouse/tunnel/pkg/ippool"
-	"github.com/vishvananda/netlink"
 	"go.uber.org/zap"
 )
 

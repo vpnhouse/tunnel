@@ -9,10 +9,10 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 

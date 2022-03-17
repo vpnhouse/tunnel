@@ -7,10 +7,10 @@ package auth
 import (
 	"crypto/rsa"
 
-	"github.com/vpnhouse/tunnel/pkg/xcrypto"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
+	"github.com/vpnhouse/tunnel/pkg/xcrypto"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 )
 

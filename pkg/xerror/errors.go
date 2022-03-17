@@ -11,10 +11,10 @@ import (
 	"os"
 	"runtime"
 
-	openapi "github.com/vpnhouse/api/go/server/common"
-	"github.com/vpnhouse/tunnel/pkg/version"
 	"github.com/getsentry/sentry-go"
 	"github.com/prometheus/client_golang/prometheus"
+	openapi "github.com/vpnhouse/api/go/server/common"
+	"github.com/vpnhouse/tunnel/pkg/version"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
