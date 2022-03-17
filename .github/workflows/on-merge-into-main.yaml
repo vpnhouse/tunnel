@@ -28,4 +28,4 @@ jobs:
           build-args: TARGET=build/personal
           file: docker/tunnel/Dockerfile
           push: true
-          tags: codenameuranium/tunnel:latest-personal
+          tags: vpnhouse/tunnel:latest

@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -9,12 +9,12 @@ import (
 	"io"
 	"net/http"
 
-	mgmtAPI "github.com/comradevpn/api/go/server/tunnel_mgmt"
-	"github.com/comradevpn/tunnel/internal/types"
-	"github.com/comradevpn/tunnel/pkg/xcrypto"
-	"github.com/comradevpn/tunnel/pkg/xerror"
-	"github.com/comradevpn/tunnel/pkg/xhttp"
 	"github.com/google/uuid"
+	mgmtAPI "github.com/vpnhouse/api/go/server/tunnel_mgmt"
+	"github.com/vpnhouse/tunnel/internal/types"
+	"github.com/vpnhouse/tunnel/pkg/xcrypto"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/tunnel/pkg/xhttp"
 )
 
 // AdminListTrustedKeys GET /api/tunnel/admin/trusted

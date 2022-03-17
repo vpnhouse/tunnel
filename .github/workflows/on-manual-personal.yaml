@@ -27,4 +27,4 @@ jobs:
           build-args: TARGET=build/personal
           file: docker/tunnel/Dockerfile
           push: true
-          tags: codenameuranium/tunnel:${{ env.GITHUB_REF_SHORT }}-personal
+          tags: vpnhouse/tunnel:${{ env.GITHUB_REF_SHORT }}

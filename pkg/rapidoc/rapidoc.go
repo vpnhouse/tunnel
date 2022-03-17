@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -7,9 +7,9 @@ package rapidoc
 import (
 	"net/http"
 
-	apiDoc "github.com/comradevpn/api"
-	"github.com/comradevpn/tunnel/pkg/version"
 	"github.com/go-chi/chi/v5"
+	apiDoc "github.com/vpnhouse/api"
+	"github.com/vpnhouse/tunnel/pkg/version"
 
 	"go.uber.org/zap"
 )

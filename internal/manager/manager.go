@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -7,12 +7,12 @@ package manager
 import (
 	"sync"
 
-	"github.com/comradevpn/tunnel/internal/eventlog"
-	"github.com/comradevpn/tunnel/internal/runtime"
-	"github.com/comradevpn/tunnel/internal/storage"
-	"github.com/comradevpn/tunnel/internal/wireguard"
-	"github.com/comradevpn/tunnel/pkg/ippool"
 	"github.com/vishvananda/netlink"
+	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/runtime"
+	"github.com/vpnhouse/tunnel/internal/storage"
+	"github.com/vpnhouse/tunnel/internal/wireguard"
+	"github.com/vpnhouse/tunnel/pkg/ippool"
 	"go.uber.org/zap"
 )
 

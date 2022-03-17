@@ -1,11 +1,11 @@
 # Configuration file reference
 
-Default path is `/opt/uranium/tunnel/config.yaml`.
+Default path is `/opt/vpnhouse/tunnel/config.yaml`.
 
 ```yaml
 # config.yaml
 log_level: debug
-sqlite_path: /opt/uranium/tunnel/db.sqlite3
+sqlite_path: /opt/vpnhouse/tunnel/db.sqlite3
 
 # serve openAPI documentation under the `/rapidoc/` path if enabled
 # https://mrin9.github.io/RapiDoc/
@@ -43,14 +43,11 @@ admin_api:  # desc
     user_name: admin
     # password hash for the admin interface, may be changed via the setting UI.
     password_hash: $s2$16384$8$1$8zQCf7uWVjbbJ4+HjqTNEzON$dCf/5RdX50464N/JQT6ZJKDZ6VMN74lvHKxw6ooi/YA=
-    # directory with webUI assets.
-    # deprecated: these files will be embedded in the binary in the future. 
-    static_root: /opt/uranium/web/tunnel
 
 ssl: # optional SSL & LetsEncrypt configuration
     domain: "the-machine.example.com"  # DNS name to issue certificate with
     listen_addr: ":443"                # listen address for HTTPS server
-    dir: "/opt/uranium/tunnel/"        # directory to cache SSL certificates data
+    dir: "/opt/vpnhouse/tunnel/"        # directory to cache SSL certificates data
 ```
 
 Note that all the necessary configuration options can be provided via the web UI  and does not require the service (or container) restart.

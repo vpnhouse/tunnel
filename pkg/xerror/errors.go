@@ -1,4 +1,4 @@
-// Copyright 2021 The Uranium Authors. All rights reserved.
+// Copyright 2021 The VPN House Authors. All rights reserved.
 // Use of this source code is governed by a AGPL-style
 // license that can be found in the LICENSE file.
 
@@ -11,10 +11,10 @@ import (
 	"os"
 	"runtime"
 
-	openapi "github.com/comradevpn/api/go/server/common"
-	"github.com/comradevpn/tunnel/pkg/version"
 	"github.com/getsentry/sentry-go"
 	"github.com/prometheus/client_golang/prometheus"
+	openapi "github.com/vpnhouse/api/go/server/common"
+	"github.com/vpnhouse/tunnel/pkg/version"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

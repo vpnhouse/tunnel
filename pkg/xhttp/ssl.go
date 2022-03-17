@@ -1,5 +1,5 @@
 /*
- * // Copyright 2021 The Uranium Authors. All rights reserved.
+ * // Copyright 2021 The VPN House Authors. All rights reserved.
  * // Use of this source code is governed by a AGPL-style
  * // license that can be found in the LICENSE file.
  */
@@ -22,12 +22,12 @@ import (
 	"path/filepath"
 	"time"
 
-	adminAPI "github.com/comradevpn/api/go/server/tunnel_admin"
-	"github.com/comradevpn/tunnel/pkg/xerror"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/go-chi/chi/v5"
+	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 )
 
@@ -357,7 +357,7 @@ func (is *Issuer) selfSigned() (certData, error) {
 		// IPAddresses    []net.IP // << TODO?
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Uranium VPN"},
+			Organization: []string{"VPN House"},
 		},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
