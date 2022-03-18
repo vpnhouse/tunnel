@@ -20,7 +20,7 @@ require (
 	github.com/spf13/afero v1.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/vishvananda/netlink v1.1.0
-	github.com/vpnhouse/api v0.0.0-20220317044220-602761dace74
+	github.com/vpnhouse/api v0.0.0-20220318110620-8f0602bdc7ed
 	go.uber.org/zap v1.20.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
 	google.golang.org/grpc v1.43.0

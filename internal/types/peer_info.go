@@ -43,8 +43,8 @@ type PeerInfo struct {
 	Expires *xtime.Time `db:"expires"`
 	Claims  *string     `db:"claims"`
 
-	SharingKey           *string     `db:"sharing_key"`
-	SharingKeyExpiration *xtime.Time `db:"sharing_key_expiration"`
+	SharingKey           *string `db:"sharing_key"`
+	SharingKeyExpiration *int64  `db:"sharing_key_expiration"`
 }
 
 func (peer *PeerInfo) IntoProto() *proto.PeerInfo {

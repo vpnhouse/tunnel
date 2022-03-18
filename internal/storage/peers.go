@@ -7,7 +7,6 @@ package storage
 import (
 	"database/sql"
 	"errors"
-	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
@@ -142,16 +141,30 @@ func (storage *Storage) DeletePeer(id int64) error {
 	return nil
 }
 
+func (s *Storage) GetPeerBySharingKey(skey string) (types.PeerInfo, error) {
+	q := `select * from peers where sharing_key = $1`
+	row := s.db.QueryRowx(q, skey)
+
+	var peer types.PeerInfo
+	if err := row.StructScan(&peer); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return types.PeerInfo{}, xerror.EEntryNotFound("no peer with a given sharing key where found", nil)
+		}
+		return types.PeerInfo{}, xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.String("key", skey))
+	}
+
+	return peer, nil
+}
+
 func (storage *Storage) ActivateSharedPeer(sharingKey string, pubkey string) (int64, error) {
-	q := `select * from peers where sharing_key = $1 and sharing_key_expiration > $2`
-	now := time.Now().Unix()
+	q := `select * from peers where sharing_key = $1`
 
 	txx, err := storage.db.Beginx()
 	if err != nil {
 		return -1, xerror.EInternalError("failed to start the transaction", err)
 	}
 
-	row := txx.QueryRowx(q, sharingKey, now)
+	row := txx.QueryRowx(q, sharingKey)
 	var peer types.PeerInfo
 	if err := row.StructScan(&peer); err != nil {
 		_ = txx.Rollback()
@@ -162,7 +175,13 @@ func (storage *Storage) ActivateSharedPeer(sharingKey string, pubkey string) (in
 		return -1, xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.String("key", sharingKey))
 	}
 
-	q = `update peers set sharing_key = '', sharing_key_expiration = 0, wireguard_key = $1 where id = $2`
+	if peer.SharingKeyExpiration != nil && *peer.SharingKeyExpiration > 0 {
+		zap.L().Debug("peer: peer reactivation")
+	}
+
+	// note: do not remove the sharing key value to be able to query
+	//  and re-activate the peer using the pre-shared URL.
+	q = `update peers set sharing_key_expiration = -1, wireguard_key = $1 where id = $2`
 	if _, err := txx.Exec(q, pubkey, peer.ID); err != nil {
 		_ = txx.Rollback()
 		return -1, xerror.EStorageError("failed to update peer", err)
