@@ -16,7 +16,6 @@ import (
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
-	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
@@ -121,10 +120,10 @@ func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Reque
 		peer.Ipv4 = &ipa
 
 		sk := uuid.New().String()
-		xt := xtime.Time{Time: time.Now().Add(24 * time.Hour)}
+		tx := time.Now().Add(24 * time.Hour).Unix()
 
 		peer.SharingKey = &sk
-		peer.SharingKeyExpiration = &xt
+		peer.SharingKeyExpiration = &tx
 		if _, err := tun.storage.CreatePeer(peer); err != nil {
 			return nil, err
 		}
@@ -167,6 +166,30 @@ func (tun *TunnelAPI) PublicPeerActivate(w http.ResponseWriter, r *http.Request,
 			Peer:             fullPeer,
 			WireguardOptions: wireguardConnectionInfo(tun.runtime.Settings.Wireguard),
 		}, nil
+	})
+}
+
+func (tun *TunnelAPI) PublicPeerStatus(w http.ResponseWriter, r *http.Request, slug string) {
+	xhttp.JSONResponse(w, func() (interface{}, error) {
+		peer, err := tun.storage.GetPeerBySharingKey(slug)
+		if err != nil {
+			return nil, err
+		}
+
+		status := adminAPI.PeerActivationStatusNotActivated
+		if peer.SharingKeyExpiration != nil {
+			t := *peer.SharingKeyExpiration
+			now := time.Now().Unix()
+			if t > 0 && t < now {
+				return nil, xerror.EEntryNotFound("peer has already been expired", nil)
+			}
+
+			if t < 0 {
+				status = adminAPI.PeerActivationStatusActivated
+			}
+		}
+
+		return adminAPI.PeerActivation{Status: status}, nil
 	})
 }
 
