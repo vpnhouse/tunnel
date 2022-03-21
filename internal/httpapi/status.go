@@ -38,7 +38,7 @@ func (tun *TunnelAPI) AdminConnectionInfoWireguard(w http.ResponseWriter, r *htt
 
 func wireguardConnectionInfo(c wireguard.Config) adminAPI.WireguardOptions {
 	return adminAPI.WireguardOptions{
-		AllowedIps:      []string{"0.0.0.0/1", "128.0.0.0/1"},
+		AllowedIps:      []string{"0.0.0.0/0"},
 		Subnet:          string(c.Subnet),
 		Dns:             c.DNS,
 		Keepalive:       c.Keepalive,
