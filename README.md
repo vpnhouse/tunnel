@@ -55,14 +55,16 @@ Then go to `http://host-ip/` for the initial setup.
 
 ### Initial setup
 
-Provide an initial configuration using the simple configuration form:
+Set the password and the network subnet for VPN clients:
 
 <img src="https://media.nikonov.tech/initial-with-ssl2.png" style="width: 60%; max-width: 240px" alt="Peers" />
 
-You may also specify the domain name if you have one. We'll automatically issue
-the valid SSL certificate via LetsEncrypt.
+Tick **I have a domain name** only if you have a domain, as well as a DNS record that points to *this* machine.
 
-You will be redirected to the login form. Use your password and the `admin` as the user name to log into the peer management console.
+If you tick the **Issue SSL certificate** we will automatically obtain and renew the valid SSL certificate via LetsEncrypt.
+
+**Reverse proxy**: chose this option if you have the webserver configured on this machine,
+and you want to use it as a reverse proxy for the VPNHouse service.
 
 
 ### Add a VPN peer
