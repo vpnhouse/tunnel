@@ -108,11 +108,11 @@ type SSLConfig struct {
 type DomainConfig struct {
 	Mode     string `yaml:"mode" valid:"required"`
 	Name     string `yaml:"name" valid:"dns,required"`
-	IssueSSL bool   `yaml:"issue_ssl"`
-	Schema   string `yaml:"schema"`
+	IssueSSL bool   `yaml:"issue_ssl,omitempty"`
+	Schema   string `yaml:"schema,omitempty"`
 
 	// Dir to store cached certificates, use sub-directory of cfgDir if possible.
-	Dir string `yaml:"dir" valid:"path"`
+	Dir string `yaml:"dir,omitempty" valid:"path"`
 }
 
 func (c *DomainConfig) Validate() error {
