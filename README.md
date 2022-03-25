@@ -49,7 +49,7 @@ $ docker run -d \
     vpnhouse/tunnel:v0.2.2
 ```
 
-Or, you may use the following [docker-compose](https://gist.github.com/835d4ac1b3c2a203cd53f5d9fb5e7ab8) file.
+Or, you may use the following [docker-compose](https://raw.githubusercontent.com/vpnhouse/tunnel/main/docs/docker-compose.yaml) file.
 
 Then go to `http://host-ip/` for the initial setup.
 
