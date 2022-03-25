@@ -1,0 +1,16 @@
+services:
+  tunnel:
+    image: vpnhouse/tunnel:v0.2.2
+    container_name: tunnel
+    restart: always
+    pull_policy: always
+    ports:
+      - 80:80
+      - 443:443
+      - 3000:3000/udp
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      # TODO: CHANGE ME
+      - /path/to/vpnhouse-data:/opt/vpnhouse/tunnel/:rw
+
