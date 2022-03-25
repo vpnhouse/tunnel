@@ -69,12 +69,7 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		}
 
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
-		tun.runtime.Settings.Domain = dc
-		if dc != nil && dc.IssueSSL {
-			tun.runtime.Settings.SSL = &xhttp.SSLConfig{
-				ListenAddr: ":443",
-			}
-		}
+		setDomainConfig(tun.runtime.Settings, dc)
 
 		// setting the password resets the "initial setup required" flag.
 		if err := tun.runtime.Settings.SetAdminPassword(req.AdminPassword); err != nil {
@@ -186,13 +181,31 @@ func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
 		if err := tmpDC.Validate(); err != nil {
 			return err
 		}
-		current.Domain = tmpDC
+		setDomainConfig(current, tmpDC)
 	} else {
 		// consider "domain: null" as "disabled for the whole option set"
 		current.Domain = nil
 	}
 
 	return nil
+}
+
+func setDomainConfig(c *settings.Config, dc *xhttp.DomainConfig) {
+	if dc == nil {
+		return
+	}
+	if len(dc.Dir) == 0 {
+		dc.Dir = c.ConfigDir()
+	}
+	c.Domain = dc
+	if dc.IssueSSL {
+		if c.SSL == nil || len(c.SSL.ListenAddr) == 0 {
+			c.SSL = &xhttp.SSLConfig{
+				ListenAddr: ":443",
+			}
+		}
+
+	}
 }
 
 // openApiSettingsFromRequest parses settings information from request body.
