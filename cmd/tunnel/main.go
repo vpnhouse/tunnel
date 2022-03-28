@@ -163,6 +163,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			return err
 		}
 
+		// store the plaintext http router to use for
+		// solve the http01 challenge while updating Settings
+		runtime.HttpRouter = redirectOnly.Router()
 		xHttpAddr = runtime.Settings.SSL.ListenAddr
 		xhttpOpts = append([]xhttp.Option{xhttp.WithSSL(tlscfg)}, xhttpOpts...)
 	}
@@ -180,6 +183,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		return err
 	}
 	runtime.Services.RegisterService("httpServer", xHttpServer)
+	if runtime.HttpRouter == nil {
+		runtime.HttpRouter = xHttpServer.Router()
+	}
 
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
