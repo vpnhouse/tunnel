@@ -5,6 +5,7 @@
 package runtime
 
 import (
+	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/pkg/control"
 	"go.uber.org/zap"
@@ -24,6 +25,9 @@ type TunnelRuntime struct {
 	Flags       Flags
 	Features    FeatureSet
 	starter     ServicesInitFunc
+
+	// must point to the http (NOT httpS) router instance
+	HttpRouter chi.Router
 }
 
 func (runtime *TunnelRuntime) EventChannel() chan control.Event {
