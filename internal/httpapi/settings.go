@@ -5,6 +5,7 @@
 package httpapi
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
+	"go.uber.org/zap"
 )
 
 // AdminGetSettings implements handler for GET /api/tunnel/admin/settings request
@@ -65,11 +67,15 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			if err := dc.Validate(); err != nil {
 				return nil, err
 			}
-			// todo: it would be nice to issue the certificate ( run the first try ) right here
 		}
 
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
-		setDomainConfig(tun.runtime.Settings, dc)
+		// blocks for a certificate issuing, timeout is a LE request timeout is about 10s
+		if needCert := setDomainConfig(tun.runtime.Settings, dc); needCert {
+			if err := tun.issueCertificateSync(); err != nil {
+				return nil, err
+			}
+		}
 
 		// setting the password resets the "initial setup required" flag.
 		if err := tun.runtime.Settings.SetAdminPassword(req.AdminPassword); err != nil {
@@ -101,7 +107,7 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 			return nil, err
 		}
 
-		if err := mergeStaticSettings(tun.runtime.Settings, newSettings); err != nil {
+		if err := tun.mergeStaticSettings(tun.runtime.Settings, newSettings); err != nil {
 			return nil, err
 		}
 
@@ -143,7 +149,7 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 	}
 }
 
-func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
+func (tun *TunnelAPI) mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
 	if s.AdminPassword != nil {
 		if err := current.SetAdminPassword(*s.AdminPassword); err != nil {
 			return err
@@ -181,7 +187,13 @@ func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
 		if err := tmpDC.Validate(); err != nil {
 			return err
 		}
-		setDomainConfig(current, tmpDC)
+
+		if needCert := setDomainConfig(tun.runtime.Settings, tmpDC); needCert {
+			// blocks for a certificate issuing, timeout is a LE request timeout is about 10s
+			if err := tun.issueCertificateSync(); err != nil {
+				return err
+			}
+		}
 	} else {
 		// consider "domain: null" as "disabled for the whole option set"
 		current.Domain = nil
@@ -190,10 +202,38 @@ func mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
 	return nil
 }
 
-func setDomainConfig(c *settings.Config, dc *xhttp.DomainConfig) {
-	if dc == nil {
-		return
+func (tun *TunnelAPI) issueCertificateSync() error {
+	issuer, err := xhttp.NewIssuer(xhttp.IssuerOpts{
+		Domain:   tun.runtime.Settings.Domain.Name,
+		CacheDir: tun.runtime.Settings.ConfigDir(),
+		Router:   tun.runtime.HttpRouter,
+		Callback: func(_ *tls.Config) {
+			zap.L().Info("ssl certificate issued", zap.String("name", tun.runtime.Settings.Domain.Name))
+		},
+	})
+	if err != nil {
+		return err
 	}
+
+	// ask for the config (it will be cached inside and re-used after the restart).
+	_, err = issuer.TLSConfig()
+	return err
+}
+
+// setDomainConfig updates current settings with new domain config,
+// return true if the new certificate must be issued.
+func setDomainConfig(c *settings.Config, dc *xhttp.DomainConfig) bool {
+	if dc == nil {
+		return false
+	}
+
+	oldName := ""
+	if c.Domain != nil {
+		if c.Domain.Mode == string(adminAPI.DomainConfigModeDirect) {
+			oldName = c.Domain.Name
+		}
+	}
+
 	if len(dc.Dir) == 0 {
 		dc.Dir = c.ConfigDir()
 	}
@@ -204,8 +244,11 @@ func setDomainConfig(c *settings.Config, dc *xhttp.DomainConfig) {
 				ListenAddr: ":443",
 			}
 		}
-
+		// notify caller that the name differs
+		return dc.Name != oldName
 	}
+
+	return false
 }
 
 // openApiSettingsFromRequest parses settings information from request body.
