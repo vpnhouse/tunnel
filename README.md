@@ -1,6 +1,8 @@
 VPN House 
 =========
 
+![GHA](https://github.com/vpnhouse/tunnel/actions/workflows/on-merge-into-main.yaml/badge.svg)
+
 A basic, self-contained management service for WireGuard with a self-serve web UI.
 
 - [Quick start](#quick-start)
