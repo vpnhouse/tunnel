@@ -27,7 +27,7 @@ A basic, self-contained management service for WireGuard with a self-serve web U
 
 * A host with a kernel that supports WireGuard (all modern kernels).
 
-* A host with [Docker installed &rarr;](https://docs.docker.com/get-docker/).
+* A host with [Docker installed &rarr;](https://docs.docker.com/engine/install/ubuntu/#installation-methods).
 
 
 # Quick start
