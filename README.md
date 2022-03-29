@@ -2,6 +2,7 @@ VPN House
 =========
 
 ![GHA](https://github.com/vpnhouse/tunnel/actions/workflows/on-merge-into-main.yaml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/vpnhouse/tunnel)](https://goreportcard.com/report/github.com/vpnhouse/tunnel)
 
 A basic, self-contained management service for WireGuard with a self-serve web UI.
 
