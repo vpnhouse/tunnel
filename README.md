@@ -1,4 +1,12 @@
-VPN House 
+
+![GHA](https://github.com/vpnhouse/tunnel/actions/workflows/on-merge-into-main.yaml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/vpnhouse/tunnel)](https://goreportcard.com/report/github.com/vpnhouse/tunnel)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/vpnhouse/tunnel?logo=github)
+[![Docker pulls](https://img.shields.io/docker/pulls/vpnhouse/tunnel?logo=docker&logoColor=white)](https://hub.docker.com/r/vpnhouse/tunnel)
+![GitHub](https://img.shields.io/github/license/vpnhouse/tunnel)
+
+
+VPN House
 =========
 
 A basic, self-contained management service for WireGuard with a self-serve web UI.
@@ -27,7 +35,7 @@ A basic, self-contained management service for WireGuard with a self-serve web U
 
 * A host with a kernel that supports WireGuard (all modern kernels).
 
-* A host with [Docker installed &rarr;](https://docs.docker.com/get-docker/).
+* A host with [Docker installed &rarr;](https://docs.docker.com/engine/install/ubuntu/#installation-methods).
 
 
 # Quick start
