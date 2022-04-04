@@ -113,19 +113,14 @@ func (m *ipam) allocate(pol int) (xnet.IP, error) {
 
 // applyPolicy pol to a given addr, the address must be set/allocated.
 func (m *ipam) applyPolicy(addr xnet.IP, pol int) error {
-	switch pol {
-	case AccessPolicyInternetOnly:
+	if pol == AccessPolicyInternetOnly && m.defaultPol == AccessPolicyAll {
 		if err := m.nf.newIsolatePeerRule(addr); err != nil {
 			// return an address back to the pool
 			_ = m.ipp.Unset(addr)
 			return err
 		}
-	case AccessPolicyAll:
-		// nothing to do here, already handled by the global policy
-	default:
-		panic("unknown policy")
 	}
-
+	// no else branch - nothing to do here, already handled by the global policy
 	return nil
 }
 
