@@ -6,7 +6,6 @@ package ippool
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 	"sync"
 
@@ -49,43 +48,6 @@ func NewIPv4FromSubnet(subnet *xnet.IPNet) (*IPv4pool, error) {
 
 	minIP := subnet.FirstUsable()
 	maxIP := subnet.LastUsable()
-
-	return &IPv4pool{
-		serverIP: minIP,
-		used:     defaultUsed(minIP.ToUint32()),
-		min:      minIP.ToUint32(),
-		max:      maxIP.ToUint32(),
-		running:  true,
-		// silently do nothing if in the production mode.
-		logFunc: func(format string, a ...string) {},
-	}, nil
-}
-
-func NewIPv4(subnetAddr string) (*IPv4pool, error) {
-	zap.L().Debug("Starting ipv4 pool", zap.String("subnetAddr", subnetAddr))
-
-	serverIP, subnet, err := xnet.ParseCIDR(subnetAddr)
-	if err != nil {
-		return nil, xerror.EInvalidArgument("can't parse subnet address", nil, zap.String("subnet", subnetAddr))
-	}
-
-	// Check if subnet is IPV4
-	if !serverIP.Isv4() {
-		return nil, xerror.EInvalidArgument("can't start pool with non-ipv4 subnet", nil, zap.String("subnet", subnetAddr))
-	}
-
-	// Check if we have enough space to allocate
-	if ones, _ := subnet.Mask().Size(); ones > 30 {
-		return nil, xerror.EInvalidArgument("need at least /30 subnet to operate", nil, zap.String("subnet", subnetAddr))
-	}
-
-	// Take minimum and maximum addresses
-	minIP := subnet.FirstUsable()
-	maxIP := subnet.LastUsable()
-
-	if serverIP.ToUint32() < minIP.ToUint32() {
-		return nil, xerror.EInvalidArgument(fmt.Sprintf("server ip must be in range from %v to %v", minIP.String(), maxIP.String()), nil, zap.String("subnet", subnetAddr))
-	}
 
 	return &IPv4pool{
 		serverIP: minIP,
