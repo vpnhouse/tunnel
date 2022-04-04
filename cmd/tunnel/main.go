@@ -89,15 +89,15 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	runtime.Services.RegisterService("authorizer", jwtAuthorizer)
 
 	// Initialize ip addr manager pool
-	// todo: default policy -> settings
-	ipv4am, err := ipam.New(runtime.Settings.Wireguard.Subnet.Unwrap(), ipam.AccessPolicyInternetOnly)
+	wgcfg := runtime.Settings.Wireguard
+	ipv4am, err := ipam.New(wgcfg.Subnet.Unwrap(), wgcfg.GetNetworkPolicy())
 	if err != nil {
 		return err
 	}
 	runtime.Services.RegisterService("ipv4Pool", ipv4am)
 
 	// Initialize wireguard controller
-	wireguardController, err := wireguard.New(runtime.Settings.Wireguard)
+	wireguardController, err := wireguard.New(wgcfg)
 	if err != nil {
 		return err
 	}
