@@ -14,6 +14,7 @@ import (
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
+	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -113,7 +114,7 @@ func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Reque
 			return nil, err
 		}
 
-		ipa, err := tun.ippool.Alloc()
+		ipa, err := tun.ippool.Alloc(ipam.AccessPolicyDefault)
 		if err != nil {
 			return nil, err
 		}

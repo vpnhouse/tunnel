@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
+	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/ippool"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
@@ -36,12 +37,13 @@ func (manager *Manager) restorePeers() {
 			continue
 		}
 
-		if err := manager.ipv4pool.Set(*peer.Ipv4); err != nil {
+		// TODO(nikonov): add ipam policy to the peer storage, apply when restored
+		if err := manager.ipv4pool.Set(*peer.Ipv4, ipam.AccessPolicyDefault); err != nil {
 			if !errors.Is(err, ippool.ErrNotInRange) {
 				continue
 			}
 
-			newIP, err := manager.ipv4pool.Alloc()
+			newIP, err := manager.ipv4pool.Alloc(ipam.AccessPolicyDefault)
 			if err != nil {
 				// TODO(nikonov): remove peer OR mark it as invalid
 				//  to allow further migration by hand.
@@ -90,7 +92,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 
 		if peer.Ipv4 == nil || peer.Ipv4.IP == nil {
 			// Allocate IP, if necessary
-			ipv4, err := manager.ipv4pool.Alloc()
+			ipv4, err := manager.ipv4pool.Alloc(ipam.AccessPolicyDefault)
 			if err != nil {
 				return err
 			}
@@ -98,7 +100,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 			peer.Ipv4 = &ipv4
 		} else {
 			// Check if IP can be used
-			err := manager.ipv4pool.Set(*peer.Ipv4)
+			err := manager.ipv4pool.Set(*peer.Ipv4, ipam.AccessPolicyDefault)
 			if err != nil {
 				return err
 			}
@@ -158,7 +160,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		// Prepare ipv4 address
 		if newPeer.Ipv4 == nil {
 			// IP is not set - allocate new one
-			ipv4, err := manager.ipv4pool.Alloc()
+			ipv4, err := manager.ipv4pool.Alloc(ipam.AccessPolicyDefault)
 			if err != nil {
 				// TODO: Differentiate log level by error type (i.e. no space is debug message, others are errors)
 				zap.L().Debug("can't allocate new IP for existing peer", zap.Error(err))
@@ -171,7 +173,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 			}
 		} else if !newPeer.Ipv4.Equal(*oldPeer.Ipv4) {
 			// Try to set up new ip, if it differs from old one
-			if err := manager.ipv4pool.Set(*newPeer.Ipv4); err != nil {
+			if err := manager.ipv4pool.Set(*newPeer.Ipv4, ipam.AccessPolicyDefault); err != nil {
 				return ipOK, dbOK, wgOK, err
 			}
 		}
