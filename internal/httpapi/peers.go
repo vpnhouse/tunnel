@@ -14,7 +14,6 @@ import (
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -114,8 +113,7 @@ func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Reque
 			return nil, err
 		}
 
-		// TODO(nikonov): access policy must be a part of the Peer request structure
-		ipa, err := tun.ippool.Alloc(ipam.AccessPolicyDefault)
+		ipa, err := tun.ippool.Alloc(peer.GetNetworkPolicy())
 		if err != nil {
 			return nil, err
 		}
