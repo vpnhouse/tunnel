@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/ippool"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
@@ -32,18 +31,17 @@ func (manager *Manager) restorePeers() {
 
 	for _, peer := range peers {
 		if peer.Expired() {
-			zap.L().Debug("Wiping expired peer", zap.Any("peer", peer))
+			zap.L().Debug("wiping expired peer", zap.Any("peer", peer))
 			_ = manager.storage.DeletePeer(peer.ID)
 			continue
 		}
 
-		// TODO(nikonov): add ipam policy to the peer storage, apply when restored
-		if err := manager.ipv4pool.Set(*peer.Ipv4, ipam.AccessPolicyDefault); err != nil {
+		if err := manager.ip4am.Set(*peer.Ipv4, peer.GetNetworkPolicy()); err != nil {
 			if !errors.Is(err, ippool.ErrNotInRange) {
 				continue
 			}
 
-			newIP, err := manager.ipv4pool.Alloc(ipam.AccessPolicyDefault)
+			newIP, err := manager.ip4am.Alloc(peer.GetNetworkPolicy())
 			if err != nil {
 				// TODO(nikonov): remove peer OR mark it as invalid
 				//  to allow further migration by hand.
@@ -63,7 +61,7 @@ func (manager *Manager) restorePeers() {
 func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
 	errManager := manager.storage.DeletePeer(peer.ID)
 	errWireguard := manager.wireguard.UnsetPeer(peer)
-	errPool := manager.ipv4pool.Unset(*peer.Ipv4)
+	errPool := manager.ip4am.Unset(*peer.Ipv4)
 
 	// TODO(nikonov): report an actual traffic on remove
 	allPeersGauge.Dec()
@@ -92,7 +90,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 
 		if peer.Ipv4 == nil || peer.Ipv4.IP == nil {
 			// Allocate IP, if necessary
-			ipv4, err := manager.ipv4pool.Alloc(ipam.AccessPolicyDefault)
+			ipv4, err := manager.ip4am.Alloc(peer.GetNetworkPolicy())
 			if err != nil {
 				return err
 			}
@@ -100,7 +98,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 			peer.Ipv4 = &ipv4
 		} else {
 			// Check if IP can be used
-			err := manager.ipv4pool.Set(*peer.Ipv4, ipam.AccessPolicyDefault)
+			err := manager.ip4am.Set(*peer.Ipv4, peer.GetNetworkPolicy())
 			if err != nil {
 				return err
 			}
@@ -124,7 +122,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 	// rollback an action on error
 	if err != nil {
 		if peer.Ipv4 != nil {
-			_ = manager.ipv4pool.Unset(*peer.Ipv4)
+			_ = manager.ip4am.Unset(*peer.Ipv4)
 		}
 
 		if peer.ID > 0 {
@@ -160,7 +158,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		// Prepare ipv4 address
 		if newPeer.Ipv4 == nil {
 			// IP is not set - allocate new one
-			ipv4, err := manager.ipv4pool.Alloc(ipam.AccessPolicyDefault)
+			ipv4, err := manager.ip4am.Alloc(newPeer.GetNetworkPolicy())
 			if err != nil {
 				// TODO: Differentiate log level by error type (i.e. no space is debug message, others are errors)
 				zap.L().Debug("can't allocate new IP for existing peer", zap.Error(err))
@@ -173,7 +171,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 			}
 		} else if !newPeer.Ipv4.Equal(*oldPeer.Ipv4) {
 			// Try to set up new ip, if it differs from old one
-			if err := manager.ipv4pool.Set(*newPeer.Ipv4, ipam.AccessPolicyDefault); err != nil {
+			if err := manager.ip4am.Set(*newPeer.Ipv4, newPeer.GetNetworkPolicy()); err != nil {
 				return ipOK, dbOK, wgOK, err
 			}
 		}
@@ -219,7 +217,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 
 		if ipOK && !newPeer.Ipv4.Equal(*oldPeer.Ipv4) {
 			// Try to cleanup new IP
-			_ = manager.ipv4pool.Unset(*newPeer.Ipv4)
+			_ = manager.ip4am.Unset(*newPeer.Ipv4)
 		}
 
 		if wgOK {

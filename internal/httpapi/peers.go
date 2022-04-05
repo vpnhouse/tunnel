@@ -114,6 +114,7 @@ func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Reque
 			return nil, err
 		}
 
+		// TODO(nikonov): access policy must be a part of the Peer request structure
 		ipa, err := tun.ippool.Alloc(ipam.AccessPolicyDefault)
 		if err != nil {
 			return nil, err

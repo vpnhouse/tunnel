@@ -9,16 +9,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"github.com/vpnhouse/tunnel/proto"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
-)
-
-const (
-	_               = iota
-	TunnelWireguard = iota
 )
 
 type WireguardInfo struct {
@@ -45,6 +41,15 @@ type PeerInfo struct {
 
 	SharingKey           *string `db:"sharing_key"`
 	SharingKeyExpiration *int64  `db:"sharing_key_expiration"`
+
+	NetworkAccessPolicy *int `db:"net_access_policy"`
+}
+
+func (peer *PeerInfo) GetNetworkPolicy() int {
+	if peer.NetworkAccessPolicy != nil {
+		return *peer.NetworkAccessPolicy
+	}
+	return ipam.AccessPolicyDefault
 }
 
 func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
@@ -91,14 +96,6 @@ func (peer *PeerInfo) Expired() bool {
 	}
 
 	return peer.Expires.Time.Before(time.Now())
-}
-
-func (peer *PeerInfo) Age() time.Duration {
-	if peer.Updated == nil {
-		return 0
-	}
-
-	return time.Since(peer.Updated.Time)
 }
 
 func (peer *PeerInfo) Validate(omit ...string) error {
