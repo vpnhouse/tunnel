@@ -25,7 +25,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/control"
-	"github.com/vpnhouse/tunnel/pkg/ippool"
+	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/rapidoc"
 	"github.com/vpnhouse/tunnel/pkg/sentry"
 	"github.com/vpnhouse/tunnel/pkg/version"
@@ -88,22 +88,23 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("authorizer", jwtAuthorizer)
 
-	// Initialize IP pool
-	ipv4Pool, err := ippool.NewIPv4FromSubnet(runtime.Settings.Wireguard.Subnet.Unwrap())
+	// Initialize ip addr manager pool
+	wgcfg := runtime.Settings.Wireguard
+	ipv4am, err := ipam.New(wgcfg.Subnet.Unwrap(), wgcfg.GetNetworkPolicy())
 	if err != nil {
 		return err
 	}
-	runtime.Services.RegisterService("ipv4Pool", ipv4Pool)
+	runtime.Services.RegisterService("ipv4Pool", ipv4am)
 
 	// Initialize wireguard controller
-	wireguardController, err := wireguard.New(runtime.Settings.Wireguard)
+	wireguardController, err := wireguard.New(wgcfg)
 	if err != nil {
 		return err
 	}
 	runtime.Services.RegisterService("wireguard", wireguardController)
 
 	// Create new peer manager
-	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4Pool, eventLog)
+	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4am, eventLog)
 	if err != nil {
 		return err
 	}
@@ -117,7 +118,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	// Prepare tunneling HTTP API
-	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keystore, ipv4Pool)
+	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keystore, ipv4am)
 
 	xHttpAddr := runtime.Settings.HTTP.ListenAddr
 	xhttpOpts := []xhttp.Option{

@@ -9,6 +9,7 @@ import (
 	"net"
 
 	"github.com/vpnhouse/tunnel/internal/types"
+	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/validator"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
@@ -33,6 +34,9 @@ type Config struct {
 	// PrivateKey of WireGuard, serialized to the string.
 	// Generated automatically on the startup.
 	PrivateKey string `yaml:"private_key"`
+
+	// NetworkPolicy for VPN peers, default is allow_all if not set
+	NetworkPolicy int `yaml:"access_policy,omitempty"`
 
 	// parsed version of the field above
 	privateKey types.WGPrivateKey
@@ -68,15 +72,23 @@ func (c Config) GetPrivateKey() types.WGPrivateKey {
 	return c.privateKey
 }
 
+func (c Config) GetNetworkPolicy() int {
+	if c.NetworkPolicy == 0 {
+		return ipam.AccessPolicyAll
+	}
+	return c.NetworkPolicy
+}
+
 func DefaultConfig() Config {
 	privKey, _ := wgtypes.GeneratePrivateKey()
 	return Config{
-		Interface:  "uwg0",
-		ServerIPv4: "",
-		ListenPort: 3000,
-		Keepalive:  60,
-		Subnet:     "10.235.0.0/16",
-		DNS:        []string{"8.8.8.8", "8.8.4.4"},
+		Interface:     "uwg0",
+		ServerIPv4:    "",
+		ListenPort:    3000,
+		Keepalive:     60,
+		Subnet:        "10.235.0.0/16",
+		DNS:           []string{"8.8.8.8", "8.8.4.4"},
+		NetworkPolicy: ipam.AccessPolicyAll,
 
 		PrivateKey: privKey.String(),
 		privateKey: (types.WGPrivateKey)(privKey),

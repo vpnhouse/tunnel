@@ -113,7 +113,7 @@ func (tun *TunnelAPI) AdminCreateSharedPeer(w http.ResponseWriter, r *http.Reque
 			return nil, err
 		}
 
-		ipa, err := tun.ippool.Alloc()
+		ipa, err := tun.ippool.Alloc(peer.GetNetworkPolicy())
 		if err != nil {
 			return nil, err
 		}

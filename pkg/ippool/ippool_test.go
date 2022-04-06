@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
 )
 
@@ -105,7 +106,10 @@ func testEmpty(t *testing.T, pool *IPv4pool) {
 }
 
 func newPool(t *testing.T, subnet string) *IPv4pool {
-	pool, err := NewIPv4(subnet)
+	_, ipNet, err := xnet.ParseCIDR(subnet)
+	require.NoError(t, err)
+
+	pool, err := NewIPv4FromSubnet(ipNet)
 	assert.Nil(t, err)
 	assert.NotNil(t, pool)
 	return pool

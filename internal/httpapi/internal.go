@@ -191,13 +191,14 @@ func importPeer(oPeer adminAPI.Peer, id int64) (types.PeerInfo, error) {
 	}
 
 	peer := types.PeerInfo{
-		ID:              id,
-		Label:           oPeer.Label,
-		Ipv4:            &ip,
-		Expires:         xtime.FromTimePtr(oPeer.Expires),
-		Claims:          oPeer.Claims,
-		PeerIdentifiers: *identifiers,
-		WireguardInfo:   wg,
+		ID:                  id,
+		Label:               oPeer.Label,
+		Ipv4:                &ip,
+		Expires:             xtime.FromTimePtr(oPeer.Expires),
+		Claims:              oPeer.Claims,
+		PeerIdentifiers:     *identifiers,
+		WireguardInfo:       wg,
+		NetworkAccessPolicy: (*int)(oPeer.NetAccessPolicy),
 	}
 
 	return peer, nil
@@ -258,14 +259,15 @@ func exportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
 	ip := peer.Ipv4.String()
 
 	oPeer := adminAPI.Peer{
-		Label:         peer.Label,
-		Ipv4:          &ip,
-		InfoWireguard: wg,
-		Created:       peer.Created.TimePtr(),
-		Updated:       peer.Updated.TimePtr(),
-		Expires:       peer.Expires.TimePtr(),
-		Claims:        peer.Claims,
-		Identifiers:   exportIdentifiers(&peer.PeerIdentifiers),
+		Label:           peer.Label,
+		Ipv4:            &ip,
+		InfoWireguard:   wg,
+		Created:         peer.Created.TimePtr(),
+		Updated:         peer.Updated.TimePtr(),
+		Expires:         peer.Expires.TimePtr(),
+		Claims:          peer.Claims,
+		Identifiers:     exportIdentifiers(&peer.PeerIdentifiers),
+		NetAccessPolicy: (*adminAPI.PeerNetAccessPolicy)(peer.NetworkAccessPolicy),
 	}
 
 	return oPeer, nil
