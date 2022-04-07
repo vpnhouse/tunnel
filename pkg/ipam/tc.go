@@ -7,18 +7,12 @@
 package ipam
 
 import (
-	"errors"
-
 	"github.com/vpnhouse/tunnel/pkg/xnet"
 )
 
-var (
-	errRuleNotFound = errors.New("nft: no rule with given ID were found")
-)
-
-type netFilter interface {
+type trafficControl interface {
 	init() error
-	newIsolatePeerRule(peerIP xnet.IP) error
-	newIsolateAllRule(ipNet *xnet.IPNet) error
-	findAndRemoveRule(id []byte) error
+	setLimit(forAddr xnet.IP, rate uint64) error
+	removeLimit(forAddr xnet.IP) error
+	cleanup() error
 }

@@ -30,6 +30,7 @@ const (
 type ipam struct {
 	defaultPol int
 	nf         netFilter
+	tc         trafficControl
 	ipp        *ippool.IPv4pool
 }
 
@@ -121,12 +122,31 @@ func (m *ipam) applyPolicy(addr xnet.IP, pol int) error {
 		}
 	}
 	// no else branch - nothing to do here, already handled by the global policy
+
+	if err := m.tc.setLimit(addr, 100); err != nil {
+		// return an address back to the pool
+		_ = m.ipp.Unset(addr)
+		return err
+	}
+
 	return nil
 }
 
 func (m *ipam) free(addr xnet.IP) error {
 	if err := m.ipp.Unset(addr); err != nil {
+		// ip4pool fails in two cases:
+		//  invalid IP given, and
+		//  no such address in the pool.
+		// So we have to return here in both cases.
 		return err
+	}
+
+	if err := m.tc.removeLimit(addr); err != nil {
+		// TODO(nikonov): how to handle?
+		//  It has already been logged by the error source.
+		//  We can't simply return here because we also
+		//  have to remove the netfilter rule.
+		//  So this `if` block exists just to contain the following comment. Amen.
 	}
 
 	return m.nf.findAndRemoveRule(addr.IP.To4())
@@ -138,10 +158,16 @@ func (m *ipam) Running() bool {
 
 func (m *ipam) Shutdown() error {
 	if m != nil {
+		// free and... free.
 		_ = m.ipp.Shutdown()
-		_ = m.nf.init() // re-init with empty tables
 		m.ipp = nil
+		// re-init with empty tables
+		_ = m.nf.init()
 		m.nf = nil
+		// remove all traffic restrictions on the interface
+		_ = m.tc.cleanup()
+		m.tc = nil
+
 		m.defaultPol = -1
 	}
 	return nil
