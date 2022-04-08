@@ -88,8 +88,15 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("authorizer", jwtAuthorizer)
 
-	// Initialize ip addr manager
+	// Initialize wireguard controller
 	wgcfg := runtime.Settings.Wireguard
+	wireguardController, err := wireguard.New(wgcfg)
+	if err != nil {
+		return err
+	}
+	runtime.Services.RegisterService("wireguard", wireguardController)
+
+	// Initialize ip addr manager
 	napCfg := runtime.Settings.GetNetworkAccessPolicy()
 	ipv4am, err := ipam.New(ipam.Options{
 		Subnet:       wgcfg.Subnet.Unwrap(),
@@ -97,20 +104,13 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		MaxBandwidth: napCfg.MaxBandwidth,
 		PeerDefaults: ipam.Policy{
 			Access:    napCfg.AccessPolicy,
-			RateLimit: napCfg.RateLimit,
+			RateLimit: napCfg.PerClient,
 		},
 	})
 	if err != nil {
 		return err
 	}
 	runtime.Services.RegisterService("ipv4am", ipv4am)
-
-	// Initialize wireguard controller
-	wireguardController, err := wireguard.New(wgcfg)
-	if err != nil {
-		return err
-	}
-	runtime.Services.RegisterService("wireguard", wireguardController)
 
 	// Create new peer manager
 	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4am, eventLog)
