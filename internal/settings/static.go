@@ -36,7 +36,7 @@ const (
 
 type NetworkPolicy struct {
 	MaxBandwidth ipam.Rate `yaml:"total_bandwidth,omitempty"`
-	RateLimit    ipam.Rate `yaml:"rate_limit,omitempty"`
+	PerClient    ipam.Rate `yaml:"per_client,omitempty"`
 	AccessPolicy int       `yaml:"access_policy,omitempty"`
 }
 
