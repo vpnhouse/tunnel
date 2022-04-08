@@ -16,6 +16,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/grpc"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
+	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/sentry"
 	"github.com/vpnhouse/tunnel/pkg/validator"
 	"github.com/vpnhouse/tunnel/pkg/version"
@@ -33,6 +34,12 @@ const (
 	configFileName   = "config.yaml"
 )
 
+type NetworkPolicy struct {
+	MaxBandwidth ipam.Rate `yaml:"total_bandwidth,omitempty"`
+	RateLimit    ipam.Rate `yaml:"rate_limit,omitempty"`
+	AccessPolicy int       `yaml:"access_policy,omitempty"`
+}
+
 type Config struct {
 	LogLevel   string           `yaml:"log_level"`
 	SQLitePath string           `yaml:"sqlite_path" valid:"path,required"`
@@ -41,6 +48,7 @@ type Config struct {
 	HTTP       HttpConfig       `yaml:"http"`
 
 	// optional configuration
+	NetworkPolicy      *NetworkPolicy          `yaml:"network_policy,omitempty"`
 	SSL                *xhttp.SSLConfig        `yaml:"ssl,omitempty"`
 	Domain             *xhttp.DomainConfig     `yaml:"domain,omitempty"`
 	AdminAPI           *AdminAPIConfig         `yaml:"admin_api,omitempty"`
@@ -56,6 +64,15 @@ type Config struct {
 
 	// mu guards RW access to the Config
 	mu sync.RWMutex
+}
+
+func (s *Config) GetNetworkAccessPolicy() NetworkPolicy {
+	if s.NetworkPolicy == nil {
+		return NetworkPolicy{
+			AccessPolicy: ipam.AccessPolicyAll,
+		}
+	}
+	return *s.NetworkPolicy
 }
 
 func (s *Config) ConfigDir() string {

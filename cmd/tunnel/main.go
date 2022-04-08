@@ -90,13 +90,14 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	// Initialize ip addr manager
 	wgcfg := runtime.Settings.Wireguard
+	napCfg := runtime.Settings.GetNetworkAccessPolicy()
 	ipv4am, err := ipam.New(ipam.Options{
 		Subnet:       wgcfg.Subnet.Unwrap(),
 		Interface:    wgcfg.Interface,
-		MaxBandwidth: 0,
+		MaxBandwidth: napCfg.MaxBandwidth,
 		PeerDefaults: ipam.Policy{
-			Access:    wgcfg.GetNetworkPolicy(),
-			RateLimit: 0,
+			Access:    napCfg.AccessPolicy,
+			RateLimit: napCfg.RateLimit,
 		},
 	})
 	if err != nil {

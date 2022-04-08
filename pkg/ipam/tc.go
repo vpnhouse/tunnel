@@ -22,6 +22,16 @@ const (
 // keep in mind that values must follow SI, not IEC.
 type Rate uint64
 
+func (r *Rate) UnmarshalText(raw []byte) error {
+	v, err := humanize.ParseBytes(string(raw))
+	if err != nil {
+		return err
+	}
+
+	*r = Rate(v)
+	return nil
+}
+
 func (r Rate) String() string {
 	return humanize.Bytes(uint64(r)) + "it/s"
 }
