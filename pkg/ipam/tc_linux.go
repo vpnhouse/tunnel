@@ -40,7 +40,7 @@ type tcWrapper struct {
 	ipToFilterHandler map[uint32]uint32
 }
 
-func newTrafficControl(iface string) (trafficControl, error) {
+func newTrafficControl(iface string, defaultRate Rate, parentRate Rate) (trafficControl, error) {
 	wgLink, err := netlink.LinkByName(iface)
 	if err != nil {
 		return nil, err
@@ -55,18 +55,9 @@ func newTrafficControl(iface string) (trafficControl, error) {
 		link:              wgLink,
 		handle:            handle,
 		ipToFilterHandler: map[uint32]uint32{},
-		defaultRate:       1 * Mbitps,
-		parentRate:        100 * Mbitps,
+		defaultRate:       defaultRate,
+		parentRate:        parentRate,
 	}, nil
-}
-
-func NewTC(iface string) *tcWrapper {
-	t, err := newTrafficControl(iface)
-	if err != nil {
-		panic(err)
-	}
-
-	return t.(*tcWrapper)
 }
 
 func (tc *tcWrapper) List() {
@@ -178,9 +169,12 @@ func handleForIP(ip xnet.IP) uint32 {
 
 // returns the assigned FILTER handle
 func (tc *tcWrapper) setLimit(addr xnet.IP, rate Rate) error {
+	if rate == 0 {
+		return nil
+	}
+
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
-
 	if _, ok := tc.ipToFilterHandler[addr.ToUint32()]; ok {
 		return fmt.Errorf("the limit has already been set")
 	}

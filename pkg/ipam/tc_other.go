@@ -16,7 +16,7 @@ import (
 
 type nopTC struct{}
 
-func newTrafficControl(iface string) (trafficControl, error) {
+func newTrafficControl(iface string, defaultRate Rate, parentRate Rate) (trafficControl, error) {
 	return nopTC{}, nil
 }
 

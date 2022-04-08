@@ -45,11 +45,17 @@ type PeerInfo struct {
 	NetworkAccessPolicy *int `db:"net_access_policy"`
 }
 
-func (peer *PeerInfo) GetNetworkPolicy() int {
-	if peer.NetworkAccessPolicy != nil {
-		return *peer.NetworkAccessPolicy
+func (peer *PeerInfo) GetNetworkPolicy() ipam.Policy {
+	pol := ipam.Policy{
+		RateLimit: 0, // do not apply limits yet
+		Access:    0, // use default policy
 	}
-	return ipam.AccessPolicyDefault
+
+	if peer.NetworkAccessPolicy != nil {
+		pol.Access = *peer.NetworkAccessPolicy
+	}
+
+	return pol
 }
 
 func (peer *PeerInfo) IntoProto() *proto.PeerInfo {

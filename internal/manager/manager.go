@@ -12,7 +12,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
-	"github.com/vpnhouse/tunnel/pkg/xnet"
+	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"go.uber.org/zap"
 )
 
@@ -27,18 +27,12 @@ type CachedStatistics struct {
 	LinkStat *netlink.LinkStatistics
 }
 
-type ipAddrManager interface {
-	Alloc(pol int) (xnet.IP, error)
-	Set(a xnet.IP, pol int) error
-	Unset(a xnet.IP) error
-}
-
 type Manager struct {
 	runtime       *runtime.TunnelRuntime
 	mutex         sync.RWMutex
 	storage       *storage.Storage
 	wireguard     *wireguard.Wireguard
-	ip4am         ipAddrManager
+	ip4am         *ipam.IPAM
 	eventLog      eventlog.EventManager
 	running       bool
 	bgStopChannel chan bool
@@ -49,12 +43,12 @@ type Manager struct {
 	statistic CachedStatistics
 }
 
-func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ipv4pool ipAddrManager, eventLog eventlog.EventManager) (*Manager, error) {
+func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
 	manager := &Manager{
 		runtime:       runtime,
 		storage:       storage,
 		wireguard:     wireguard,
-		ip4am:         ipv4pool,
+		ip4am:         ip4am,
 		eventLog:      eventLog,
 		running:       true,
 		bgStopChannel: make(chan bool),
