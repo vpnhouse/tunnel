@@ -34,7 +34,7 @@ type ipam struct {
 	ipp        *ippool.IPv4pool
 }
 
-func New(subnet *xnet.IPNet, defaultPolicy int) (*ipam, error) {
+func New(subnet *xnet.IPNet, iface string, defaultPolicy int) (*ipam, error) {
 	if defaultPolicy == 0 {
 		return nil, fmt.Errorf("no default policy given")
 	}
@@ -44,8 +44,17 @@ func New(subnet *xnet.IPNet, defaultPolicy int) (*ipam, error) {
 		return nil, err
 	}
 
+	tc, err := newTrafficControl(iface)
+	if err != nil {
+		return nil, err
+	}
+
 	nf := newNetfilter(subnet)
 	if err := nf.init(); err != nil {
+		return nil, err
+	}
+
+	if err := tc.init(); err != nil {
 		return nil, err
 	}
 
@@ -59,6 +68,7 @@ func New(subnet *xnet.IPNet, defaultPolicy int) (*ipam, error) {
 		defaultPol: defaultPolicy,
 		ipp:        ipPool,
 		nf:         nf,
+		tc:         tc,
 	}, nil
 }
 
@@ -123,6 +133,7 @@ func (m *ipam) applyPolicy(addr xnet.IP, pol int) error {
 	}
 	// no else branch - nothing to do here, already handled by the global policy
 
+	// TODO(nikonov): as arg
 	if err := m.tc.setLimit(addr, 100); err != nil {
 		// return an address back to the pool
 		_ = m.ipp.Unset(addr)

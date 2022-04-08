@@ -90,7 +90,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	// Initialize ip addr manager pool
 	wgcfg := runtime.Settings.Wireguard
-	ipv4am, err := ipam.New(wgcfg.Subnet.Unwrap(), wgcfg.GetNetworkPolicy())
+	ipv4am, err := ipam.New(wgcfg.Subnet.Unwrap(), wgcfg.Interface, wgcfg.GetNetworkPolicy())
 	if err != nil {
 		return err
 	}

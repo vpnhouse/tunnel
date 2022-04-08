@@ -7,12 +7,32 @@
 package ipam
 
 import (
+	"github.com/dustin/go-humanize"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
 )
 
+const (
+	Bitps  Rate = 1
+	Kbitps      = Bitps * 1000
+	Mbitps      = Kbitps * 1000
+	Gbitps      = Mbitps * 1000
+)
+
+// Rate represents the desired bandwidth,
+// keep in mind that values must follow SI, not IEC.
+type Rate uint64
+
+func (r Rate) String() string {
+	return humanize.Bytes(uint64(r)) + "it/s"
+}
+
+func (r Rate) unwrap() uint64 {
+	return uint64(r)
+}
+
 type trafficControl interface {
 	init() error
-	setLimit(forAddr xnet.IP, rate uint64) error
+	setLimit(forAddr xnet.IP, rate Rate) error
 	removeLimit(forAddr xnet.IP) error
 	cleanup() error
 }

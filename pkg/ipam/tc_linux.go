@@ -32,10 +32,9 @@ type tcWrapper struct {
 
 	// parentRate is the full available bandwidth,
 	// clients will borrow traffic from this many bps.
-	parentRate uint64
+	parentRate Rate
 	// defaultRate is a rate of unclassified client
-	// TODO(nikonov): may we come up with some reasonable default value here?
-	defaultRate uint64
+	defaultRate Rate
 
 	mu                sync.Mutex
 	ipToFilterHandler map[uint32]uint32
@@ -56,6 +55,8 @@ func newTrafficControl(iface string) (trafficControl, error) {
 		link:              wgLink,
 		handle:            handle,
 		ipToFilterHandler: map[uint32]uint32{},
+		defaultRate:       1 * Mbitps,
+		parentRate:        100 * Mbitps,
 	}, nil
 }
 
@@ -65,66 +66,8 @@ func NewTC(iface string) *tcWrapper {
 		panic(err)
 	}
 
-	const kbps = 8 * 1000
-
-	w := t.(*tcWrapper)
-	w.defaultRate = 100 * kbps
-	w.parentRate = 50 * 1000 * kbps
-
-	return w
+	return t.(*tcWrapper)
 }
-
-// func main() {
-// 	wgLink, err := netlink.LinkByName("uwg0")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-// 	handle, err := netlink.NewHandle(unix.NETLINK_ROUTE)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-// 	fmt.Println("pre init")
-// 	tcList(handle, wgLink)
-//
-// 	if err := TC_Cleanup(handle, wgLink); err != nil {
-// 		fmt.Printf("XXX cleanup failed: %v\n", err)
-// 	}
-//
-// 	if err := TC_Init(handle, wgLink); err != nil {
-// 		panic(err)
-// 	}
-//
-// 	clientIP := xnet.ParseIP("10.235.0.234")
-// 	handle1, err := TC_SetupInterface(handle, wgLink, clientIP)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-// 	client2 := xnet.ParseIP("10.235.0.51")
-// 	handle2, err := TC_SetupInterface(handle, wgLink, client2)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-// 	fmt.Println("post init")
-// 	tcList(handle, wgLink)
-//
-// 	time.Sleep(1 * time.Second)
-// 	if err := TC_TeardownInterface(handle, wgLink, clientIP, handle1); err != nil {
-// 		fmt.Printf("XXX failed to teardown client1: %v\n", err)
-// 	}
-// 	fmt.Printf("xxxxxxxxxxxxxxxxxxxxxxxxx\n")
-// 	tcList(handle, wgLink)
-// 	fmt.Printf("xxxxxxxxxxxxxxxxxxxxxxxxx\n")
-// 	if err := TC_TeardownInterface(handle, wgLink, client2, handle2); err != nil {
-// 		fmt.Printf("XXX failed to teardown client2: %v\n", err)
-// 	}
-//
-// 	fmt.Printf("post cleanup")
-// 	tcList(handle, wgLink)
-// }
 
 func (tc *tcWrapper) List() {
 	qdiscs, err := tc.handle.QdiscList(tc.link)
@@ -141,7 +84,7 @@ func (tc *tcWrapper) List() {
 		//  qd.Type(), a.LinkIndex, a.Parent, a.Handle, a.Refcnt)
 	}
 
-	xxxTcGetFilter(tc.handle, tc.link)
+	debugTcPrintFilters(tc.handle, tc.link)
 	fmt.Printf("\n\n\n")
 }
 
@@ -153,7 +96,7 @@ func (tc *tcWrapper) Cleanup() error {
 	return tc.cleanup()
 }
 
-func (tc *tcWrapper) Set(addr xnet.IP, rate uint64) error {
+func (tc *tcWrapper) Set(addr xnet.IP, rate Rate) error {
 	return tc.setLimit(addr, rate)
 }
 
@@ -192,7 +135,7 @@ func (tc *tcWrapper) init() error {
 		Parent:    netlink.HANDLE_ROOT,
 	}
 	defaultHtbAttrs := netlink.HtbClassAttrs{
-		Rate: tc.defaultRate,
+		Rate: uint64(tc.defaultRate),
 	}
 
 	// note: NewHtbClass divides rates by 8 giving bytes per second.
@@ -209,7 +152,7 @@ func (tc *tcWrapper) init() error {
 		Parent:    netlink.HANDLE_ROOT,
 	}
 	parentHtbAttrs := netlink.HtbClassAttrs{
-		Rate: tc.parentRate,
+		Rate: uint64(tc.parentRate),
 	}
 
 	parentHTB := netlink.NewHtbClass(parentClassAttrs, parentHtbAttrs)
@@ -220,48 +163,21 @@ func (tc *tcWrapper) init() error {
 	return nil
 }
 
-func xxxTcGetFilter(h *netlink.Handle, link netlink.Link) {
-	filters, err := h.FilterList(link, netlink.MakeHandle(1, 0))
-	if err != nil {
-		fmt.Printf("failed to list filters :: %v\n", err)
-		return
-	}
-
-	handleStrDec := func(v uint32) string {
-		ma, mi := netlink.MajorMinor(v)
-		return fmt.Sprintf("%d:%d", ma, mi)
-	}
-
-	for _, f := range filters {
-		// a := f.Attrs()
-		fmt.Printf("type = %T, %s\n", f, f.Type())
-		fmt.Printf("  attrs = %s\n", f.Attrs().String())
-		u32 := f.(*netlink.U32)
-
-		fmt.Printf("  u32.parent = %d %x %s\n", u32.Parent, u32.Parent, handleStrDec(u32.Parent))
-		fmt.Printf("  u32.handle = %d %x %s\n", u32.Handle, u32.Handle, handleStrDec(u32.Handle))
-		fmt.Printf("  u32.hash = %d %x\n", u32.Hash, u32.Hash)
-		fmt.Printf("  u32.classid = %d %x %s\n", u32.ClassId, u32.ClassId, handleStrDec(u32.ClassId))
-
-		sel, _ := json.Marshal(u32.Sel)
-		fmt.Printf("  u32.sel = %s\n", string(sel))
-		for i, act := range u32.Actions {
-			fmt.Printf("    u32.action.%d = type=%s attrs=%s\n", i, act.Type(), act.Attrs().String())
-		}
-	}
-}
-
 func handleForIP(ip xnet.IP) uint32 {
-	// todo: max handle is 1:9999, so we have to track how many handles we
-	//  have allocated so far.
-	minor := uint16(0x0000ffff & ip.ToUint32())
-	h := netlink.MakeHandle(1, minor)
-	fmt.Printf("handleForIP %s -> %d:%d (%d %x)\n", ip.String(), 1, minor, h, h)
-	return h
+	// use last 12 bits as a handleID.
+	// it may lead to the ID clashes and not suitable
+	// for a large networks, But we're good while
+	// we're using /24 as a default.
+	// node that filter handle ID is has 12bit size as well,
+	// so seems like we are limited with 4096 filtered hosts
+	// with this solution.
+	// We have to group hosts in some smart way to overcome this limit.
+	minor := uint16(0xfff & ip.ToUint32())
+	return netlink.MakeHandle(1, minor)
 }
 
 // returns the assigned FILTER handle
-func (tc *tcWrapper) setLimit(addr xnet.IP, rate uint64) error {
+func (tc *tcWrapper) setLimit(addr xnet.IP, rate Rate) error {
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
 
@@ -277,19 +193,13 @@ func (tc *tcWrapper) setLimit(addr xnet.IP, rate uint64) error {
 		Parent:    netlink.MakeHandle(1, 1),
 	}
 	htbAttrs := netlink.HtbClassAttrs{
-		Rate: rate,
+		Rate: uint64(rate),
 	}
 
 	class := netlink.NewHtbClass(classAttrs, htbAttrs)
 	if err := tc.handle.ClassAdd(class); err != nil {
 		return fmt.Errorf("tc: failed to add class for %s: %v", addr.String(), err)
 	}
-
-	// tc filter add dev $DEV parent 1:0 protocol ip prio 1 u32 match ip dst 10.235.0.154/32 flowid 1:154
-	/*
-	   type = *netlink.U32, u32
-	     attrs = {LinkIndex: 1020, Handle: 8000:800, Parent: 1:0, Priority: 1, Protocol: 2048}
-	*/
 
 	/*
 	   //  form https://www.infradead.org/~tgr/libnl/doc/api/group__cls__u32.html#gaace3c52edfb9859a6586541ece0b144e
@@ -302,13 +212,6 @@ func (tc *tcWrapper) setLimit(addr xnet.IP, rate uint64) error {
 	     * @arg offmask offset mask
 	*/
 
-	/*
-	   Thus, SELECTOR:
-	       Val -> IP uint32
-	       Mask -> 255.255.255.255 uint32 ( we always match on a particular src addr )
-	       Off -> 16, the position of the src addr in IP header
-	       OffMask -> 0.
-	*/
 	selector := netlink.TcU32Sel{
 		Flags: netlink.TC_U32_TERMINAL,
 		Nkeys: 1, // number of keys right below
@@ -349,7 +252,6 @@ func (tc *tcWrapper) setLimit(addr xnet.IP, rate uint64) error {
 	for _, f := range filters {
 		u32, ok := f.(*netlink.U32)
 		if !ok {
-			fmt.Printf("XXX wtf? want `*netlink.U32`, got %T\n", f)
 			continue
 		}
 
@@ -378,8 +280,6 @@ func isSameFilter(a, b *netlink.U32) bool {
 	}
 	return false
 }
-
-const globalTmpFilerID = uint32(0xface)
 
 func (tc *tcWrapper) removeLimit(addr xnet.IP) error {
 	tc.mu.Lock()
@@ -415,4 +315,35 @@ func (tc *tcWrapper) removeLimit(addr xnet.IP) error {
 
 	delete(tc.ipToFilterHandler, addr.ToUint32())
 	return nil
+}
+
+func debugTcPrintFilters(h *netlink.Handle, link netlink.Link) {
+	filters, err := h.FilterList(link, netlink.MakeHandle(1, 0))
+	if err != nil {
+		fmt.Printf("failed to list filters :: %v\n", err)
+		return
+	}
+
+	handleStrDec := func(v uint32) string {
+		ma, mi := netlink.MajorMinor(v)
+		return fmt.Sprintf("%d:%d", ma, mi)
+	}
+
+	for _, f := range filters {
+		// a := f.Attrs()
+		fmt.Printf("type = %T, %s\n", f, f.Type())
+		fmt.Printf("  attrs = %s\n", f.Attrs().String())
+		u32 := f.(*netlink.U32)
+
+		fmt.Printf("  u32.parent = %d %x %s\n", u32.Parent, u32.Parent, handleStrDec(u32.Parent))
+		fmt.Printf("  u32.handle = %d %x %s\n", u32.Handle, u32.Handle, handleStrDec(u32.Handle))
+		fmt.Printf("  u32.hash = %d %x\n", u32.Hash, u32.Hash)
+		fmt.Printf("  u32.classid = %d %x %s\n", u32.ClassId, u32.ClassId, handleStrDec(u32.ClassId))
+
+		sel, _ := json.Marshal(u32.Sel)
+		fmt.Printf("  u32.sel = %s\n", string(sel))
+		for i, act := range u32.Actions {
+			fmt.Printf("    u32.action.%d = type=%s attrs=%s\n", i, act.Type(), act.Attrs().String())
+		}
+	}
 }
