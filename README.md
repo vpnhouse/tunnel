@@ -54,7 +54,7 @@ $ docker run -d \
     -p 443:443 \           # publish web admin port (SSL)
     -p 3000:3000/udp \     # publish Wireguard port
     -v $(pwd)/vpnhouse-data/:/opt/vpnhouse/tunnel/ \  # mount a host directory with configs
-    vpnhouse/tunnel:v0.2.3
+    vpnhouse/tunnel:v0.2.4
 ```
 
 Or, you may use the following [docker-compose](https://raw.githubusercontent.com/vpnhouse/tunnel/main/docs/docker-compose.yaml) file.
