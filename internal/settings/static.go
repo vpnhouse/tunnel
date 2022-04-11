@@ -34,10 +34,9 @@ const (
 	configFileName   = "config.yaml"
 )
 
-type NetworkPolicy struct {
-	MaxBandwidth ipam.Rate `yaml:"total_bandwidth,omitempty"`
-	PerClient    ipam.Rate `yaml:"per_client,omitempty"`
-	AccessPolicy int       `yaml:"access_policy,omitempty"`
+type NetworkAccessPolicy struct {
+	Access    ipam.NetworkAccess      `yaml:"access"`
+	RateLimit *ipam.RateLimiterConfig `yaml:"rate_limit,omitempty"`
 }
 
 type Config struct {
@@ -48,7 +47,7 @@ type Config struct {
 	HTTP       HttpConfig       `yaml:"http"`
 
 	// optional configuration
-	NetworkPolicy      *NetworkPolicy          `yaml:"network_policy,omitempty"`
+	NetworkPolicy      *NetworkAccessPolicy    `yaml:"network,omitempty"`
 	SSL                *xhttp.SSLConfig        `yaml:"ssl,omitempty"`
 	Domain             *xhttp.DomainConfig     `yaml:"domain,omitempty"`
 	AdminAPI           *AdminAPIConfig         `yaml:"admin_api,omitempty"`
@@ -66,10 +65,10 @@ type Config struct {
 	mu sync.RWMutex
 }
 
-func (s *Config) GetNetworkAccessPolicy() NetworkPolicy {
+func (s *Config) GetNetworkAccessPolicy() NetworkAccessPolicy {
 	if s.NetworkPolicy == nil {
-		return NetworkPolicy{
-			AccessPolicy: ipam.AccessPolicyAll,
+		return NetworkAccessPolicy{
+			Access: ipam.NetworkAccess{DefaultPolicy: ipam.AccessPolicyInternetOnly},
 		}
 	}
 	return *s.NetworkPolicy

@@ -40,47 +40,65 @@ type IPAM struct {
 	ipp        *ippool.IPv4pool
 }
 
-type Options struct {
-	Subnet       *xnet.IPNet
-	Interface    string
-	MaxBandwidth Rate
-	PeerDefaults Policy
+/*
+network:
+	access:
+		default_policy: allow_all
+	rate_limit:
+		total_bandwidth: 100500mbps
+*/
+
+type NetworkAccess struct {
+	DefaultPolicy int `yaml:"default_policy,omitempty"`
 }
 
-func New(opts Options) (*IPAM, error) {
-	if opts.PeerDefaults.Access == 0 {
+type RateLimiterConfig struct {
+	TotalBandwidth Rate `yaml:"total_bandwidth,omitempty"`
+}
+
+type Config struct {
+	Subnet       *xnet.IPNet
+	Interface    string
+	AccessPolicy NetworkAccess
+	RateLimiter  *RateLimiterConfig
+}
+
+func New(cfg Config) (*IPAM, error) {
+	if cfg.AccessPolicy.DefaultPolicy == AccessPolicyDefault {
 		return nil, fmt.Errorf("no default access policy given")
 	}
-	if opts.Subnet == nil {
+	if cfg.Subnet == nil {
 		return nil, fmt.Errorf("no peers subnet given")
 	}
-	if len(opts.Interface) == 0 {
+	if len(cfg.Interface) == 0 {
 		return nil, fmt.Errorf("no network interfce name given")
 	}
-
-	// setting the same values for root and default policies
-	// means that the peers must share the link evenly and
-	// one can borrow the whole channel if there are no other consumers.
-	// This feels pretty reasonable  for the SOHO usage.
-	defaultBW := 100 * Mbitps
-	if opts.MaxBandwidth == 0 {
-		opts.MaxBandwidth = defaultBW
-	}
-	if opts.PeerDefaults.RateLimit == 0 {
-		opts.PeerDefaults.RateLimit = defaultBW
+	if cfg.RateLimiter != nil {
+		if cfg.RateLimiter.TotalBandwidth == 0 {
+			return nil, fmt.Errorf("no total_bandwidth value given")
+		}
 	}
 
-	ipPool, err := ippool.NewIPv4FromSubnet(opts.Subnet)
+	ipPool, err := ippool.NewIPv4FromSubnet(cfg.Subnet)
 	if err != nil {
 		return nil, err
 	}
 
-	tc, err := newTrafficControl(opts.Interface, opts.PeerDefaults.RateLimit, opts.MaxBandwidth)
-	if err != nil {
-		return nil, err
+	var tc trafficControl
+	if cfg.RateLimiter != nil {
+		// init the TC subsystem only if we have a reasonable config for it.
+		// We cannot "just" initialize the TC without any rules because in that case
+		// any peer's traffic will be treated as unclassified and will be placed in the
+		// corresponding (very slow) pipe. So here no TC config -> no TC at all.
+		tc, err = newTrafficControl(cfg.Interface, cfg.RateLimiter.TotalBandwidth)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		tc = newNopTrafficControl()
 	}
 
-	nf := newNetfilter(opts.Subnet)
+	nf := newNetfilter(cfg.Subnet)
 	if err := nf.init(); err != nil {
 		return nil, err
 	}
@@ -89,14 +107,14 @@ func New(opts Options) (*IPAM, error) {
 		return nil, err
 	}
 
-	if opts.PeerDefaults.Access == AccessPolicyInternetOnly {
-		if err := nf.newIsolateAllRule(opts.Subnet); err != nil {
+	if cfg.AccessPolicy.DefaultPolicy == AccessPolicyInternetOnly {
+		if err := nf.newIsolateAllRule(cfg.Subnet); err != nil {
 			return nil, err
 		}
 	}
 
 	return &IPAM{
-		defaultPol: opts.PeerDefaults.Access,
+		defaultPol: cfg.AccessPolicy.DefaultPolicy,
 		ipp:        ipPool,
 		nf:         nf,
 		tc:         tc,

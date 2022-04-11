@@ -40,7 +40,7 @@ type tcWrapper struct {
 	ipToFilterHandler map[uint32]uint32
 }
 
-func newTrafficControl(iface string, defaultRate Rate, parentRate Rate) (trafficControl, error) {
+func newTrafficControl(iface string, parentRate Rate) (trafficControl, error) {
 	wgLink, err := netlink.LinkByName(iface)
 	if err != nil {
 		return nil, err
@@ -55,8 +55,8 @@ func newTrafficControl(iface string, defaultRate Rate, parentRate Rate) (traffic
 		link:              wgLink,
 		handle:            handle,
 		ipToFilterHandler: map[uint32]uint32{},
-		defaultRate:       defaultRate,
-		parentRate:        parentRate,
+		defaultRate:       1 * Mbitps, // unclassified traffic only
+		parentRate:        parentRate, // all available bandwidth
 	}, nil
 }
 
