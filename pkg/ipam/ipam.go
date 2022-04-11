@@ -13,17 +13,8 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xnet"
 )
 
-const (
-	AccessPolicyDefault = iota
-	// AccessPolicyInternetOnly allows peer to access only
-	// internet resources but not its network neighbours.
-	AccessPolicyInternetOnly
-	// AccessPolicyAll allows peer to access internet resources
-	// as well ass connecting to their network neighbours.
-	// This is a trusted policy.
-	AccessPolicyAll
-)
-
+// Policy define peer's network access rules.
+// What peer it can talk to, and on what bandwidth.
 type Policy struct {
 	Access    int
 	RateLimit Rate
@@ -40,22 +31,6 @@ type IPAM struct {
 	ipp        *ippool.IPv4pool
 }
 
-/*
-network:
-	access:
-		default_policy: allow_all
-	rate_limit:
-		total_bandwidth: 100500mbps
-*/
-
-type NetworkAccess struct {
-	DefaultPolicy int `yaml:"default_policy,omitempty"`
-}
-
-type RateLimiterConfig struct {
-	TotalBandwidth Rate `yaml:"total_bandwidth,omitempty"`
-}
-
 type Config struct {
 	Subnet       *xnet.IPNet
 	Interface    string
@@ -64,7 +39,7 @@ type Config struct {
 }
 
 func New(cfg Config) (*IPAM, error) {
-	if cfg.AccessPolicy.DefaultPolicy == AccessPolicyDefault {
+	if cfg.AccessPolicy.DefaultPolicy.Int() == AccessPolicyDefault {
 		return nil, fmt.Errorf("no default access policy given")
 	}
 	if cfg.Subnet == nil {
@@ -107,14 +82,14 @@ func New(cfg Config) (*IPAM, error) {
 		return nil, err
 	}
 
-	if cfg.AccessPolicy.DefaultPolicy == AccessPolicyInternetOnly {
+	if cfg.AccessPolicy.DefaultPolicy.Int() == AccessPolicyInternetOnly {
 		if err := nf.newIsolateAllRule(cfg.Subnet); err != nil {
 			return nil, err
 		}
 	}
 
 	return &IPAM{
-		defaultPol: cfg.AccessPolicy.DefaultPolicy,
+		defaultPol: cfg.AccessPolicy.DefaultPolicy.Int(),
 		ipp:        ipPool,
 		nf:         nf,
 		tc:         tc,
@@ -154,7 +129,7 @@ func (m *IPAM) allocate(pol Policy) (xnet.IP, error) {
 		pol.Access = m.defaultPol
 	}
 
-	if m.defaultPol == AccessPolicyInternetOnly && pol.Access == AccessPolicyAll {
+	if m.defaultPol == AccessPolicyInternetOnly && pol.Access == AccessPolicyAllowAll {
 		// cannot satisfy this policy yet, fallback to internet only
 		pol.Access = AccessPolicyInternetOnly
 	}
@@ -173,7 +148,7 @@ func (m *IPAM) allocate(pol Policy) (xnet.IP, error) {
 
 // applyPolicy pol to a given addr, the address must be set/allocated.
 func (m *IPAM) applyPolicy(addr xnet.IP, pol Policy) error {
-	if pol.Access == AccessPolicyInternetOnly && m.defaultPol == AccessPolicyAll {
+	if pol.Access == AccessPolicyInternetOnly && m.defaultPol == AccessPolicyAllowAll {
 		if err := m.nf.newIsolatePeerRule(addr); err != nil {
 			// return an address back to the pool
 			_ = m.ipp.Unset(addr)
