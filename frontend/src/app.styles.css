@@ -1,0 +1,24 @@
+html, body {
+  height: 100%;
+  margin: 0
+}
+
+:root {
+  --secondary-main: #284362;
+
+  --paper: #17283C;
+}
+
+/** Scroll bar customisation */
+body *::-webkit-scrollbar {
+  width: 10px;
+  background-color: var(--paper);
+}
+
+body *::-webkit-scrollbar-thumb {
+  background-color: var(--secondary-main);
+}
+
+body {
+  scrollbar-color: var(--secondary-main) var(--paper);
+}
