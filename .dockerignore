@@ -1,0 +1,8 @@
+./LICENSE
+./README
+./tunnel-node
+./.github
+./docs
+./vpnhouse-data
+Dockerfile
+*.Dockerfile

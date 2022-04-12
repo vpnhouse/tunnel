@@ -3,4 +3,22 @@ api/update.sh
 tunnel-node
 ./dynamic.yaml
 
-internal/frontend/dist/
+# compiled output
+/frontend/dist
+/internal/frontend/dist
+
+# dependencies
+/frontend/node_modules
+
+# IDEs and editors
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+
+#env
+.env

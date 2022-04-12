@@ -1,0 +1,59 @@
+{
+    "compilerOptions": {
+      "jsx": "react",
+      "target": "ES2020",
+      "module": "ES2020",
+      "outDir": "dist",
+      "strict": true,
+      "baseUrl": "./",
+      "allowSyntheticDefaultImports": true,
+      "allowUmdGlobalAccess": true,
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "sourceMap": true,
+      "declaration": true,
+      "typeRoots": [
+        "node_modules/@types"
+      ],
+      "paths": {
+        "@root/*": [
+          "./src/*"
+        ],
+        "@constants/*": [
+          "./src/constants/*"
+        ],
+        "@common/*": [
+          "./src/common/*"
+        ],
+        "@context": [
+          "./src/context"
+        ],
+        "@config": [
+          "./src/config.json"
+        ],
+        "@schema": [
+          "./schema.ts"
+        ],
+        "@apiHooks/*": [
+          "./src/apiHooks/*"
+        ]
+      },
+      "types": [
+        "node"
+      ]
+    },
+    "lint-staged": {
+      "concurrent": false
+    },
+    "exclude": [
+      "./node_modules",
+      "./dist",
+      "./webpack"
+    ],
+    "include": [
+      "src",
+      "src/custom.d.ts"
+    ]
+  }

@@ -27,6 +27,6 @@ jobs:
         with:
           context: .
           build-args: TARGET=build/personal
-          file: docker/tunnel/Dockerfile
+          file: Dockerfile
           push: true
           tags: vpnhouse/tunnel:${{ steps.get_version.outputs.TAG_VERSION }}
