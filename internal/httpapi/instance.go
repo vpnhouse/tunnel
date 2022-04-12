@@ -19,16 +19,10 @@ import (
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/pkg/auth"
+	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xnet"
 	"go.uber.org/zap"
 )
-
-type IpPool interface {
-	Available() (xnet.IP, error)
-	IsAvailable(ip xnet.IP) bool
-	Alloc(pol int) (xnet.IP, error)
-}
 
 type TunnelAPI struct {
 	runtime    *runtime.TunnelRuntime
@@ -37,7 +31,7 @@ type TunnelAPI struct {
 	authorizer *authorizer.JWTAuthorizer
 	storage    *storage.Storage
 	keystore   federation_keys.Keystore
-	ippool     IpPool
+	ippool     *ipam.IPAM
 	running    bool
 }
 
@@ -48,7 +42,7 @@ func NewTunnelHandlers(
 	authorizer *authorizer.JWTAuthorizer,
 	storage *storage.Storage,
 	keystore federation_keys.Keystore,
-	ippool IpPool,
+	ip4am *ipam.IPAM,
 ) *TunnelAPI {
 	instance := &TunnelAPI{
 		runtime:    runtime,
@@ -57,7 +51,7 @@ func NewTunnelHandlers(
 		authorizer: authorizer,
 		storage:    storage,
 		keystore:   keystore,
-		ippool:     ippool,
+		ippool:     ip4am,
 		running:    true,
 	}
 

@@ -12,78 +12,10 @@ import (
 
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
+	"go.uber.org/zap"
 )
-
-func listNFTObjects(nft *nftables.Conn) {
-	tables, err := nft.ListTables()
-	if err != nil {
-		panic(err)
-	}
-	for _, t := range tables {
-		fmt.Println("table:", t.Name, t.Family, t.Use, t.Flags)
-	}
-
-	fmt.Println("*****************")
-	chains, err := nft.ListChains()
-	if err != nil {
-		panic(err)
-	}
-	for _, c := range chains {
-		fmt.Println("chain: ", c.Name, "table", c.Table.Name, "type", c.Type, "hook", hookname(c.Hooknum), "prio", c.Priority, "pol", pol(c.Policy))
-		rules, err := nft.GetRule(c.Table, c)
-		if err != nil {
-			panic(err)
-		}
-		for _, r := range rules {
-			fmt.Println("  table:", "handle", r.Handle, "pos", r.Position, "flags", r.Flags, "userdata", r.UserData)
-			for _, exp := range r.Exprs {
-				fmt.Println("    ", exptext(exp))
-			}
-		}
-	}
-}
-
-func pol(v *nftables.ChainPolicy) string {
-	if v == nil {
-		return "<nil>"
-	}
-	switch *v {
-	case nftables.ChainPolicyDrop:
-		return "DROP"
-	case nftables.ChainPolicyAccept:
-		return "ACCEPT"
-	default:
-		return fmt.Sprintf("UNKNOWN v=%d", *v)
-	}
-}
-
-func hookname(h nftables.ChainHook) string {
-	switch h {
-	case nftables.ChainHookPrerouting:
-		return "prerouting"
-	case nftables.ChainHookInput:
-		return "input"
-	case nftables.ChainHookForward:
-		return "forward"
-	case nftables.ChainHookOutput:
-		return "output"
-	case nftables.ChainHookPostrouting:
-		return "postrouting"
-	default:
-		return fmt.Sprintf("UNKNOWN v=%d", h)
-	}
-}
-
-func exptext(e expr.Any) string {
-	switch v := e.(type) {
-	case *expr.Meta:
-		return fmt.Sprintf("meta :: key=%d, reg=%d (src? %v)", v.Key, v.Register, v.SourceRegister)
-	// TODO(nikonov):
-	default:
-		return fmt.Sprintf("%T :: %#v", e, e)
-	}
-}
 
 const nftPrefix = "vh_"
 
@@ -122,7 +54,7 @@ func (nft *netfilterWrapper) init() error {
 	nft.enableMasquerade()
 	nft.initIsolation()
 	if err := nft.c.Flush(); err != nil {
-		return fmt.Errorf("nft: failed to init nftables: %v", err)
+		return xerror.EInternalError("nft: failed to init nftables", err)
 	}
 	return nil
 }
@@ -221,7 +153,7 @@ func (nft *netfilterWrapper) newIsolatePeerRule(peerIP xnet.IP) error {
 	})
 
 	if err := nft.c.Flush(); err != nil {
-		return fmt.Errorf("nft: failed to isolate peer: %v", err)
+		return xerror.EInternalError("nft: failed to isolate peer", err)
 	}
 	return nil
 }
@@ -292,7 +224,7 @@ func (nft *netfilterWrapper) newIsolateAllRule(ipNet *xnet.IPNet) error {
 		},
 	})
 	if err := nft.c.Flush(); err != nil {
-		return fmt.Errorf("nft: failed to isolate peer: %v", err)
+		return xerror.EInternalError("nft: failed to isolate all peers", err)
 	}
 	return nil
 }
@@ -300,28 +232,109 @@ func (nft *netfilterWrapper) newIsolateAllRule(ipNet *xnet.IPNet) error {
 func (nft *netfilterWrapper) findAndRemoveRule(id []byte) error {
 	chanis, err := nft.c.ListChains()
 	if err != nil {
-		return fmt.Errorf("nft: failed to list chains: %v", err)
+		return xerror.EInternalError("nft: failed to list chains", err)
 	}
+
 	for _, cn := range chanis {
 		rules, err := nft.c.GetRule(cn.Table, cn)
 		if err != nil {
-			return fmt.Errorf("failed to get rules for %s/%s: %v", cn.Table.Name, cn.Name, err)
+			return xerror.EInternalError("nft: failed to list rules for a chain", err,
+				zap.String("chain", cn.Name), zap.String("table", cn.Table.Name))
 		}
+
 		for _, rule := range rules {
 			if bytes.Equal(rule.UserData, id) {
 				rule.Table.Family = cn.Table.Family // WTF??
-				fmt.Printf("[*] deleting rule id=%x %s/%s handle=%d pos=%d\n",
-					id, rule.Table.Name, rule.Chain.Name, rule.Handle, rule.Position)
+				zap.L().Debug("deleting rule",
+					zap.Any("id", id),
+					zap.String("chain", cn.Name),
+					zap.String("table", cn.Table.Name),
+					zap.Uint64("handle", rule.Handle),
+					zap.Uint64("position", rule.Position))
+
 				if err := nft.c.DelRule(rule); err != nil {
-					return fmt.Errorf("nft: failed to delete rule id=%x: %v", id, err)
+					return xerror.EInternalError("nft: failed to delete rule", err,
+						zap.Any("id", id),
+						zap.String("chain", cn.Name),
+						zap.String("table", cn.Table.Name),
+						zap.Uint64("handle", rule.Handle))
 				}
+
 				if err := nft.c.Flush(); err != nil {
-					return fmt.Errorf("nft: failed to delete rule id=%x: %v", id, err)
+					return xerror.EInternalError("nft: failed to delete rule", err,
+						zap.Any("id", id),
+						zap.String("chain", cn.Name),
+						zap.String("table", cn.Table.Name),
+						zap.Uint64("handle", rule.Handle))
 				}
 				return nil
 			}
 		}
 	}
 
-	return fmt.Errorf("nft: no rule with given ID were found")
+	return xerror.EInternalError("nft", errRuleNotFound, zap.Any("id", id))
+}
+
+func listNFTObjects(nft *nftables.Conn) {
+	tables, err := nft.ListTables()
+	if err != nil {
+		panic(err)
+	}
+	for _, t := range tables {
+		fmt.Println("table:", t.Name, t.Family, t.Use, t.Flags)
+	}
+
+	fmt.Println("*****************")
+	chains, err := nft.ListChains()
+	if err != nil {
+		panic(err)
+	}
+	for _, c := range chains {
+		fmt.Println("chain: ", c.Name, "table", c.Table.Name, "type", c.Type, "hook", hookText(c.Hooknum), "prio", c.Priority, "policyText", policyText(c.Policy))
+		rules, err := nft.GetRule(c.Table, c)
+		if err != nil {
+			panic(err)
+		}
+		for _, r := range rules {
+			fmt.Println("  table:", "handle", r.Handle, "pos", r.Position, "flags", r.Flags, "userdata", r.UserData)
+			for _, exp := range r.Exprs {
+				fmt.Println("    ", expressionText(exp))
+			}
+		}
+	}
+}
+
+func policyText(v *nftables.ChainPolicy) string {
+	if v == nil {
+		return "<nil>"
+	}
+	switch *v {
+	case nftables.ChainPolicyDrop:
+		return "DROP"
+	case nftables.ChainPolicyAccept:
+		return "ACCEPT"
+	default:
+		return fmt.Sprintf("UNKNOWN v=%d", *v)
+	}
+}
+
+func hookText(h nftables.ChainHook) string {
+	switch h {
+	case nftables.ChainHookPrerouting:
+		return "prerouting"
+	case nftables.ChainHookInput:
+		return "input"
+	case nftables.ChainHookForward:
+		return "forward"
+	case nftables.ChainHookOutput:
+		return "output"
+	case nftables.ChainHookPostrouting:
+		return "postrouting"
+	default:
+		return fmt.Sprintf("UNKNOWN v=%d", h)
+	}
+}
+
+func expressionText(e expr.Any) string {
+	return fmt.Sprintf("%T :: %#v", e, e)
 }

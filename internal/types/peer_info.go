@@ -43,13 +43,23 @@ type PeerInfo struct {
 	SharingKeyExpiration *int64  `db:"sharing_key_expiration"`
 
 	NetworkAccessPolicy *int `db:"net_access_policy"`
+	RateLimit           *int `db:"net_rate_limit"`
 }
 
-func (peer *PeerInfo) GetNetworkPolicy() int {
-	if peer.NetworkAccessPolicy != nil {
-		return *peer.NetworkAccessPolicy
+func (peer *PeerInfo) GetNetworkPolicy() ipam.Policy {
+	pol := ipam.Policy{
+		RateLimit: 0,
+		Access:    ipam.AccessPolicyDefault,
 	}
-	return ipam.AccessPolicyDefault
+
+	if peer.NetworkAccessPolicy != nil {
+		pol.Access = *peer.NetworkAccessPolicy
+	}
+	if peer.RateLimit != nil {
+		pol.RateLimit = ipam.Rate(*peer.RateLimit)
+	}
+
+	return pol
 }
 
 func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
