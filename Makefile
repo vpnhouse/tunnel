@@ -17,54 +17,39 @@ endif
 
 DESCRIPTION = tunnel $(GIT_TAG)-$(GIT_COMMIT) branch $(GIT_BRANCH)
 GO_VERSION_PATH = github.com/vpnhouse/tunnel/pkg/version
-GO_LDFLAGS = -w -s -X $(GO_VERSION_PATH).tag=$(GIT_TAG) -X $(GO_VERSION_PATH).commit=$(GIT_COMMIT)
-GO_LDFLAGS_ENTERPRISE = $(GO_LDFLAGS) -X $(GO_VERSION_PATH).feature=enterprise
-GO_LDFLAGS_PERSONAL = $(GO_LDFLAGS) -X $(GO_VERSION_PATH).feature=personal
-
+GO_LDFLAGS = -w -s -X $(GO_VERSION_PATH).tag=$(GIT_TAG) -X $(GO_VERSION_PATH).commit=$(GIT_COMMIT) -X $(GO_VERSION_PATH).feature=personal
 DOCKER_IMAGE ?= vpnhouse/tunnel:$(DOCKER_TAG)
-DOCKER_IMAGE_ENTERPRISE ?= vpnhouse/tunnel:cloud-$(DOCKER_TAG)
-DOCKER_BUILD_ARGS = --progress=plain --platform=linux/amd64
+DOCKER_BUILD_ARGS = --progress=plain --platform=linux/amd64 --file ./Dockerfile
+
+run:
+	go run ./cmd/tunnel/main.go
+
+# its important to build the frontend first
+# because the app will embed it into itself
+build/all: build/frontend build/app
+
+build/app:
+	@echo "+ $@ $(DESCRIPTION)"
+	go build -ldflags="$(GO_LDFLAGS)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
+
+build/frontend:
+	@echo "+ $@ $(DESCRIPTION)"
+	rm -rf ./frontend/dist
+	rm -rf ./internal/frontend/dist && mkdir ./internal/frontend/dist
+	touch ../tunnel/internal/frontend/dist/stub.html
+	cd ./frontend && npm run build
+	cp -r ./frontend/dist/* ./internal/frontend/dist/
 
 
-run: run/personal
+docker/all: docker/build docker/push
 
-build: build/personal
-
-docker/build: docker/build/personal
-
-docker/push: docker/push/personal
-
-
-run/personal: build/personal
-	@./tunnel-node
-
-build/personal:
-	@echo "+ $@ $(DESCRIPTION) (personal)"
-	go build -ldflags="$(GO_LDFLAGS_PERSONAL)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
-
-docker/build/personal:
+docker/build:
 	@echo "+ $@ $(DOCKER_IMAGE)"
-	docker build $(DOCKER_BUILD_ARGS) --tag $(DOCKER_IMAGE) --build-arg TARGET="build/personal" --file ./docker/tunnel/Dockerfile .
+	docker build $(DOCKER_BUILD_ARGS) --tag $(DOCKER_IMAGE) .
 
-docker/push/personal:
+docker/push:
 	@echo "+ $@ $(DOCKER_IMAGE)"
 	@docker push $(DOCKER_IMAGE)
-
-run/enterprise: build/enterprise
-	@./tunnel-node
-
-build/enterprise:
-	@echo "+ $@ $(DESCRIPTION) (enterprise)"
-	go build -ldflags="$(GO_LDFLAGS_ENTERPRISE)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
-
-docker/build/enterprise:
-	@echo "+ $@ $(DOCKER_IMAGE_ENTERPRISE)"
-	docker build $(DOCKER_BUILD_ARGS) --tag $(DOCKER_IMAGE_ENTERPRISE) --build-arg TARGET="build/enterprise" --file ./docker/tunnel/Dockerfile .
-
-docker/push/enterprise:
-	@echo "+ $@ $(DOCKER_IMAGE_ENTERPRISE)"
-	@docker push $(DOCKER_IMAGE_ENTERPRISE)
-
 
 test:
 	@echo "+ $@"
