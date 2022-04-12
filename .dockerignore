@@ -6,3 +6,4 @@
 ./vpnhouse-data
 Dockerfile
 *.Dockerfile
+./frontend/node_modules/
