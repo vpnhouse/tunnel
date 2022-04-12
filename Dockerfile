@@ -7,7 +7,7 @@ FROM node:16-alpine3.14 as nodejs
 
 COPY ./frontend /app/
 WORKDIR /app
-RUN npm run build
+RUN npm install && npm run build
 
 
 FROM toolset as builder
