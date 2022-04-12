@@ -199,6 +199,7 @@ func importPeer(oPeer adminAPI.Peer, id int64) (types.PeerInfo, error) {
 		PeerIdentifiers:     *identifiers,
 		WireguardInfo:       wg,
 		NetworkAccessPolicy: (*int)(oPeer.NetAccessPolicy),
+		RateLimit:           oPeer.RateLimit,
 	}
 
 	return peer, nil
@@ -268,6 +269,7 @@ func exportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
 		Claims:          peer.Claims,
 		Identifiers:     exportIdentifiers(&peer.PeerIdentifiers),
 		NetAccessPolicy: (*adminAPI.PeerNetAccessPolicy)(peer.NetworkAccessPolicy),
+		RateLimit:       peer.RateLimit,
 	}
 
 	return oPeer, nil

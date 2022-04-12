@@ -13,7 +13,33 @@ rapidoc: true
 
 # configuration of the HTTP default server
 http:
-  listen_addr: :80
+  listen_addr: "0.0.0.0:80"
+  # enable CORS for local development
+  # optional, default: false
+  cors: false
+ 
+# we can also serve SSL traffic with valid certificates by LetsEncrypt.
+# Please take a look at the section `domain` below.
+ssl:
+  listen_addr: :443
+  
+# how this instance may be referenced by the DNS name?
+domain:
+  # mode can be "direct" or "reverse-proxy".
+  # direct means that the instance handle the internet traffic by its own,
+  # thus it also must serve the SSL certificate (if any).
+  # the "reverse-proxy" mode means that there is a web server (nginx, apache, traefic, etc) 
+  # in front of the instance, so this web server handles SSL traffic, so we don't have to
+  # do anything with it.
+  mode: "direct" # or "reverse-proxy"
+  # domain name, in case of mode=direct we'll try to issue the SSL certificate for this name.
+  name: "xxx.themachine.org"
+  # should we issue the certificate? works only with "mode=direct",
+  # requires setting the `ssl.listen_addr` option (see above).
+  issue_ssl: true
+  # where to store issued certificate bundles,
+  # equals to the configuration directory in most cases.
+  dir: /opt/vpnhouse/tunnel
 
 wireguard:
     # interface name, the interface will be allocated automatically
@@ -37,17 +63,23 @@ wireguard:
         - 8.8.4.4
     # wireguard private key, generated automatically on the first start 
     private_key: 4BsYp8MzCvIgIwQrHIj9LW7Njrq4QoM1BR7HNC/1j1k=
+    
+network:
+  access:
+    # can be "internet_only" or "allow_all",
+    # the latter allows peers to talk to each other
+    # like in a normal old-school LANs. 
+    default_policy: "internet_only"
+  rate_limit:
+    # total available bandwidth, used for packets scheduling via tc.
+    # use k or K for Kbps,
+    # m or M for Mbps,
+    # g or G for Gbps.
+    total_bandwidth: "250M"
           
 admin_api:  # desc
-    # login for the admin interface, may be changed via the setting UI.
-    user_name: admin
     # password hash for the admin interface, may be changed via the setting UI.
-    password_hash: $s2$16384$8$1$8zQCf7uWVjbbJ4+HjqTNEzON$dCf/5RdX50464N/JQT6ZJKDZ6VMN74lvHKxw6ooi/YA=
-
-ssl: # optional SSL & LetsEncrypt configuration
-    domain: "the-machine.example.com"  # DNS name to issue certificate with
-    listen_addr: ":443"                # listen address for HTTPS server
-    dir: "/opt/vpnhouse/tunnel/"        # directory to cache SSL certificates data
+    password_hash: "$s2$16384$8$1$8zQCf7uWVjbbJ4+HjqTNEzON$dCf/5RdX50464N/JQT6ZJKDZ6VMN74lvHKxw6ooi/YA="
 ```
 
 Note that all the necessary configuration options can be provided via the web UI  and does not require the service (or container) restart.
