@@ -122,6 +122,8 @@ type HttpConfig struct {
 	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`
 	// CORS enables corresponding middleware for the local development
 	CORS bool `yaml:"cors"`
+	// Enable prometheus metrics on "/metrics" path
+	Prometheus bool `yaml:"prometheus"`
 }
 
 type AdminAPIConfig struct {

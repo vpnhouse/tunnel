@@ -127,9 +127,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keystore, ipv4am)
 
 	xHttpAddr := runtime.Settings.HTTP.ListenAddr
-	xhttpOpts := []xhttp.Option{
-		xhttp.WithLogger(),
-		xhttp.WithMetrics(),
+	xhttpOpts := []xhttp.Option{xhttp.WithLogger()}
+	if runtime.Settings.HTTP.Prometheus {
+		xhttpOpts = append([]xhttp.Option{xhttp.WithMetrics()}, xhttpOpts...)
 	}
 	if runtime.Settings.HTTP.CORS {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithCORS()}, xhttpOpts...)
