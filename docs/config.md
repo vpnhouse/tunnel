@@ -17,6 +17,8 @@ http:
   # enable CORS for local development
   # optional, default: false
   cors: false
+  # expose prometheus counters on /metrics
+  prometheus: true
  
 # we can also serve SSL traffic with valid certificates by LetsEncrypt.
 # Please take a look at the section `domain` below.
