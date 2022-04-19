@@ -141,6 +141,7 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 			Schema:     adminAPI.DomainConfigSchema(s.Domain.Schema),
 		}
 	}
+	sendStats := s.ExternalStats != nil && s.ExternalStats.Enabled
 	return adminAPI.Settings{
 		ConnectionTimeout:  &s.GetPublicAPIConfig().PeerTTL,
 		Dns:                &s.Wireguard.DNS,
@@ -153,6 +154,7 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 		WireguardServerIpv4: &s.Wireguard.ServerIPv4,
 		WireguardSubnet:     &subnet,
 		Domain:              dc,
+		SendStats:           &sendStats,
 	}
 }
 
@@ -207,7 +209,11 @@ func (tun *TunnelAPI) mergeStaticSettings(current *settings.Config, s adminAPI.S
 	}
 
 	if s.SendStats != nil && *s.SendStats {
-		current.ExternalStats = extstat.Defaults()
+		if current.ExternalStats == nil {
+			current.ExternalStats = extstat.Defaults()
+		} else {
+			current.ExternalStats.Enabled = true
+		}
 	}
 
 	return nil
