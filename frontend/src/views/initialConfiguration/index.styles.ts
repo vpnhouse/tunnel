@@ -55,6 +55,15 @@ const useStyles = makeStyles(({ palette, zIndex, typography }) =>
       alignItems: 'center',
       padding: '24px 48px',
       backgroundColor: `${palette.background.paper}CC` // 80% opacity
+    },
+    checkboxWrapper: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: 8
+    },
+    checkbox: {
+      padding: 0,
+      paddingRight: 9
     }
   }));
 

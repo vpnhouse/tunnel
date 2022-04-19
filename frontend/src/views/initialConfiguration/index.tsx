@@ -12,6 +12,7 @@ import { $initialSetup, setInitialSetupFx } from '@root/store/initialSetup';
 import { setGlobalLoading } from '@root/store/globalLoading';
 import DomainConfiguration from '@common/components/DomainConfiguration';
 import { Mode, ProxySchema } from '@root/common/components/DomainConfiguration/types';
+import Checkbox from '@common/ui-kit/components/Checkbox';
 
 import { INVALID_SYMBOLS, PATTERN_ERRORS, SYMBOL_ERRORS, SYMBOL_SCHEMES } from '../settings/index.constants';
 import useStyles from './index.styles';
@@ -26,6 +27,7 @@ const InitialConfiguration = () => {
   const isLoading = useStore($loadingStore);
 
   const [withDomain, setWidthDomain] = useState(false);
+  const [sendStats, setSendStats] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationError, setValidationError] = useState<PasswordError>({} as PasswordError);
@@ -121,7 +123,8 @@ const InitialConfiguration = () => {
     }
     const data: InitialSetupData = {
       admin_password: settings.admin_password,
-      server_ip_mask: settings.wireguard_subnet
+      server_ip_mask: settings.wireguard_subnet,
+      send_stats: sendStats
     };
 
     if (withDomain) {
@@ -140,13 +143,17 @@ const InitialConfiguration = () => {
     }
 
     setInitialSetupFx(data).then(() => setGlobalLoading(true));
-  }, [withDomain, settings, validate]);
+  }, [withDomain, settings, validate, sendStats]);
 
   function toggleIssueSSL() {
     setSettings({
       ...settings,
       issue_ssl: !settings.issue_ssl
     });
+  }
+
+  function toggleSendStats() {
+    setSendStats(!sendStats);
   }
 
   return (
@@ -206,7 +213,7 @@ const InitialConfiguration = () => {
                   toggleShowPasswordHandler={toggleShowPasswordHandler}
                   tabIndex="-1"
                 />
-          )}
+              )}
             />
             <TextField
               fullWidth
@@ -224,7 +231,7 @@ const InitialConfiguration = () => {
                   toggleShowPasswordHandler={toggleShowConfirmPasswordHandler}
                   tabIndex="-1"
                 />
-          )}
+              )}
             />
             <TextField
               fullWidth
@@ -235,7 +242,19 @@ const InitialConfiguration = () => {
               helperText={validationError?.wireguard_subnet || ''}
               onChange={changeSettingsHandler}
               value={settings?.wireguard_subnet}
+              style={{ marginBottom: 8 }}
             />
+
+            <div className={classes.checkboxWrapper}>
+              <Checkbox
+                color="primary"
+                id="sendStats"
+                className={classes.checkbox}
+                checked={sendStats}
+                onChange={toggleSendStats}
+              />
+              <label htmlFor="sendStats">Count my registration</label>
+            </div>
 
             <DomainConfiguration
               domainConfig={settings}
