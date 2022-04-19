@@ -10,5 +10,6 @@ export interface InitialSetupDomain {
 export type InitialSetupData = {
   admin_password: string;
   server_ip_mask: string;
+  send_stats: boolean;
   domain?: InitialSetupDomain;
 }

@@ -22,7 +22,7 @@ export type SymbolsSchemesType = {
   [key in ConfigFields | SettingsInputNamesType]: SymbolsPatternsNamesType;
 };
 
-export type SettingsKeysType = keyof Omit<SettingsType, 'wireguard_public_key'>;
+export type SettingsKeysType = keyof Omit<SettingsType, 'wireguard_public_key' | 'send_stats'>;
 
 export type SettingsChangedType = {
   [key in SettingsKeysType]: boolean;

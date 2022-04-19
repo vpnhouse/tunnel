@@ -1,11 +1,12 @@
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 
-const useStyles = makeStyles(({ palette, zIndex }) =>
+const useStyles = makeStyles(({ palette, zIndex, typography }) =>
   createStyles({
     root: {
       height: '100%',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      fontFamily: typography.fontFamily
     },
     header: {
       display: 'flex',
@@ -75,6 +76,15 @@ const useStyles = makeStyles(({ palette, zIndex }) =>
       alignItems: 'center',
       padding: '24px 48px',
       backgroundColor: `${palette.background.paper}CC` // 80% opacity
+    },
+    checkboxWrapper: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: 32
+    },
+    checkbox: {
+      padding: 0,
+      paddingRight: 9
     }
   }));
 

@@ -10,6 +10,7 @@ export type SettingsResponseType = WithDomain & {
   wireguard_server_ipv4: string;
   wireguard_server_port: number;
   wireguard_subnet: string;
+  send_stats: boolean;
 };
 
 export type SettingsType = Omit<SettingsResponseType, 'domain'> & {

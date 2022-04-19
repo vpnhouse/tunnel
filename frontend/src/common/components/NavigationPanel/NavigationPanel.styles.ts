@@ -1,6 +1,6 @@
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 
-const useStyles = makeStyles(({ palette, breakpoints }) =>
+const useStyles = makeStyles(({ palette }) =>
   createStyles({
     root: {
       height: '100%',
@@ -11,10 +11,7 @@ const useStyles = makeStyles(({ palette, breakpoints }) =>
       flexDirection: 'column',
       alignItems: 'center',
       marginRight: 64,
-      padding: '64px 32px 64px',
-      [breakpoints.down('md')]: {
-        padding: '0 48px'
-      }
+      padding: '64px 32px 64px'
     },
     logo: {
       width: 130,

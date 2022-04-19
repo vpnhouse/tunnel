@@ -12,6 +12,7 @@ import { DomainConfig, DomainEventTargetType, Mode } from '@common/components/Do
 import { DEFAULT_DOMAIN_CONFIG } from '@common/components/DomainConfiguration/constant';
 import RefreshIcon from '@root/common/assets/RefreshIcon';
 import SaveIcon from '@common/assets/SaveIcon';
+import Checkbox from '@common/ui-kit/components/Checkbox';
 
 import {
   NUMERIC_FIELDS,
@@ -240,6 +241,15 @@ const Settings: FC = () => {
     } as DomainConfig);
   }
 
+  function toggleSendStats() {
+    if (settings) {
+      setSettings({
+        ...settings,
+        send_stats: !settings.send_stats
+      });
+    }
+  }
+
   return (
     <div className={classes.root}>
       <div className={classes.header}>
@@ -399,19 +409,6 @@ const Settings: FC = () => {
             />
           </div>
 
-
-          {/* Not ready API yet, so commented */}
-          {/* <TextField
-              fullWidth
-              variant="outlined"
-              label="Domain"
-              name="domain_name"
-              value={settings?.domain_name || ''}
-              error={!!validationError?.domain_name}
-              helperText={validationError?.domain_name || ''}
-              onChange={changeSettingsHandler}
-            /> */}
-
           <div className={classes.settingsBlock}>
             <Typography variant="h4">DNS Servers</Typography>
 
@@ -419,6 +416,17 @@ const Settings: FC = () => {
               dns={dnsList}
               changeDnsHandler={changeDnsHandler}
             />
+          </div>
+
+          <div className={classes.checkboxWrapper}>
+            <Checkbox
+              color="primary"
+              id="sendStats"
+              className={classes.checkbox}
+              checked={settings ? settings.send_stats : false}
+              onChange={toggleSendStats}
+            />
+            <label htmlFor="sendStats">Send anonymous statistics</label>
           </div>
 
           <Button type="submit" className={classes.hidden} />
