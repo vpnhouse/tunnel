@@ -7,11 +7,13 @@
 package extstat
 
 import (
+	"bytes"
 	"database/sql"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	migrate "github.com/rubenv/sql-migrate"
@@ -29,11 +31,15 @@ const (
 //go:embed migrations
 var migrations embed.FS
 
+//go:embed templates/index.html
+var indexTmpl []byte
+
 type server struct {
-	db *sql.DB
+	db                 *sql.DB
+	username, password string
 }
 
-func NewServer() *server {
+func NewServer(username, password string) *server {
 	sqlDB, err := sql.Open("sqlite3", "xstat.sqlite3")
 	if err != nil {
 		panic(err)
@@ -48,12 +54,17 @@ func NewServer() *server {
 		panic(err)
 	}
 
-	return &server{db: sqlDB}
+	return &server{
+		db:       sqlDB,
+		username: username,
+		password: password,
+	}
 }
 
 func (s *server) Run(la string) {
 	// TODO(nikonov): in-app SSL support?
 	hs := xhttp.NewDefault()
+	hs.Router().Get("/", s.handleIndexRequest)
 	hs.Router().Post(apiPathInstall, s.handleInstallRequest)
 	hs.Router().Post(apiPathHeartbeat, s.handleHeartbeatRequest)
 	if err := hs.Run(la); err != nil {
@@ -130,4 +141,68 @@ func (s *server) readRequestBody(r *http.Request) (installRequest, error) {
 func (s *server) postRequest(r *http.Request) {
 	// todo: apply rate limiter here via the xdp or nftables
 	// r.RemoteAddr
+}
+
+func (s *server) handleIndexRequest(w http.ResponseWriter, r *http.Request) {
+	if ok := s.handleAuth(r); !ok {
+		// force browser to show the standard auth prompt
+		w.Header().Set("www-authenticate", "basic")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	q := `select * from
+  (select count(*) as count from installs where created_at > datetime('now', '-1 day')) daily,
+  (select count(*) as count from installs where created_at > datetime('now', '-7 days')) weekly,
+  (select count(*) as count from installs where created_at > datetime('now', '-31 days')) monthly,
+  (select count(*) as count from installs) total;`
+
+	row := s.db.QueryRow(q)
+	var daily, weekly, montly, total int64
+	if err := row.Scan(&daily, &weekly, &montly, &total); err != nil {
+		zap.L().Warn("failed to scan counters", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	q = `select count(*) from (select 1 from heartz where created_at > datetime('now', '-1 days') group by installid);`
+	row = s.db.QueryRow(q)
+	var liveInstalls int64
+	if err := row.Scan(&liveInstalls); err != nil {
+		zap.L().Warn("failed to scan live installs", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	tmpl := s.getTemplate()
+	tmpl = s.render(tmpl, daily, weekly, montly, total, liveInstalls)
+	w.Header().Set("content-type", "text/html")
+	w.Write(tmpl)
+}
+
+func (s *server) getTemplate() []byte {
+	// for debug purposes
+	// bs, err := os.ReadFile("internal/extstat/templates/index.html")
+	return indexTmpl
+}
+
+func i64tobs(i int64) []byte {
+	return []byte(strconv.Itoa(int(i)))
+}
+
+func (s *server) render(temp []byte, d, w, m, t, li int64) []byte {
+	temp = bytes.Replace(temp, []byte("$INSTALL_24H$"), i64tobs(d), -1)
+	temp = bytes.Replace(temp, []byte("$INSTALL_WEEK$"), i64tobs(w), -1)
+	temp = bytes.Replace(temp, []byte("$INSTALL_MONTH$"), i64tobs(m), -1)
+	temp = bytes.Replace(temp, []byte("$INSTALL_TOTAL$"), i64tobs(t), -1)
+	temp = bytes.Replace(temp, []byte("$INSTALL_ALIVE$"), i64tobs(li), -1)
+	return temp
+}
+
+func (s *server) handleAuth(r *http.Request) bool {
+	u, p, ok := r.BasicAuth()
+	if !ok {
+		return false
+	}
+	return u == s.username && p == s.password
 }

@@ -14,13 +14,19 @@ import (
 	"go.uber.org/zap"
 )
 
-var laddr string
+var (
+	laddr    string
+	username string
+	password string
+)
 
 func main() {
 	flag.StringVar(&laddr, "listen", "0.0.0.0:8123", "http listen addr")
+	flag.StringVar(&username, "user", "admin", "http auth username")
+	flag.StringVar(&password, "pass", "topkekret", "http auth password")
 	flag.Parse()
 
 	zap.ReplaceGlobals(xap.Development())
-	extstat.NewServer().Run(laddr)
+	extstat.NewServer(username, password).Run(laddr)
 	select {}
 }
