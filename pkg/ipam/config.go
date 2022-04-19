@@ -60,6 +60,10 @@ func AliasInternetOnly() aliasToInt {
 	return aliasToInt{v: AccessPolicyInternetOnly}
 }
 
+func AliasAllowAll() aliasToInt {
+	return aliasToInt{v: AccessPolicyAllowAll}
+}
+
 type NetworkAccess struct {
 	DefaultPolicy aliasToInt `yaml:"default_policy,omitempty"`
 }
