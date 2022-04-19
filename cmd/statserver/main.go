@@ -8,23 +8,27 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/pkg/xap"
 	"go.uber.org/zap"
 )
 
-var (
-	laddr    string
-	username string
-	password string
-)
+var laddr string
 
 func main() {
 	flag.StringVar(&laddr, "listen", "0.0.0.0:8123", "http listen addr")
-	flag.StringVar(&username, "user", "admin", "http auth username")
-	flag.StringVar(&password, "pass", "topkekret", "http auth password")
 	flag.Parse()
+
+	username := os.Getenv("VPNHOUSE_EXTSTAT_USERNAME")
+	if len(username) == 0 {
+		username = "admin"
+	}
+	password := os.Getenv("VPNHOUSE_EXTSTAT_PASSWORD")
+	if len(password) == 0 {
+		password = "areyouokay?"
+	}
 
 	zap.ReplaceGlobals(xap.Development())
 	extstat.NewServer(username, password).Run(laddr)
