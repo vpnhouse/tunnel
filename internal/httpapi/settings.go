@@ -208,11 +208,17 @@ func (tun *TunnelAPI) mergeStaticSettings(current *settings.Config, s adminAPI.S
 		current.Domain = nil
 	}
 
-	if s.SendStats != nil && *s.SendStats {
-		if current.ExternalStats == nil {
-			current.ExternalStats = extstat.Defaults()
+	if s.SendStats != nil {
+		if *s.SendStats {
+			if current.ExternalStats == nil {
+				current.ExternalStats = extstat.Defaults()
+			} else {
+				current.ExternalStats.Enabled = true
+			}
 		} else {
-			current.ExternalStats.Enabled = true
+			if current.ExternalStats != nil {
+				current.ExternalStats.Enabled = false
+			}
 		}
 	}
 
