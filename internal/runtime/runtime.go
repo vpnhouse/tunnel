@@ -6,6 +6,7 @@ package runtime
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/pkg/control"
 	"go.uber.org/zap"
@@ -26,6 +27,11 @@ type TunnelRuntime struct {
 	Features    FeatureSet
 	starter     ServicesInitFunc
 
+	// external stats tracker,
+	// must not be nil, but may be backed by
+	// the no-op reporting client
+	ExternalStats *extstat.Service
+
 	// must point to the http (NOT httpS) router instance
 	HttpRouter chi.Router
 }
@@ -37,12 +43,13 @@ func (runtime *TunnelRuntime) EventChannel() chan control.Event {
 func New(static *settings.Config, starter ServicesInitFunc) *TunnelRuntime {
 	updateLogLevelFn := control.InitLogger(static.LogLevel)
 	return &TunnelRuntime{
-		Features:    NewFeatureSet(),
-		Settings:    static,
-		SetLogLevel: updateLogLevelFn,
-		Events:      control.NewEventManager(),
-		Services:    control.NewServiceMap(),
-		starter:     starter,
+		Features:      NewFeatureSet(),
+		Settings:      static,
+		SetLogLevel:   updateLogLevelFn,
+		Events:        control.NewEventManager(),
+		Services:      control.NewServiceMap(),
+		ExternalStats: extstat.New(static.InstanceID, static.ExternalStats),
+		starter:       starter,
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
+	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/pkg/control"
 	"github.com/vpnhouse/tunnel/pkg/validator"
@@ -85,7 +86,13 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		if err := tun.runtime.Settings.Flush(); err != nil {
 			return nil, err
 		}
+		if req.SendStats != nil && *req.SendStats {
+			cfg := extstat.Defaults()
+			tun.runtime.ExternalStats = extstat.New(tun.runtime.Settings.InstanceID, cfg)
+			tun.runtime.Settings.ExternalStats = cfg
+		}
 
+		tun.runtime.ExternalStats.OnInstall()
 		tun.runtime.Events.EmitEvent(control.EventRestart)
 		return nil, nil
 	})
@@ -197,6 +204,10 @@ func (tun *TunnelAPI) mergeStaticSettings(current *settings.Config, s adminAPI.S
 	} else {
 		// consider "domain: null" as "disabled for the whole option set"
 		current.Domain = nil
+	}
+
+	if s.SendStats != nil && *s.SendStats {
+		current.ExternalStats = extstat.Defaults()
 	}
 
 	return nil
