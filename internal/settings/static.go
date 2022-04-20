@@ -11,9 +11,11 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/spf13/afero"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/grpc"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
@@ -40,6 +42,7 @@ type NetworkAccessPolicy struct {
 }
 
 type Config struct {
+	InstanceID string           `yaml:"instance_id"`
 	LogLevel   string           `yaml:"log_level"`
 	SQLitePath string           `yaml:"sqlite_path" valid:"path,required"`
 	Rapidoc    bool             `yaml:"rapidoc"`
@@ -47,6 +50,7 @@ type Config struct {
 	HTTP       HttpConfig       `yaml:"http"`
 
 	// optional configuration
+	ExternalStats      *extstat.Config         `yaml:"external_stats,omitempty"`
 	NetworkPolicy      *NetworkAccessPolicy    `yaml:"network,omitempty"`
 	SSL                *xhttp.SSLConfig        `yaml:"ssl,omitempty"`
 	Domain             *xhttp.DomainConfig     `yaml:"domain,omitempty"`
@@ -68,7 +72,8 @@ type Config struct {
 func (s *Config) GetNetworkAccessPolicy() NetworkAccessPolicy {
 	if s.NetworkPolicy == nil {
 		return NetworkAccessPolicy{
-			Access: ipam.NetworkAccess{DefaultPolicy: ipam.AliasInternetOnly()},
+			// Access: ipam.NetworkAccess{DefaultPolicy: ipam.AliasInternetOnly()},
+			Access: ipam.NetworkAccess{DefaultPolicy: ipam.AliasAllowAll()},
 		}
 	}
 	return *s.NetworkPolicy
@@ -204,6 +209,10 @@ func loadStaticConfig(fs afero.Fs, path string) (*Config, error) {
 	if err := c.Wireguard.OnLoad(); err != nil {
 		return nil, err
 	}
+	if len(c.InstanceID) == 0 {
+		c.InstanceID = uuid.New().String()
+		_ = c.flush()
+	}
 
 	return c, nil
 }
@@ -246,7 +255,8 @@ func safeDefaults(rootDir string) *Config {
 		adminAPIConfig.PasswordHash, _ = generateAdminPasswordHash()
 	}
 	return &Config{
-		path: filepath.Join(rootDir, configFileName),
+		InstanceID: uuid.New().String(),
+		path:       filepath.Join(rootDir, configFileName),
 
 		HTTP: HttpConfig{
 			ListenAddr: ":80",
