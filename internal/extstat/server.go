@@ -40,7 +40,7 @@ type server struct {
 }
 
 func NewServer(username, password string) *server {
-	sqlDB, err := sql.Open("sqlite3", "xstat.sqlite3")
+	sqlDB, err := sql.Open("sqlite3", "extstat-data/db.sqlite3")
 	if err != nil {
 		panic(err)
 	}
