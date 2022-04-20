@@ -11,7 +11,6 @@ import (
 	"time"
 
 	sentryio "github.com/getsentry/sentry-go"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/federation_keys"
@@ -193,6 +192,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.HttpRouter == nil {
 		runtime.HttpRouter = xHttpServer.Router()
 	}
+
+	runtime.ExternalStats.Run()
+	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
 
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {

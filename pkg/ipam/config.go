@@ -1,5 +1,5 @@
 /*
- * // Copyright 2021 The Uranium Authors. All rights reserved.
+ * // Copyright 2021 The VPNHouse Authors. All rights reserved.
  * // Use of this source code is governed by a AGPL-style
  * // license that can be found in the LICENSE file.
  */
@@ -58,6 +58,10 @@ func (atoi aliasToInt) MarshalText() ([]byte, error) {
 
 func AliasInternetOnly() aliasToInt {
 	return aliasToInt{v: AccessPolicyInternetOnly}
+}
+
+func AliasAllowAll() aliasToInt {
+	return aliasToInt{v: AccessPolicyAllowAll}
 }
 
 type NetworkAccess struct {

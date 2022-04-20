@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
+	"github.com/vpnhouse/tunnel/internal/extstat"
+	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/pkg/control"
 	"github.com/vpnhouse/tunnel/pkg/validator"
@@ -85,7 +87,15 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		if err := tun.runtime.Settings.Flush(); err != nil {
 			return nil, err
 		}
+		if req.SendStats != nil && *req.SendStats {
+			cfg := extstat.Defaults()
+			tun.runtime.ReplaceExternalStatsService(
+				extstat.New(tun.runtime.Settings.InstanceID, cfg),
+			)
+			tun.runtime.Settings.ExternalStats = cfg
+		}
 
+		tun.runtime.ExternalStats.OnInstall()
 		tun.runtime.Events.EmitEvent(control.EventRestart)
 		return nil, nil
 	})
@@ -107,7 +117,7 @@ func (tun *TunnelAPI) AdminUpdateSettings(w http.ResponseWriter, r *http.Request
 			return nil, err
 		}
 
-		if err := tun.mergeStaticSettings(tun.runtime.Settings, newSettings); err != nil {
+		if err := tun.mergeStaticSettings(tun.runtime, newSettings); err != nil {
 			return nil, err
 		}
 
@@ -134,6 +144,7 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 			Schema:     adminAPI.DomainConfigSchema(s.Domain.Schema),
 		}
 	}
+	sendStats := s.ExternalStats != nil && s.ExternalStats.Enabled
 	return adminAPI.Settings{
 		ConnectionTimeout:  &s.GetPublicAPIConfig().PeerTTL,
 		Dns:                &s.Wireguard.DNS,
@@ -146,12 +157,13 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 		WireguardServerIpv4: &s.Wireguard.ServerIPv4,
 		WireguardSubnet:     &subnet,
 		Domain:              dc,
+		SendStats:           &sendStats,
 	}
 }
 
-func (tun *TunnelAPI) mergeStaticSettings(current *settings.Config, s adminAPI.Settings) error {
+func (tun *TunnelAPI) mergeStaticSettings(rt *runtime.TunnelRuntime, s adminAPI.Settings) error {
 	if s.AdminPassword != nil {
-		if err := current.SetAdminPassword(*s.AdminPassword); err != nil {
+		if err := rt.Settings.SetAdminPassword(*s.AdminPassword); err != nil {
 			return err
 		}
 	}
@@ -160,22 +172,22 @@ func (tun *TunnelAPI) mergeStaticSettings(current *settings.Config, s adminAPI.S
 		if newip.IP == nil {
 			return xerror.WInvalidField("settings", "failed to parse IPv4 address", "wireguard_server_ipv4", nil)
 		}
-		if err := current.SetPublicIP(newip); err != nil {
+		if err := rt.Settings.SetPublicIP(newip); err != nil {
 			return err
 		}
 	}
 
 	if s.Dns != nil {
-		current.Wireguard.DNS = *s.Dns
+		rt.Settings.Wireguard.DNS = *s.Dns
 	}
 	if s.WireguardKeepalive != nil {
-		current.Wireguard.Keepalive = *s.WireguardKeepalive
+		rt.Settings.Wireguard.Keepalive = *s.WireguardKeepalive
 	}
 	if s.WireguardSubnet != nil {
-		current.Wireguard.Subnet = validator.Subnet(*s.WireguardSubnet)
+		rt.Settings.Wireguard.Subnet = validator.Subnet(*s.WireguardSubnet)
 	}
 	if s.WireguardServerPort != nil {
-		current.Wireguard.NATedPort = *s.WireguardServerPort
+		rt.Settings.Wireguard.NATedPort = *s.WireguardServerPort
 	}
 	if s.Domain != nil {
 		tmpDC := &xhttp.DomainConfig{
@@ -196,7 +208,24 @@ func (tun *TunnelAPI) mergeStaticSettings(current *settings.Config, s adminAPI.S
 		}
 	} else {
 		// consider "domain: null" as "disabled for the whole option set"
-		current.Domain = nil
+		rt.Settings.Domain = nil
+	}
+
+	if s.SendStats != nil {
+		if *s.SendStats {
+			if rt.Settings.ExternalStats == nil {
+				rt.Settings.ExternalStats = extstat.Defaults()
+			} else {
+				rt.Settings.ExternalStats.Enabled = true
+			}
+		} else {
+			if rt.Settings.ExternalStats != nil {
+				rt.Settings.ExternalStats.Enabled = false
+			}
+		}
+		rt.ReplaceExternalStatsService(
+			extstat.New(rt.Settings.InstanceID, rt.Settings.ExternalStats),
+		)
 	}
 
 	return nil

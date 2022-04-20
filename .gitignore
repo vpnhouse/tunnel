@@ -22,3 +22,5 @@ tunnel-node
 
 #env
 .env
+
+extstat-data/
