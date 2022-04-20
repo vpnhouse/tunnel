@@ -92,8 +92,8 @@ const DomainConfiguration: FC<Props> = ({ domainConfig, changeSettings, domainNa
           <>
             <div className={classes.proxy}>
               <Select
+                defaultValue={ProxySchema.https}
                 className={clsx(classes.input, classes.proxySelector)}
-                value={schema}
                 inputProps={{
                   classes: {
                     icon: classes.proxySelectorIcon
