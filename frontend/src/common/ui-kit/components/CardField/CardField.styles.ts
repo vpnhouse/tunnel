@@ -1,3 +1,4 @@
+import { red } from '@material-ui/core/colors';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 
 import { StylesPropsTipe } from './CardField.types';
@@ -17,6 +18,33 @@ const useStyles = makeStyles(({ palette }) =>
       display: 'flex',
       flexDirection: 'column',
       margin: '8px -10px 0 8px'
+    },
+    field__faq: {
+      display: 'flex',
+      justifyContent: 'center',
+      flexDirection: 'column'
+    },
+    disable__control: {
+      '& .Mui-checked': {
+        color: '#1FC477'
+      },
+      '& .MuiSwitch-colorSecondary + .MuiSwitch-track': {
+        backgroundColor: '#FBFBFB'
+      },
+      '& .MuiSwitch-colorSecondary.Mui-checked + .MuiSwitch-track': {
+        backgroundColor: '#fff',
+        opacity: '0.9'
+      }
+    },
+    field__faq_wrap: {
+      display: 'flex',
+      alignItems: 'center',
+      width: '100%'
+    },
+    field__faq_icon: {
+      marginLeft: '12px',
+      cursor: 'pointer',
+      opacity: 0.5
     },
     caption: ({ tableView }: StylesPropsTipe) => ({
       display: 'flex',

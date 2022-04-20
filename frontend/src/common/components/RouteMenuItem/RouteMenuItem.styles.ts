@@ -1,4 +1,5 @@
 import { createStyles, makeStyles } from '@material-ui/core/styles';
+import { CenterFocusStrong } from '@material-ui/icons';
 
 import { SelectedProps } from './RouteMenuItem.types';
 
@@ -25,6 +26,11 @@ const useStyles = makeStyles(({ palette, typography }) =>
             fill: palette.text.primary
           }
         }
+      },
+      '@media(max-width: 991px)': {
+        padding: 8,
+        alignItems: 'center',
+        justifyContent: 'center'
       }
     },
     itemSelected: {
@@ -32,6 +38,9 @@ const useStyles = makeStyles(({ palette, typography }) =>
     },
     listItemIconRoot: ({ selected }: SelectedProps) => ({
       minWidth: 36,
+      '@media(max-width: 991px)': {
+        minWidth: 24
+      },
       '& path': {
         fill: selected ? palette.primary.main : palette.text.secondary
       }
@@ -43,7 +52,11 @@ const useStyles = makeStyles(({ palette, typography }) =>
     },
     itemTextRoot: {
       display: 'flex',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+
+      '@media(max-width: 991px)': {
+        display: 'none'
+      }
     },
     primaryText: {
       ...typography.subtitle1,

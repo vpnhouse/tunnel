@@ -15,6 +15,11 @@ const useStyles = makeStyles(({ palette, typography }) =>
         '& path': {
           fill: palette.text.primary
         }
+      },
+      '@media(max-width: 991px)': {
+        padding: 8,
+        alignItems: 'center',
+        justifyContent: 'center'
       }
     },
     itemSelected: {
@@ -34,7 +39,10 @@ const useStyles = makeStyles(({ palette, typography }) =>
     },
     primaryText: {
       ...typography.subtitle1,
-      display: 'inline'
+      display: 'inline',
+      '@media(max-width: 991px)': {
+        display: 'none'
+      }
     }
   }));
 

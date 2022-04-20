@@ -6,13 +6,17 @@ const useStyles = makeStyles(({ palette, zIndex, typography }) =>
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: typography.fontFamily
+      fontFamily: typography.fontFamily,
+      paddingRight: '64px',
+      '@media(max-width: 1359px)': {
+        paddingRight: '32px'
+      }
     },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      width: 1072,
+      width: '100%',
       margin: '36px 0',
       '-webkit-user-select': 'none',
       '-moz-user-select': 'none',

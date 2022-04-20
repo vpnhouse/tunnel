@@ -22,7 +22,8 @@ import {
   INVALID_SYMBOLS,
   SYMBOL_ERRORS,
   PATTERN_VALIDATION,
-  PEER_FIELD_CAN_BE_NULL
+  PEER_FIELD_CAN_BE_NULL,
+  FAQ_CREATE_PEER_IPV4
 } from './PeerCard.constants';
 import { combineDateAndTime } from './PeerCard.utils';
 import useStyles from './PeerCard.styles';
@@ -203,6 +204,10 @@ const PeerCard: FC<PropsType> = ({
           value={peer?.ipv4 || ''}
           validationError={validationError?.ipv4 || ''}
           serverError={serverError?.ipv4 || ''}
+          faq
+          faqText={FAQ_CREATE_PEER_IPV4}
+          isDisable
+          disableControl
           options={{
             type: 'TEXT',
             textprops: {

@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
-import { Typography } from '@material-ui/core';
-import { WarningRounded } from '@material-ui/icons';
+import { Typography, Tooltip, Switch, FormControlLabel } from '@material-ui/core';
+import { HelpOutlineRounded, WarningRounded } from '@material-ui/icons';
 
 import { CopyToClipboardButton, TextField, FileInput, TextArea, DateTimePicker } from '../index';
 import { PropsType, TextFieldType } from './CardField.types';
@@ -18,6 +18,10 @@ const CardField: FC<PropsType> = ({
   validationError,
   serverError,
   options = PLAIN_TEXT_FIELD,
+  faq = false,
+  faqText,
+  isDisable = false,
+  disableControl = false,
   loadOptions
 }) => {
   const classes = useStyles({ tableView });
@@ -29,17 +33,58 @@ const CardField: FC<PropsType> = ({
         ? (
           <div className={type === 'TEXTAREA' ? classes.areaRoot : ''}>
             {(type === 'TEXT' || type === 'TEXTAREA') && (
-              <TextField
-                {...(options as TextFieldType).textprops}
-                fullWidth
-                multiline={options.type === 'TEXTAREA'}
-                variant="outlined"
-                label={label}
-                name={name}
-                value={value}
-                helperText={validationError}
-                error={!!validationError}
-              />
+              <div className={faq ? classes.field__faq : ''}>
+                {faq
+                  ? (
+                    <>
+                      <div className={classes.field__faq_wrap}>
+                        <TextField
+                          {...(options as TextFieldType).textprops}
+                          fullWidth
+                          multiline={options.type === 'TEXTAREA'}
+                          variant="outlined"
+                          label={label}
+                          name={name}
+                          value={value}
+                          helperText={validationError}
+                          error={!!validationError}
+                          disabled={isDisable}
+                        />
+                        <Tooltip placement="right-start" title={faqText || ''}>
+                          <HelpOutlineRounded className={classes.field__faq_icon} />
+                        </Tooltip>
+                      </div>
+                      {disableControl
+                        ? (
+                          <div className={classes.disable__control}>
+                            <FormControlLabel
+                              control={
+                                <Switch />
+                              }
+                              label="Edite field"
+                            />
+                          </div>
+                        )
+                        : ''
+                      }
+                    </>
+                  )
+                  : (
+                    <TextField
+                      {...(options as TextFieldType).textprops}
+                      fullWidth
+                      multiline={options.type === 'TEXTAREA'}
+                      variant="outlined"
+                      label={label}
+                      name={name}
+                      value={value}
+                      helperText={validationError}
+                      error={!!validationError}
+                      disabled={isDisable}
+                    />
+                  )
+                }
+              </div>
             )}
 
             {options.type === 'DATETIME' && (

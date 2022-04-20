@@ -376,17 +376,6 @@ const Settings: FC = () => {
             <TextField
               fullWidth
               variant="outlined"
-              label="Keepalive interval, sec"
-              name="wireguard_keepalive"
-              value={settings?.wireguard_keepalive || ''}
-              error={!!validationError?.wireguard_keepalive}
-              helperText={validationError?.wireguard_keepalive || ''}
-              onChange={changeSettingsHandler}
-            />
-
-            <TextField
-              fullWidth
-              variant="outlined"
               label="Wireguard Access Port"
               name="wireguard_server_port"
               value={settings?.wireguard_server_port || ''}

@@ -64,6 +64,16 @@ const useStyles = makeStyles(({ palette, zIndex, typography }) =>
     checkbox: {
       padding: 0,
       paddingRight: 9
+    },
+    field__faq_wrap: {
+      display: 'flex',
+      alignItems: 'center',
+      width: '100%'
+    },
+    field__faq_icon: {
+      marginLeft: '12px',
+      cursor: 'pointer',
+      opacity: 0.5
     }
   }));
 
