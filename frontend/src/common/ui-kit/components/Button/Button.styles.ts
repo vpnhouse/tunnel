@@ -6,6 +6,7 @@ const useStyles = makeStyles(({ palette, typography }) =>
       height: '56px',
       padding: '0 42px',
       color: palette.text.primary,
+      position: 'relative',
       boxShadow: 'none',
       borderRadius: 8,
       transition: 'background-color 0 ease',
@@ -25,6 +26,9 @@ const useStyles = makeStyles(({ palette, typography }) =>
       '& path': {
         fill: palette.text.primary
       }
+    },
+    spinner: {
+      position: 'absolute'
     },
     containedPrimary: {
       '&:hover': {

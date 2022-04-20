@@ -15,7 +15,10 @@ export const logout = createEvent();
 /** Authenticate and get access token */
 export const loginFx = createEffect<AuthDataType, AuthResponseType, Response>(({ password }) => {
   const headers = new Headers();
-  headers.set('Authorization', `Basic ${btoa(`:${password}`)}`);
+  // encode non ASCII symbols
+  const unicodePassword = encodeURIComponent(password);
+
+  headers.set('Authorization', `Basic ${btoa(`:${unicodePassword}`)}`);
 
   return fetchData(
     AUTH_URL,
