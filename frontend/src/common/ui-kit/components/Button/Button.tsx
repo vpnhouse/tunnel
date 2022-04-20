@@ -1,14 +1,19 @@
 import React, { FC } from 'react';
-import { Button as MaterialButton, ButtonProps } from '@material-ui/core';
+import { Button as MaterialButton, ButtonProps, CircularProgress } from '@material-ui/core';
 
 import useStyles from './Button.styles';
 
-const Button: FC<ButtonProps> = (props) => {
+interface Props extends ButtonProps {
+  isLoading?: boolean;
+}
+
+const Button: FC<Props> = ({ children, isLoading, disabled, ...rest }) => {
   const classes = useStyles();
 
   return (
     <MaterialButton
-      {...props}
+      {...rest}
+      disabled={disabled || isLoading}
       classes={{
         root: classes.root,
         containedPrimary: classes.containedPrimary,
@@ -16,7 +21,11 @@ const Button: FC<ButtonProps> = (props) => {
         text: classes.text,
         label: classes.label
       }}
-    />
+    >
+      {children}
+
+      {isLoading && <CircularProgress className={classes.spinner} />}
+    </MaterialButton>
   );
 };
 
