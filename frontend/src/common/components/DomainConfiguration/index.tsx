@@ -23,7 +23,7 @@ interface Props {
 const DomainConfiguration: FC<Props> = ({ domainConfig, changeSettings, domainNameValidationError, toggleIssueSSL, withDomain, toggleWithDomain }) => {
   const classes = useStyles();
 
-  const { domain_name, schema, issue_ssl, mode } = domainConfig;
+  const { domain_name, issue_ssl, mode } = domainConfig;
 
   function renderDomainInput() {
     return (

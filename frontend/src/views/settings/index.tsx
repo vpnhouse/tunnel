@@ -415,7 +415,7 @@ const Settings: FC = () => {
               checked={settings ? settings.send_stats : false}
               onChange={toggleSendStats}
             />
-            <label htmlFor="sendStats">Send anonymous statistics</label>
+            <label htmlFor="sendStats">Enable sending statistic</label>
           </div>
 
           <Button type="submit" className={classes.hidden} />
