@@ -15,6 +15,8 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 //go:embed db/migrations
