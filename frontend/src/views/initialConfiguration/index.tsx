@@ -41,6 +41,9 @@ const InitialConfiguration = () => {
     wireguard_subnet: generateSubMaskValue()
   });
 
+  // used for button spinner control
+  const [isFetching, setIsFetching] = useState(false);
+
 
   const toggleShowPasswordHandler = useCallback(() => setShowPassword((prevState) => !prevState), []);
   const toggleShowConfirmPasswordHandler = useCallback(() => setShowConfirmPassword((prevState) => !prevState), []);
@@ -121,6 +124,9 @@ const InitialConfiguration = () => {
     if (!validate()) {
       return;
     }
+
+    setIsFetching(true);
+
     const data: InitialSetupData = {
       admin_password: settings.admin_password,
       server_ip_mask: settings.wireguard_subnet,
@@ -142,7 +148,7 @@ const InitialConfiguration = () => {
       data.domain = domainData;
     }
 
-    setInitialSetupFx(data).then(() => setGlobalLoading(true));
+    setInitialSetupFx(data).then(() => setGlobalLoading(true)).catch(() => setIsFetching(false));
   }, [withDomain, settings, validate, sendStats]);
 
   function toggleIssueSSL() {
@@ -180,6 +186,7 @@ const InitialConfiguration = () => {
                 variant="contained"
                 type="submit"
                 color="primary"
+                isLoading={isFetching}
               >
                 Save
               </Button>
