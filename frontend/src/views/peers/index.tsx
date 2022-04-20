@@ -72,20 +72,6 @@ const Peers: FC = () => {
             />
             {peers.map((item) => <PeerCard key={item.peerInfo.id} {...item} />)}
           </div>
-          <div className={classes.main__info}>
-            {/* <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quibusdam quaerat eaque fugit, quam fuga aspernatur velit laudantium rem consequuntur ad labore esse architecto necessitatibus nisi blanditiis sit cum quod. Nostrum.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quibusdam quaerat eaque fugit, quam fuga aspernatur velit laudantium rem consequuntur ad labore esse architecto necessitatibus nisi blanditiis sit cum quod. Nostrum.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quibusdam quaerat eaque fugit, quam fuga aspernatur velit laudantium rem consequuntur ad labore esse architecto necessitatibus nisi blanditiis sit cum quod. Nostrum.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quibusdam quaerat eaque fugit, quam fuga aspernatur velit laudantium rem consequuntur ad labore esse architecto necessitatibus nisi blanditiis sit cum quod. Nostrum.
-            </p> */}
-          </div>
         </div>
       </div>
     </div>

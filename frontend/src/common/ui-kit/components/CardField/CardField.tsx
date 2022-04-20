@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, useState } from 'react';
 import { Typography, Tooltip, Switch, FormControlLabel } from '@material-ui/core';
 import { HelpOutlineRounded, WarningRounded } from '@material-ui/icons';
 
@@ -26,6 +26,11 @@ const CardField: FC<PropsType> = ({
 }) => {
   const classes = useStyles({ tableView });
   const { type } = options;
+  const [disabled, setDisabled] = useState(true);
+
+  function handleGameClick() {
+    setDisabled(!disabled);
+  }
 
   return (
     <>
@@ -48,7 +53,7 @@ const CardField: FC<PropsType> = ({
                           value={value}
                           helperText={validationError}
                           error={!!validationError}
-                          disabled={isDisable}
+                          disabled={disabled}
                         />
                         <Tooltip placement="right-start" title={faqText || ''}>
                           <HelpOutlineRounded className={classes.field__faq_icon} />
@@ -59,9 +64,9 @@ const CardField: FC<PropsType> = ({
                           <div className={classes.disable__control}>
                             <FormControlLabel
                               control={
-                                <Switch />
+                                <Switch onChange={handleGameClick} />
                               }
-                              label="Edite field"
+                              label="Change field"
                             />
                           </div>
                         )
