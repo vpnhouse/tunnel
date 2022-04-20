@@ -1,6 +1,6 @@
 import React, { ChangeEvent, FC, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useStore } from 'effector-react';
-import { Backdrop, CircularProgress, Typography, Paper } from '@material-ui/core';
+import { Backdrop, CircularProgress, Typography, Paper, Tooltip } from '@material-ui/core';
 
 import { $settingsStore, getSettingsFx, changeSettingsFx } from '@root/store/settings';
 import { $loadingStore, $statusStore } from '@root/store/status';
@@ -31,6 +31,7 @@ import {
 } from './index.types';
 import DnsSettings from './DnsSettings/DnsSettings';
 import useStyles from './index.styles';
+import { HelpOutlineRounded } from '@material-ui/icons';
 
 const Settings: FC = () => {
   const savedSettings: SettingsResponseType | null = useStore($settingsStore);
@@ -415,7 +416,11 @@ const Settings: FC = () => {
               checked={settings ? settings.send_stats : false}
               onChange={toggleSendStats}
             />
-            <label htmlFor="sendStats">Enable sending statistic</label>
+            <label htmlFor="sendStats">Enable statistics</label>
+
+            <Tooltip placement="right-start" title="We are a small open source team, so we are gathering statistics to make our product better.">
+              <HelpOutlineRounded className={classes.field__faq_icon} />
+            </Tooltip>
           </div>
 
           <Button type="submit" className={classes.hidden} />
