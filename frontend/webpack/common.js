@@ -128,7 +128,8 @@ module.exports = {
     }),
     new webpack.DefinePlugin({
       "process.env": JSON.stringify({
-        API_URL: process.env.API_URL ?? '',
+        // TODO: add necessary environment variables
+        // SOME_ENV: process.env.SOME_ENV,
       }),
     }),
   ]
