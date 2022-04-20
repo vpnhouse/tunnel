@@ -5,6 +5,8 @@
 package runtime
 
 import (
+	"sync"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/settings"
@@ -27,6 +29,7 @@ type TunnelRuntime struct {
 	Features    FeatureSet
 	starter     ServicesInitFunc
 
+	extstatMu sync.Mutex
 	// external stats tracker,
 	// must not be nil, but may be backed by
 	// the no-op reporting client
@@ -34,6 +37,14 @@ type TunnelRuntime struct {
 
 	// must point to the http (NOT httpS) router instance
 	HttpRouter chi.Router
+}
+
+func (runtime *TunnelRuntime) ReplaceExternalStatsService(svc *extstat.Service) {
+	runtime.extstatMu.Lock()
+	defer runtime.extstatMu.Unlock()
+
+	runtime.ExternalStats = svc
+	_ = runtime.Services.Replace("externalStats", svc)
 }
 
 func (runtime *TunnelRuntime) EventChannel() chan control.Event {

@@ -7,7 +7,9 @@
 package extstat
 
 import (
+	"context"
 	"net/http"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -30,6 +32,9 @@ func Defaults() *Config {
 type Service struct {
 	cli      statsClient
 	interval time.Duration
+
+	cancelMu sync.Mutex
+	cancel   context.CancelFunc
 }
 
 func New(instanceID string, cfg *Config) *Service {
@@ -63,15 +68,40 @@ func (s *Service) OnInstall() {
 }
 
 func (s *Service) Run() {
-	go s.run()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	s.cancelMu.Lock()
+	s.cancel = cancel
+	s.cancelMu.Unlock()
+
+	go s.run(ctx)
 }
 
-func (s *Service) run() {
+func (s *Service) Shutdown() error {
+	s.cancelMu.Lock()
+	defer s.cancelMu.Unlock()
+
+	if s.cancel != nil {
+		s.cancel()
+		s.cancel = nil
+	}
+	return nil
+}
+
+func (s *Service) Running() bool {
+	s.cancelMu.Lock()
+	defer s.cancelMu.Unlock()
+	return s.cancel != nil
+}
+
+func (s *Service) run(ctx context.Context) {
 	t := time.NewTimer(75 * time.Millisecond)
 	defer t.Stop()
 
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case <-t.C:
 			if err := s.cli.ReportHeartbeat(); err != nil {
 				zap.L().Warn("failed to send heartbeat", zap.Error(err))

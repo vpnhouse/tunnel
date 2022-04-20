@@ -194,6 +194,8 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	runtime.ExternalStats.Run()
+	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
+
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
 			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog)
