@@ -6,13 +6,17 @@ const useStyles = makeStyles(({ palette, zIndex, typography }) =>
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: typography.fontFamily
+      fontFamily: typography.fontFamily,
+      paddingRight: '64px',
+      '@media(max-width: 1359px)': {
+        paddingRight: '32px'
+      }
     },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      width: 1072,
+      width: '100%',
       margin: '36px 0',
       '-webkit-user-select': 'none',
       '-moz-user-select': 'none',
@@ -85,6 +89,11 @@ const useStyles = makeStyles(({ palette, zIndex, typography }) =>
     checkbox: {
       padding: 0,
       paddingRight: 9
+    },
+    field__faq_icon: {
+      marginLeft: '12px',
+      cursor: 'pointer',
+      opacity: 0.5
     }
   }));
 

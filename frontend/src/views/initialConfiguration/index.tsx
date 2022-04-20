@@ -1,7 +1,7 @@
 import React, { ChangeEvent, FormEvent, useCallback, useState } from 'react';
-import { Backdrop, CircularProgress, Paper, Typography } from '@material-ui/core';
+import { Backdrop, CircularProgress, Paper, Typography, Tooltip } from '@material-ui/core';
 import { useStore } from 'effector-react';
-import { Autorenew } from '@material-ui/icons';
+import { Autorenew, HelpOutlineRounded } from '@material-ui/icons';
 import { Redirect } from 'react-router';
 
 import { Button, TextField } from '@common/ui-kit/components';
@@ -240,17 +240,23 @@ const InitialConfiguration = () => {
                 />
               )}
             />
-            <TextField
-              fullWidth
-              variant="outlined"
-              label="Subnet mask"
-              name="wireguard_subnet"
-              error={!!validationError?.wireguard_subnet}
-              helperText={validationError?.wireguard_subnet || ''}
-              onChange={changeSettingsHandler}
-              value={settings?.wireguard_subnet}
-              style={{ marginBottom: 8 }}
-            />
+
+            <div className={classes.field__faq_wrap}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Subnet mask"
+                name="wireguard_subnet"
+                error={!!validationError?.wireguard_subnet}
+                helperText={validationError?.wireguard_subnet || ''}
+                onChange={changeSettingsHandler}
+                value={settings?.wireguard_subnet}
+                style={{ marginBottom: 8 }}
+              />
+              <Tooltip placement="right-start" title="IP address range available for the VPN clients">
+                <HelpOutlineRounded className={classes.field__faq_icon} />
+              </Tooltip>
+            </div>
 
             <div className={classes.checkboxWrapper}>
               <Checkbox

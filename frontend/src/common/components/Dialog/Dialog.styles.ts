@@ -24,6 +24,12 @@ const useStyles = makeStyles(({ typography, palette }) =>
       '& > :not(:first-child)': {
         marginLeft: '12px'
       }
+    },
+    buttons: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      width: '100%',
+      marginTop: '12px'
     }
   }));
 

@@ -61,15 +61,18 @@ const Peers: FC = () => {
       </div>
       <div className={classes.main}>
         <div ref={topPageRef} />
-
-        <PeerCard
-          key="newPeer"
-          peerInfo={peerToSave}
-          isModal
-          open={modalOpened}
-          onClose={closeModal}
-        />
-        {peers.map((item) => <PeerCard key={item.peerInfo.id} {...item} />)}
+        <div className={classes.main__wrap}>
+          <div className={classes.main__cards}>
+            <PeerCard
+              key="newPeer"
+              peerInfo={peerToSave}
+              isModal
+              open={modalOpened}
+              onClose={closeModal}
+            />
+            {peers.map((item) => <PeerCard key={item.peerInfo.id} {...item} />)}
+          </div>
+        </div>
       </div>
     </div>
   );

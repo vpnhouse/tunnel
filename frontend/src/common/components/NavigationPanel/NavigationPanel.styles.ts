@@ -11,12 +11,30 @@ const useStyles = makeStyles(({ palette }) =>
       flexDirection: 'column',
       alignItems: 'center',
       marginRight: 64,
-      padding: '64px 32px 64px'
+      padding: '64px 32px 64px',
+      '@media(max-width: 1359px)': {
+        marginRight: 32
+      },
+      '@media(max-width: 991px)': {
+        width: 64,
+        padding: '32px 8px 32px'
+      }
     },
     logo: {
       width: 130,
       height: 32,
-      marginBottom: 64
+      marginBottom: 64,
+      '@media(max-width: 991px)': {
+        display: 'none'
+      }
+    },
+    logo__mobile: {
+      display: 'none',
+      '@media(max-width: 991px)': {
+        display: 'block',
+        height: 32,
+        marginBottom: 64
+      }
     }
   }));
 

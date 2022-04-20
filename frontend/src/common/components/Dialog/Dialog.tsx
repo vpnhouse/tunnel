@@ -66,18 +66,23 @@ const Dialog: FC = () => {
         }}
       >
         {dialog.onlyClose ? (
-          <Button onClick={closeHandler} variant="contained" color="secondary">
-            Close
-          </Button>
+          <div className={classes.buttons}>
+            <Button variant="contained" color="secondary">
+              Download file
+            </Button>
+            <Button onClick={closeHandler} variant="contained" color="secondary">
+              Close
+            </Button>
+          </div>
         ) : (
-          <>
+          <div className={classes.buttons}>
             <Button onClick={closeHandler} variant="contained" color="secondary">
               Cancel
             </Button>
             <Button onClick={successHandler} variant="contained" color="primary">
               {dialog?.successButtonTitle}
             </Button>
-          </>
+          </div>
         )}
       </DialogActions>
     </MaterialDialog>
