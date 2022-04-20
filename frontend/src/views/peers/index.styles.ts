@@ -5,14 +5,17 @@ const useStyles = makeStyles(({ palette }) =>
     root: {
       height: '100%',
       display: 'flex',
-      flexDirection: 'column'
+      paddingRight: '64px',
+      flexDirection: 'column',
+      '@media(max-width: 1359px)': {
+        paddingRight: '32px'
+      }
     },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       width: '100%',
-      maxWidth: 1072,
       margin: '36px 0',
       '-webkit-user-select': 'none',
       '-moz-user-select': 'none',
@@ -36,9 +39,17 @@ const useStyles = makeStyles(({ palette }) =>
     main: {
       height: '100%',
       overflow: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
       width: '100%'
+    },
+    main__wrap: {
+      display: 'flex'
+    },
+    main__cards: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      flexWrap: 'wrap',
+      width: '100%',
+      maxWidth: '1080px'
     },
     actions: {
       display: 'flex',

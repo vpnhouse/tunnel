@@ -61,7 +61,11 @@ const theme = createMuiTheme({
       fontWeight: 400,
       fontSize: '48px',
       lineHeight: '56px',
-      letterSpacing: '0.0075em'
+      letterSpacing: '0.0075em',
+      '@media(max-width: 991px)': {
+        fontSize: '36px',
+        lineHeight: '36px'
+      }
     },
     h2: {
       fontFamily: "'Ubuntu','Roboto', 'Helvetica', 'Arial', sans-serif",

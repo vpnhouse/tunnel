@@ -43,7 +43,11 @@ export type PropsType = {
   validationError: string;
   serverError: string;
   options?: CardFieldOptionsType;
-  loadOptions?: LoadFileOptionsType
+  loadOptions?: LoadFileOptionsType;
+  faq?: boolean;
+  faqText?: string;
+  isDisable?: boolean;
+  disableControl? :boolean;
 }
 
 export type StylesPropsTipe = {

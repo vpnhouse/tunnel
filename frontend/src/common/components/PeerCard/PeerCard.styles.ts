@@ -3,10 +3,12 @@ import { createStyles, makeStyles } from '@material-ui/core/styles';
 const useStyles = makeStyles(({ palette }) =>
   createStyles({
     paper: {
-      width: 528,
+      width: '100%',
+      maxWidth: '528px',
       padding: '24px 32px 24px',
-      margin: '0 0 12px',
+      margin: '0 12px 12px 0',
       position: 'relative',
+      boxSizing: 'border-box',
       '&:hover': {
         '& #peerCardActions': {
           visibility: 'visible'

@@ -48,6 +48,17 @@ const useStyles = makeStyles(({ typography }) =>
     },
     proxySelectorIcon: {
       fill: 'white'
+    },
+    field__faq_icon: {
+      marginLeft: '12px',
+      cursor: 'pointer',
+      opacity: 0.5
+    },
+    text_description: {
+      fontSize: '12px',
+      lineHeight: '16px',
+      color: '#fff',
+      opacity: 0.7
     }
   }));
 

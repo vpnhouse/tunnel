@@ -50,3 +50,5 @@ export const PATTERN_VALIDATION: PeerCardsValidationType = {
   public_key: patternRequiredValidation,
   ipv4: patternValidation
 };
+
+export const FAQ_CREATE_PEER_IPV4 = 'The address has been randomly picked up from the configured range, you can use it or change it if it is needed';
