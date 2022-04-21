@@ -1,5 +1,7 @@
 import { createStore, createEffect, createEvent } from 'effector';
 
+import { TRUSTED } from '@constants/apiPaths';
+
 import { fetchData } from '../utils';
 import {
   DeleteKeyType,
@@ -10,7 +12,6 @@ import {
   TrustedKeyStoreType,
   TrustedKeyType
 } from './types';
-import { TRUSTED_URL } from './constants';
 
 const initialTrustedKeysStore: TrustedKeyStoreType = {
   trustedKeys: [],
@@ -28,7 +29,7 @@ export const deleteTrustedKey = createEvent<DeleteKeyType>();
 export const setIsEditing = createEvent<KeySetEditingType>();
 
 export const getAllTrustedKeysFx = createEffect<void, TrustedKeyRecordType[], Response>(
-  () => fetchData(TRUSTED_URL).then((res) => res.json())
+  () => fetchData(TRUSTED).then((res) => res.json())
 );
 
 export const saveTrustedKeyFx = createEffect<SaveKeyInfoType, TrustedKeyType, Response>(
@@ -36,7 +37,7 @@ export const saveTrustedKeyFx = createEffect<SaveKeyInfoType, TrustedKeyType, Re
     const { id, key } = newKey.trustedKeyInfo;
 
     return fetchData(
-      `${TRUSTED_URL}/${id}`,
+      `${TRUSTED}/${id}`,
       {
         method: 'POST',
         body: key
@@ -48,7 +49,7 @@ export const saveTrustedKeyFx = createEffect<SaveKeyInfoType, TrustedKeyType, Re
 
 export const changeTrustedKeyFx = createEffect<TrustedKeyRecordType, TrustedKeyType, Response>(
   ({ id, key }) => fetchData(
-    `${TRUSTED_URL}/${id}`,
+    `${TRUSTED}/${id}`,
     {
       method: 'PUT',
       body: key
@@ -62,7 +63,7 @@ export const deleteTrustedKeyFx = createEffect<DeleteKeyType, Response | string,
     if (isNotSaved) return 'Key deleted';
 
     return fetchData(
-      `${TRUSTED_URL}/${id}`,
+      `${TRUSTED}/${id}`,
       {
         method: 'DELETE'
       }
