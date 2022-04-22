@@ -1,8 +1,9 @@
 import { createStore, createEffect, createEvent } from 'effector';
 
+import { AUTH } from '@constants/apiPaths';
+
 import { fetchData, getTokenLifeTime, PromiseSetTimeout } from '../utils';
 import { CustomTimerType } from '../types';
-import { AUTH_URL } from './constants';
 import { AuthDataType, AuthResponseType } from './types';
 
 export const $authStore = createStore(false);
@@ -21,7 +22,7 @@ export const loginFx = createEffect<AuthDataType, AuthResponseType, Response>(({
   headers.set('Authorization', `Basic ${btoa(`:${unicodePassword}`)}`);
 
   return fetchData(
-    AUTH_URL,
+    AUTH,
     {
       headers
     },
@@ -32,7 +33,7 @@ export const loginFx = createEffect<AuthDataType, AuthResponseType, Response>(({
 /** Refresh token before it expires */
 export const refreshTokenFx = createEffect<CustomTimerType, AuthResponseType, Response>(
   (tokenTimer) => tokenTimer.promise
-    .then(() => fetchData(AUTH_URL).then((res) => res.json()))
+    .then(() => fetchData(AUTH).then((res) => res.json()))
 );
 
 /** Events to start token refreshing */

@@ -127,7 +127,10 @@ module.exports = {
       filename: '[name].[contenthash].css'
     }),
     new webpack.DefinePlugin({
-      "process.env": JSON.stringify(process.env)
-    })
+      "process.env": JSON.stringify({
+        // TODO: add necessary environment variables
+        // SOME_ENV: process.env.SOME_ENV,
+      }),
+    }),
   ]
 };

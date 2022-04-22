@@ -1,8 +1,9 @@
 import { createEffect, createEvent, createStore } from 'effector';
 
+import { SETTINGS } from '@constants/apiPaths';
+
 import { fetchData } from '../utils';
 import { SettingsResponseType } from './types';
-import { SETTINGS_URL } from './constants';
 
 const initialSettings = null;
 export const $settingsStore = createStore<SettingsResponseType | null>(initialSettings);
@@ -10,12 +11,12 @@ export const $settingsStore = createStore<SettingsResponseType | null>(initialSe
 export const setSettings = createEvent<SettingsResponseType>();
 
 export const getSettingsFx = createEffect<void, SettingsResponseType, Response>(
-  () => fetchData(SETTINGS_URL).then((res) => res.json())
+  () => fetchData(SETTINGS).then((res) => res.json())
 );
 
 export const changeSettingsFx = createEffect<SettingsResponseType, SettingsResponseType, Response>(
   (newSettings) => fetchData(
-    SETTINGS_URL,
+    SETTINGS,
     {
       method: 'PATCH',
       body: JSON.stringify(newSettings)
