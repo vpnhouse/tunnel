@@ -1,8 +1,9 @@
 import { createEffect, createEvent, createStore } from 'effector';
 
+import { STATUS } from '@constants/apiPaths';
+
 import { fetchData } from '../utils';
 import { StopStatusTimerModeType, StopStatusTimerType, StatusResponseType, StatusTimerType } from './types';
-import { STATUS_URL } from './constants';
 
 const initialStatus = {
   restart_required: false
@@ -33,7 +34,7 @@ export const $loadingStore = createStore(false);
 export const setLoading = createEvent<boolean>();
 
 export const checkStatusFx = createEffect<void, StatusResponseType, Response>(
-  () => fetchData(STATUS_URL)
+  () => fetchData(STATUS)
     .then((res) => res.json())
     .catch((err) => {
       throw err;
