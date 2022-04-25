@@ -6,4 +6,5 @@ export type DialogType = {
   successButtonTitle?: string;
   onlyClose?: boolean;
   successButtonHandler?: () => void;
+  downloadText?: string;
 }
