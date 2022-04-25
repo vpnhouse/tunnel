@@ -20,6 +20,6 @@ RUN make build/app
 
 FROM alpine:3.15
 
-RUN apk add tcpdump wireguard-tools
+RUN apk add tcpdump wireguard-tools nftables
 COPY --from=builder /build/tunnel-node /tunnel-node
 CMD ["/tunnel-node"]
