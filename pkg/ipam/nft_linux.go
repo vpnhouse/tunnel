@@ -50,6 +50,8 @@ func newNetfilter(subnet *xnet.IPNet) netFilter {
 }
 
 func (nft *netfilterWrapper) init() error {
+	zap.L().Debug("init")
+
 	nft.c.FlushRuleset()
 	nft.enableMasquerade()
 	nft.initIsolation()
@@ -99,6 +101,8 @@ func (nft *netfilterWrapper) initIsolation() {
 }
 
 func (nft *netfilterWrapper) newIsolatePeerRule(peerIP xnet.IP) error {
+	zap.L().Debug("isolate peer", zap.String("ip", peerIP.String()))
+
 	/*
 	 +expr.Payload :: &expr.Payload{OperationType:0x0, DestRegister:0x1, SourceRegister:0x0, Base:0x1, Offset:0xc, Len:0x4, CsumType:0x0, CsumOffset:0x0, CsumFlags:0x0}
 	 +expr.Cmp :: &expr.Cmp{Op:0x0, Register:0x1, Data:[]uint8{0xac, 0x11, 0x11, 0xa}}
@@ -173,6 +177,8 @@ func ipnetSizeBytes(ipn *xnet.IPNet) int {
 }
 
 func (nft *netfilterWrapper) newIsolateAllRule(ipNet *xnet.IPNet) error {
+	zap.L().Debug("isolate all", zap.String("ipnet", ipNet.String()))
+
 	subnet := ipNet.IPNet.IP.To4()[:ipnetSizeBytes(ipNet)]
 
 	nft.c.AddRule(&nftables.Rule{
@@ -230,6 +236,8 @@ func (nft *netfilterWrapper) newIsolateAllRule(ipNet *xnet.IPNet) error {
 }
 
 func (nft *netfilterWrapper) findAndRemoveRule(id []byte) error {
+	zap.L().Debug("remove rule", zap.ByteString("id", id))
+
 	chanis, err := nft.c.ListChains()
 	if err != nil {
 		return xerror.EInternalError("nft: failed to list chains", err)
