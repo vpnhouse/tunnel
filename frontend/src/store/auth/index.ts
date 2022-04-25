@@ -1,4 +1,5 @@
-import { createStore, createEffect, createEvent } from 'effector';
+import { createEffect, createEvent, createStore } from 'effector';
+import { encode } from 'js-base64';
 
 import { AUTH } from '@constants/apiPaths';
 
@@ -16,10 +17,9 @@ export const logout = createEvent();
 /** Authenticate and get access token */
 export const loginFx = createEffect<AuthDataType, AuthResponseType, Response>(({ password }) => {
   const headers = new Headers();
-  // encode non ASCII symbols
-  const unicodePassword = encodeURIComponent(password);
 
-  headers.set('Authorization', `Basic ${btoa(`:${unicodePassword}`)}`);
+  // 3rd party encoding function is used because btoa doesn't support non-ascii characters
+  headers.set('Authorization', `Basic ${encode(`:${password}`)}`);
 
   return fetchData(
     AUTH,

@@ -28,6 +28,9 @@ const Dialog: FC = () => {
 
   if (!dialog) return null;
 
+  const data = new Blob([dialog?.downloadText ? dialog.downloadText.slice(1) : ''], { type: 'text/plain' });
+  const fileLink = window.URL.createObjectURL(data);
+
   return (
     <MaterialDialog
       open={!!dialog}
@@ -68,7 +71,14 @@ const Dialog: FC = () => {
         {dialog.onlyClose ? (
           <div className={classes.buttons}>
             <Button variant="contained" color="secondary">
-              Download file
+              <a
+                className={classes.downloadLink}
+                download="vpnhouse.conf"
+                href={fileLink}
+                id="download-as-file-link"
+              >
+                Download file
+              </a>
             </Button>
             <Button onClick={closeHandler} variant="contained" color="secondary">
               Close

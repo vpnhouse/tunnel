@@ -1,6 +1,7 @@
 import React, { ChangeEvent, FC, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useStore } from 'effector-react';
 import { Backdrop, CircularProgress, Typography, Paper, Tooltip } from '@material-ui/core';
+import { HelpOutlineRounded } from '@material-ui/icons';
 
 import { $settingsStore, getSettingsFx, changeSettingsFx } from '@root/store/settings';
 import { $loadingStore, $statusStore } from '@root/store/status';
@@ -31,7 +32,7 @@ import {
 } from './index.types';
 import DnsSettings from './DnsSettings/DnsSettings';
 import useStyles from './index.styles';
-import { HelpOutlineRounded } from '@material-ui/icons';
+
 
 const Settings: FC = () => {
   const savedSettings: SettingsResponseType | null = useStore($settingsStore);

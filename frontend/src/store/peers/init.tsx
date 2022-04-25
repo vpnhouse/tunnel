@@ -126,7 +126,8 @@ getPeersWireguardFx.doneData.watch((res) => {
   openDialog({
     title: 'Scan me with WireGuard app',
     message: <PersonalPrivateData value={template} />,
-    onlyClose: true
+    onlyClose: true,
+    downloadText: template
   });
 });
 
