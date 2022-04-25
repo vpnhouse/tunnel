@@ -183,7 +183,12 @@ func (m *IPAM) free(addr xnet.IP) error {
 		//  So this `if` block exists just to contain the following comment. Amen.
 	}
 
-	return m.nf.findAndRemoveRule(addr.IP.To4())
+	if err := m.nf.findAndRemoveRule(addr.IP.To4()); err != nil {
+		// we want to make this rule not exist, and it does not exist so.
+		// problems?
+	}
+
+	return nil
 }
 
 func (m *IPAM) Running() bool {
