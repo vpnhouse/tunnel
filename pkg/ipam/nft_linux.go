@@ -280,7 +280,7 @@ func (nft *netfilterWrapper) findAndRemoveRule(id []byte) error {
 		}
 	}
 
-	return xerror.EInternalError("nft", errRuleNotFound, zap.Any("id", id))
+	return xerror.EInternalError("nft: no rule with given ID were found", nil, zap.Any("id", id))
 }
 
 func listNFTObjects(nft *nftables.Conn) {
