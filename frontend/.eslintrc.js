@@ -92,14 +92,6 @@ module.exports = {
           }
         ],
         'react/jsx-key': 1,
-        'react/jsx-no-bind': [
-          'error',
-          {
-            ignoreRefs: true,
-            allowArrowFunctions: true,
-            allowBind: false
-          }
-        ],
         'react/jsx-no-duplicate-props': [
           'error',
           {
@@ -223,12 +215,6 @@ module.exports = {
         'react/no-unescaped-entities': 'error',
         'react/no-children-prop': 'error',
         'react/no-array-index-key': 'error',
-        'react/require-default-props': [
-          'error',
-          {
-            forbidDefaultForRequired: true
-          }
-        ],
         'react/forbid-foreign-prop-types': [
           'warn',
           {

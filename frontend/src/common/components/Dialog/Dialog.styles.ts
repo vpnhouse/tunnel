@@ -30,6 +30,10 @@ const useStyles = makeStyles(({ typography, palette }) =>
       justifyContent: 'space-between',
       width: '100%',
       marginTop: '12px'
+    },
+    downloadLink: {
+      color: palette.text.primary,
+      textDecoration: 'none'
     }
   }));
 
