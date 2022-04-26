@@ -78,12 +78,38 @@ func (nft *netfilterWrapper) enableMasquerade() {
 		Type:     nftables.ChainTypeNAT,
 		Policy:   &polAccept,
 	})
+
 	nft.c.AddRule(&nftables.Rule{
 		Table: nat,
 		Chain: postrouting,
 		Exprs: []expr.Any{
 			&expr.Counter{},
 			&expr.Masq{},
+		},
+	})
+
+	// Be aware that with kernel versions before 4.18, you have to register the prerouting/postrouting chains
+	// even if you have no rules there since these chain will invoke the NAT engine for the packets coming
+	// in the reply direction.
+	// (from https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)#Stateful_NAT)
+
+	// nft 'add chain vh_nat vh_prerouting { type nat hook prerouting priority 100 ; }'
+	prerouting := nft.c.AddChain(&nftables.Chain{
+		Name:     nftPrefix + "prerouting",
+		Table:    nat,
+		Hooknum:  nftables.ChainHookPrerouting,
+		Priority: nftables.ChainPriorityNATSource,
+		Type:     nftables.ChainTypeNAT,
+		Policy:   &polAccept,
+	})
+
+	nft.c.AddRule(&nftables.Rule{
+		Table: nat,
+		Chain: prerouting,
+		Exprs: []expr.Any{
+			// no actions is required, we only
+			// have to have the hook registered
+			// (see the comment on the `prerouting` chain).
 		},
 	})
 }
