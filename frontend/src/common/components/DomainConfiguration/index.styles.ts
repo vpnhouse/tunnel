@@ -58,7 +58,8 @@ const useStyles = makeStyles(({ typography }) =>
       fontSize: '12px',
       lineHeight: '16px',
       color: '#fff',
-      opacity: 0.7
+      opacity: 0.7,
+      marginTop: 20
     }
   }));
 

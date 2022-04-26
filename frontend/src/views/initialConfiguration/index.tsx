@@ -1,8 +1,7 @@
-import React, { ChangeEvent, FormEvent, useCallback, useState } from 'react';
+import React, { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
 import { Backdrop, CircularProgress, Paper, Typography, Tooltip } from '@material-ui/core';
 import { useStore } from 'effector-react';
 import { Autorenew, HelpOutlineRounded } from '@material-ui/icons';
-import { Redirect } from 'react-router';
 
 import { Button, TextField } from '@common/ui-kit/components';
 import { VisibilityAdornment } from '@root/common/components';
@@ -162,125 +161,138 @@ const InitialConfiguration = () => {
     setSendStats(!sendStats);
   }
 
+  useEffect(() => {
+    if (isInitialConfigurateDone) {
+      let redirectPath = '';
+
+      if (!withDomain) {
+        redirectPath = '/auth';
+      } else if (settings.mode === Mode.Direct) {
+        redirectPath = settings.issue_ssl ? `https://${settings.domain_name}` : `http://${settings.domain_name}`;
+      } else {
+        redirectPath = `${settings.schema}://${settings.domain_name}`;
+      }
+
+      window.location.assign(redirectPath);
+    }
+  }, [isInitialConfigurateDone, settings.domain_name, settings.issue_ssl, settings.mode, settings.schema, withDomain]);
+
+
   return (
-    isInitialConfigurateDone ? (
-      <Redirect to="/" />
-    ) : (
-      <section className={classes.root}>
-        <form onSubmit={save} className={classes.container}>
-          <div className={classes.header}>
-            <Typography variant="h1" color="textPrimary">
-              Initial Configuration
-            </Typography>
-            <div className={classes.buttonLine}>
-              <Button
-                variant="contained"
-                type="button"
-                color="secondary"
-                onClick={resetState}
-                startIcon={<Autorenew />}
-              >
-                Reset
-              </Button>
-              <Button
-                variant="contained"
-                type="submit"
-                color="primary"
-                isLoading={isFetching}
-              >
-                Save
-              </Button>
-            </div>
+    <section className={classes.root}>
+      <form onSubmit={save} className={classes.container}>
+        <div className={classes.header}>
+          <Typography variant="h1" color="textPrimary">
+            Initial Configuration
+          </Typography>
+          <div className={classes.buttonLine}>
+            <Button
+              variant="contained"
+              type="button"
+              color="secondary"
+              onClick={resetState}
+              startIcon={<Autorenew />}
+            >
+              Reset
+            </Button>
+            <Button
+              variant="contained"
+              type="submit"
+              color="primary"
+              isLoading={isFetching}
+            >
+              Save
+            </Button>
           </div>
-          <div className={classes.settings}>
-            <Backdrop className={classes.backdrop} open={isLoading}>
-              <Paper className={classes.backdropPaper}>
-                <CircularProgress />
-                <Typography variant="subtitle1">
-                  Configuration are saved
-                </Typography>
-                <Typography variant="subtitle1">
-                  Service is reloading
-                </Typography>
-              </Paper>
-            </Backdrop>
+        </div>
+        <div className={classes.settings}>
+          <Backdrop className={classes.backdrop} open={isLoading}>
+            <Paper className={classes.backdropPaper}>
+              <CircularProgress />
+              <Typography variant="subtitle1">
+                Configuration are saved
+              </Typography>
+              <Typography variant="subtitle1">
+                Service is reloading
+              </Typography>
+            </Paper>
+          </Backdrop>
+          <TextField
+            fullWidth
+            variant="outlined"
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            name="admin_password"
+            value={settings?.admin_password}
+            error={!!validationError?.admin_password}
+            helperText={validationError?.admin_password || ''}
+            onChange={changeSettingsHandler}
+            endAdornment={(
+              <VisibilityAdornment
+                showPassword={showPassword}
+                toggleShowPasswordHandler={toggleShowPasswordHandler}
+                tabIndex="-1"
+              />
+            )}
+          />
+          <TextField
+            fullWidth
+            variant="outlined"
+            label="Confirm Password"
+            type={showConfirmPassword ? 'text' : 'password'}
+            name="confirm_password"
+            value={settings?.confirm_password}
+            error={!!validationError?.confirm_password}
+            helperText={validationError?.confirm_password || ''}
+            onChange={changeSettingsHandler}
+            endAdornment={(
+              <VisibilityAdornment
+                showPassword={showConfirmPassword}
+                toggleShowPasswordHandler={toggleShowConfirmPasswordHandler}
+                tabIndex="-1"
+              />
+            )}
+          />
+
+          <div className={classes.field__faq_wrap}>
             <TextField
               fullWidth
               variant="outlined"
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              name="admin_password"
-              value={settings?.admin_password}
-              error={!!validationError?.admin_password}
-              helperText={validationError?.admin_password || ''}
+              label="Subnet mask"
+              name="wireguard_subnet"
+              error={!!validationError?.wireguard_subnet}
+              helperText={validationError?.wireguard_subnet || ''}
               onChange={changeSettingsHandler}
-              endAdornment={(
-                <VisibilityAdornment
-                  showPassword={showPassword}
-                  toggleShowPasswordHandler={toggleShowPasswordHandler}
-                  tabIndex="-1"
-                />
-              )}
+              value={settings?.wireguard_subnet}
+              style={{ marginBottom: 8 }}
             />
-            <TextField
-              fullWidth
-              variant="outlined"
-              label="Confirm Password"
-              type={showConfirmPassword ? 'text' : 'password'}
-              name="confirm_password"
-              value={settings?.confirm_password}
-              error={!!validationError?.confirm_password}
-              helperText={validationError?.confirm_password || ''}
-              onChange={changeSettingsHandler}
-              endAdornment={(
-                <VisibilityAdornment
-                  showPassword={showConfirmPassword}
-                  toggleShowPasswordHandler={toggleShowConfirmPasswordHandler}
-                  tabIndex="-1"
-                />
-              )}
-            />
-
-            <div className={classes.field__faq_wrap}>
-              <TextField
-                fullWidth
-                variant="outlined"
-                label="Subnet mask"
-                name="wireguard_subnet"
-                error={!!validationError?.wireguard_subnet}
-                helperText={validationError?.wireguard_subnet || ''}
-                onChange={changeSettingsHandler}
-                value={settings?.wireguard_subnet}
-                style={{ marginBottom: 8 }}
-              />
-              <Tooltip placement="right-start" title="IP address range available for the VPN clients">
-                <HelpOutlineRounded className={classes.field__faq_icon} />
-              </Tooltip>
-            </div>
-
-            <div className={classes.checkboxWrapper}>
-              <Checkbox
-                color="primary"
-                id="sendStats"
-                className={classes.checkbox}
-                checked={sendStats}
-                onChange={toggleSendStats}
-              />
-              <label htmlFor="sendStats">Count my registration</label>
-            </div>
-
-            <DomainConfiguration
-              domainConfig={settings}
-              changeSettings={changeSettingsHandler}
-              domainNameValidationError={validationError.domain_name}
-              toggleIssueSSL={toggleIssueSSL}
-              withDomain={withDomain}
-              toggleWithDomain={() => setWidthDomain(!withDomain)}
-            />
+            <Tooltip placement="right-start" title="IP address range available for the VPN clients">
+              <HelpOutlineRounded className={classes.field__faq_icon} />
+            </Tooltip>
           </div>
-        </form>
-      </section>
-    )
+
+          <div className={classes.checkboxWrapper}>
+            <Checkbox
+              color="primary"
+              id="sendStats"
+              className={classes.checkbox}
+              checked={sendStats}
+              onChange={toggleSendStats}
+            />
+            <label htmlFor="sendStats">Count my registration</label>
+          </div>
+
+          <DomainConfiguration
+            domainConfig={settings}
+            changeSettings={changeSettingsHandler}
+            domainNameValidationError={validationError.domain_name}
+            toggleIssueSSL={toggleIssueSSL}
+            withDomain={withDomain}
+            toggleWithDomain={() => setWidthDomain(!withDomain)}
+          />
+        </div>
+      </form>
+    </section>
   );
 };
 

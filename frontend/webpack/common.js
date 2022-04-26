@@ -103,6 +103,15 @@ module.exports = {
           }
         ]
       },
+      {
+        test: /\.ttf?$/,
+        include: path.resolve(__dirname, '../src'),
+        use: [
+          {
+            loader: 'url-loader',
+          }
+        ]
+      },
     ]
   },
   resolve: {
