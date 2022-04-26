@@ -62,9 +62,11 @@ func New(instanceID string, cfg *Config) *Service {
 }
 
 func (s *Service) OnInstall() {
-	if err := s.cli.ReportInstall(); err != nil {
-		zap.L().Warn("failed to report install", zap.Error(err))
-	}
+	go func() {
+		if err := s.cli.ReportInstall(); err != nil {
+			zap.L().Warn("failed to report install", zap.Error(err))
+		}
+	}()
 }
 
 func (s *Service) Run() {
