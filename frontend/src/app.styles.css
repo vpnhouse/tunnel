@@ -22,3 +22,25 @@ body *::-webkit-scrollbar-thumb {
 body {
   scrollbar-color: var(--secondary-main) var(--paper);
 }
+
+@font-face {
+  font-family: Ubuntu;
+  src: url("common/assets/ubuntu-font/Ubuntu-Light.ttf");
+  font-weight: 300;
+}
+@font-face {
+  font-family: Ubuntu;
+  src: url("common/assets/ubuntu-font/Ubuntu-Regular.ttf");
+  font-weight: 400;
+}
+@font-face {
+  font-family: Ubuntu;
+  src: url("common/assets/ubuntu-font/Ubuntu-Medium.ttf");
+  font-weight: 500;
+}
+@font-face {
+  font-family: Ubuntu;
+  src: url("common/assets/ubuntu-font/Ubuntu-Bold.ttf");
+  font-weight: 700;
+}
+
