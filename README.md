@@ -49,11 +49,11 @@ $ mkdir vpnhouse-data # create a directory for the runtime data
 $ docker run -d \
     --name=vpnhouse-tunnel \
     --restart=always \
-    --cap-add NET_ADMIN   # add extra privilege to manage Wireguard interface \
-    -p 80:80              # publish web admin port \
-    -p 443:443            # publish web admin port (SSL) \
-    -p 3000:3000/udp      # publish Wireguard port \
-    -v $(pwd)/vpnhouse-data/:/opt/vpnhouse/tunnel/   # mount a host directory with configs \
+    --cap-add NET_ADMIN   `# add extra privilege to manage Wireguard interface` \
+    -p 80:80              `# publish web admin port` \
+    -p 443:443            `# publish web admin port (SSL)` \
+    -p 3000:3000/udp      `# publish Wireguard port` \
+    -v $(pwd)/vpnhouse-data/:/opt/vpnhouse/tunnel/   `# mount a host directory with configs` \
     vpnhouse/tunnel:v0.2.5
 ```
 
