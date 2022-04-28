@@ -74,7 +74,7 @@ module.exports = {
       },
       {
         test: /\.(eot|ttf|woff|woff2)$/,
-        include: path.resolve(__dirname, '../node_modules/@fontsource/roboto'),
+        include: [path.resolve(__dirname, '../node_modules/@fontsource/roboto'), path.resolve(__dirname, '../src')],
         use: [
           {
             loader: 'file-loader',
@@ -100,15 +100,6 @@ module.exports = {
         use: [
           {
             loader: 'raw-loader',
-          }
-        ]
-      },
-      {
-        test: /\.ttf?$/,
-        include: path.resolve(__dirname, '../src'),
-        use: [
-          {
-            loader: 'url-loader',
           }
         ]
       },

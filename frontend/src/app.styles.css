@@ -24,23 +24,23 @@ body {
 }
 
 @font-face {
-  font-family: Ubuntu;
-  src: url("common/assets/ubuntu-font/Ubuntu-Light.ttf");
+  font-family: 'Ubuntu';
+  src: url(./common/assets/ubuntu-font/ubuntu-light.woff) format("woff");
   font-weight: 300;
 }
 @font-face {
-  font-family: Ubuntu;
-  src: url("common/assets/ubuntu-font/Ubuntu-Regular.ttf");
+  font-family: 'Ubuntu';
+  src: url(./common/assets/ubuntu-font/ubuntu-regular.woff) format("woff");
   font-weight: 400;
 }
 @font-face {
-  font-family: Ubuntu;
-  src: url("common/assets/ubuntu-font/Ubuntu-Medium.ttf");
+  font-family: 'Ubuntu';
+  src: url(./common/assets/ubuntu-font/ubuntu-medium.woff) format("woff");
   font-weight: 500;
 }
 @font-face {
-  font-family: Ubuntu;
-  src: url("common/assets/ubuntu-font/Ubuntu-Bold.ttf");
+  font-family: 'Ubuntu';
+  src: url(./common/assets/ubuntu-font/ubuntu-bold.woff) format("woff");
   font-weight: 700;
 }
 
