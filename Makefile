@@ -69,3 +69,7 @@ proto:
 	@protoc -I proto/ --go_out=./proto/ --go-grpc_out=./proto/ proto/*.proto
 	@mv ./proto/github.com/vpnhouse/tunnel/proto/*.pb.go ./proto
 	@rm -rf ./proto/github.com
+
+version:
+	@echo "+ $@ $(DESCRIPTION)"
+
