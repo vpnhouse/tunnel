@@ -48,16 +48,16 @@ const theme = createMuiTheme({
     }
   },
   typography: {
-    fontFamily: "'Ubuntu', 'Roboto Mono', 'Roboto', 'Helvetica', 'Arial', sans-serif",
+    fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
     button: {
-      fontFamily: "'Ubuntu','Roboto', 'Helvetica', 'Arial', sans-serif",
+      fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
       fontWeight: 500,
       fontSize: '16px',
       lineHeight: '24px',
       textTransform: 'none'
     },
     h1: {
-      fontFamily: "'Ubuntu','Roboto', 'Helvetica', 'Arial', sans-serif",
+      fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
       fontWeight: 400,
       fontSize: '48px',
       lineHeight: '56px',
@@ -68,44 +68,44 @@ const theme = createMuiTheme({
       }
     },
     h2: {
-      fontFamily: "'Ubuntu','Roboto', 'Helvetica', 'Arial', sans-serif",
+      fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
       fontWeight: 500,
       fontSize: '24px',
       lineHeight: '32px'
     },
     h4: {
-      fontFamily: "'Ubuntu','Roboto', 'Helvetica', 'Arial', sans-serif",
+      fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
       fontWeight: 700,
       fontSize: '16px',
       lineHeight: '24px'
     },
     h5: {
-      fontFamily: "'Ubuntu','Roboto', 'Helvetica', 'Arial', sans-serif",
+      fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
       fontWeight: 700,
       fontSize: '20px',
       lineHeight: '24px'
     },
     h6: {
-      fontFamily: "'Ubuntu','Roboto', 'Helvetica', 'Arial', sans-serif",
+      fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
       fontWeight: 400,
       fontSize: '23px',
       lineHeight: '24px'
     },
     subtitle1: {
-      fontFamily: "'Ubuntu','Roboto', 'Helvetica', 'Arial', sans-serif",
+      fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
       fontWeight: 400,
       fontSize: '16px',
       lineHeight: '24px',
       textTransform: 'none'
     },
     body1: {
-      fontFamily: "'Ubuntu','Roboto Mono'",
+      fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
       fontWeight: 400,
       fontSize: '16px',
       lineHeight: '21px'
     },
     caption: {
-      fontFamily: "'Ubuntu','Roboto', 'Helvetica', 'Arial', sans-serif",
+      fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
       fontWeight: 400,
       fontSize: '12px',
       lineHeight: '18px'

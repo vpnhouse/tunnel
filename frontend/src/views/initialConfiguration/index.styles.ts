@@ -29,7 +29,7 @@ const useStyles = makeStyles(({ palette, zIndex, typography }) =>
     settings: {
       height: '100%',
       overflow: 'auto',
-      width: '100%',
+      width: 930,
       color: palette.text.primary
     },
     buttonLine: {
