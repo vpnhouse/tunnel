@@ -100,7 +100,7 @@ const theme = createMuiTheme({
     },
     body1: {
       fontFamily: "'Ubuntu', 'Roboto', 'Helvetica', 'Arial', sans-serif",
-      fontWeight: 400,
+      fontWeight: 500,
       fontSize: '16px',
       lineHeight: '21px'
     },
