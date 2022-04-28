@@ -27,7 +27,6 @@ const useStyles = makeStyles(({ palette }) => ({
     fontWeight: 400,
     fontSize: 16,
     lineHeight: '14px',
-    fontFamily: 'Ubuntu',
     transition: 'background-color 0.5s ease',
     '&:last-child': {
       marginLeft: '-5px'
