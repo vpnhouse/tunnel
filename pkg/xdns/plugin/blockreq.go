@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/coredns/caddy"
@@ -22,6 +23,8 @@ const (
 // blocklistPlugin implements coredns' plugin.Handler interface
 type blocklistPlugin struct {
 	Next plugin.Handler
+
+	mu   sync.Mutex
 	looq dnsbase.LookupInterface
 }
 
@@ -60,17 +63,25 @@ func (b *blocklistPlugin) mustPass(ctx context.Context, name string) bool {
 		lookupDurationHist.WithLabelValues(metrics.WithServer(ctx)).Observe(float64(time.Since(start)))
 	}()
 
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	v, _ := b.looq.Lookup(name)
 	return v == nil // the name is not in block lists
 }
 
-func (blocklistPlugin) Name() string {
+func (*blocklistPlugin) Name() string {
 	return pluginName
 }
 
-func (blocklistPlugin) Ready() bool { return true }
+func (*blocklistPlugin) Ready() bool { return true }
 
 func New(dbpath string) error {
+	if isRegistered() {
+		// the plugin has already been registered,
+		// we don't want to replace it in the runtime (yet).
+		return nil
+	}
+
 	rd, err := dnsbase.NewFTLReader(dbpath)
 	if err != nil {
 		return fmt.Errorf("failed to initialize blacklist db: %v", err)
@@ -85,4 +96,15 @@ func New(dbpath string) error {
 	}
 	plugin.Register(pluginName, setupFn)
 	return nil
+}
+
+func isRegistered() bool {
+	list := caddy.ListPlugins()
+	expected := "dns." + pluginName
+	for _, name := range list["others"] {
+		if name == expected {
+			return true
+		}
+	}
+	return false
 }
