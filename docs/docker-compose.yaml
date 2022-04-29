@@ -1,6 +1,6 @@
 services:
   tunnel:
-    image: vpnhouse/tunnel:v0.2.5
+    image: vpnhouse/tunnel:v0.2.7
     container_name: tunnel
     restart: always
     pull_policy: always
