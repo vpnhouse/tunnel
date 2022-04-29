@@ -143,6 +143,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		if err := redirectOnly.Run(runtime.Settings.HTTP.ListenAddr); err != nil {
 			return err
 		}
+		runtime.Services.RegisterService("httpRedirectServer", redirectOnly)
 
 		opts := xhttp.IssuerOpts{
 			Domain:   runtime.Settings.Domain.Name,
