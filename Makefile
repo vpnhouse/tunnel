@@ -15,13 +15,16 @@ ifeq (${DOCKER_TAG},)
 	DOCKER_TAG = unknown
 endif
 
-DESCRIPTION = tunnel $(GIT_TAG)-$(GIT_COMMIT) branch $(GIT_BRANCH)
-GO_VERSION_PATH = github.com/vpnhouse/tunnel/pkg/version
-GO_LDFLAGS = -w -s -X $(GO_VERSION_PATH).tag=$(GIT_TAG) -X $(GO_VERSION_PATH).commit=$(GIT_COMMIT) -X $(GO_VERSION_PATH).feature=personal
+FEATURE_SET  ?= personal
 DOCKER_IMAGE ?= vpnhouse/tunnel:$(DOCKER_TAG)
+
+GO_VERSION_PATH = github.com/vpnhouse/tunnel/pkg/version
+GO_LDFLAGS = -w -s -X $(GO_VERSION_PATH).tag=$(GIT_TAG) -X $(GO_VERSION_PATH).commit=$(GIT_COMMIT) -X $(GO_VERSION_PATH).feature=$(FEATURE_SET)
 DOCKER_BUILD_ARGS = --progress=plain --platform=linux/amd64 --file ./Dockerfile
+DESCRIPTION = tunnel $(GIT_TAG)-$(GIT_COMMIT) branch=$(GIT_BRANCH) features=$(FEATURE_SET)
 
 run:
+	@echo "+ $@ $(DESCRIPTION)"
 	go run ./cmd/tunnel/main.go
 
 # its important to build the frontend first
