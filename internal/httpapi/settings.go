@@ -30,14 +30,6 @@ func (tun *TunnelAPI) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (tun *TunnelAPI) TmpResetSettingsToDefault(w http.ResponseWriter, r *http.Request) {
-	xhttp.JSONResponse(w, func() (interface{}, error) {
-		tun.runtime.Settings.Wireguard.Subnet = "10.235.0.0/24"
-		tun.runtime.Settings.CleanAdminPassword()
-		return nil, nil
-	})
-}
-
 // AdminInitialSetup POST /api/tunnel/admin/initial-setup
 func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) {
 	xhttp.JSONResponse(w, func() (interface{}, error) {

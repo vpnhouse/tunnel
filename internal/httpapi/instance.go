@@ -60,7 +60,6 @@ func NewTunnelHandlers(
 
 func (tun *TunnelAPI) RegisterHandlers(r chi.Router) {
 	tun.addStaticHandler(r)
-	r.Delete("/_debug/reset-initial", tun.TmpResetSettingsToDefault)
 
 	// admin API
 	adminAPI.HandlerWithOptions(tun, adminAPI.ChiServerOptions{
