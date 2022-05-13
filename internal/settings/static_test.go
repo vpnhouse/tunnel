@@ -5,6 +5,7 @@
 package settings
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -57,5 +58,30 @@ func TestXValidation(t *testing.T) {
 		SSL: nil,
 	}
 	require.NoError(t, c.validate())
+}
 
+func TestConfig_SetAdminPassword(t *testing.T) {
+	cases := []struct {
+		in string
+		ok bool
+	}{
+		{"Asdfg", false},                  // too short
+		{"проль", false},                  // too short
+		{"!@#$%^&*()_+-=/?.>,<|\\", true}, // any chars must be okay
+		{"asdfg1", true},
+		{"фывапр_адин_два_три", true},
+		{"最高机密密码", true},
+		{"🤔🔥💩🦔🦆🐶", true},
+		{strings.Repeat("a", 1000), true},    // we are secure enough
+		{strings.Repeat("a", 100_000), true}, // aren't we?!
+	}
+
+	for _, ca := range cases {
+		_, err := validateAndHashPassword(ca.in)
+		if ca.ok {
+			require.NoError(t, err, "input: %s", ca.in)
+		} else {
+			require.Error(t, err, "input: %s", ca.in)
+		}
+	}
 }

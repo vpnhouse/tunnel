@@ -269,13 +269,9 @@ func safeDefaults(rootDir string) *Config {
 }
 
 func (s *Config) SetAdminPassword(plain string) error {
-	if len(plain) < 6 {
-		return xerror.EInvalidArgument("too short password given", nil)
-	}
-
-	hash, err := passlib.Hash(plain)
+	hash, err := validateAndHashPassword(plain)
 	if err != nil {
-		return xerror.EInternalError("failed to hash password", err)
+		return err
 	}
 
 	s.mu.Lock()
@@ -283,6 +279,18 @@ func (s *Config) SetAdminPassword(plain string) error {
 
 	s.AdminAPI.PasswordHash = hash
 	return s.flush()
+}
+
+func validateAndHashPassword(plain string) (string, error) {
+	if len([]rune(plain)) < 6 {
+		return "", xerror.EInvalidArgument("too short password given", nil)
+	}
+
+	hash, err := passlib.Hash(plain)
+	if err != nil {
+		return "", xerror.EInternalError("failed to hash password", err)
+	}
+	return hash, nil
 }
 
 func (s *Config) CleanAdminPassword() {
