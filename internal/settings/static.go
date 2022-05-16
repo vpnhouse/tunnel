@@ -250,8 +250,10 @@ func (s *Config) validate() error {
 // safeDefaults provides safe static config with paths started with the rootDir
 func safeDefaults(rootDir string) *Config {
 	adminAPIConfig := defaultAdminAPIConfig()
+	keystorePath := ""
 	if version.IsEnterprise() {
 		adminAPIConfig.PasswordHash, _ = generateAdminPasswordHash()
+		keystorePath = filepath.Join(rootDir, "keystore/")
 	}
 	return &Config{
 		InstanceID: uuid.New().String(),
@@ -260,11 +262,12 @@ func safeDefaults(rootDir string) *Config {
 		HTTP: HttpConfig{
 			ListenAddr: ":80",
 		},
-		LogLevel:   "debug",
-		Rapidoc:    true,
-		SQLitePath: filepath.Join(rootDir, "db.sqlite3"),
-		Wireguard:  wireguard.DefaultConfig(),
-		AdminAPI:   adminAPIConfig,
+		LogLevel:           "debug",
+		Rapidoc:            true,
+		SQLitePath:         filepath.Join(rootDir, "db.sqlite3"),
+		Wireguard:          wireguard.DefaultConfig(),
+		AdminAPI:           adminAPIConfig,
+		ManagementKeystore: keystorePath,
 	}
 }
 
