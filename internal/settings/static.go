@@ -27,6 +27,7 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xnet"
 	"github.com/vpnhouse/tunnel/pkg/xrand"
 	"go.uber.org/zap"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"gopkg.in/hlandau/passlib.v1"
 	"gopkg.in/yaml.v3"
 )
@@ -204,12 +205,24 @@ func loadStaticConfig(fs afero.Fs, path string) (*Config, error) {
 		return nil, err
 	}
 
+	mustFlush := false
+	if len(c.Wireguard.PrivateKey) == 0 {
+		// make it auto-deploy-friendly
+		pk, _ := wgtypes.GeneratePrivateKey()
+		c.Wireguard.PrivateKey = pk.String()
+		mustFlush = true
+	}
+
 	// apply on-load hooks here
 	if err := c.Wireguard.OnLoad(); err != nil {
 		return nil, err
 	}
 	if len(c.InstanceID) == 0 {
 		c.InstanceID = uuid.New().String()
+		mustFlush = true
+	}
+
+	if mustFlush {
 		_ = c.flush()
 	}
 
