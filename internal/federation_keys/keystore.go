@@ -31,6 +31,10 @@ type fsStore struct {
 }
 
 func NewFsKeystore(root string) (Keystore, error) {
+	if len(root) == 0 {
+		return nil, xerror.EInternalError("config: no path to the management keystore is given", nil)
+	}
+
 	keys, err := loadKeys(root)
 	if err != nil {
 		return nil, err
