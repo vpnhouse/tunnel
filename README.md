@@ -45,7 +45,7 @@ A basic, self-contained management service for WireGuard with a self-serve web U
 Start the server in the Docker container:
 
 ```shell
-$ mkdir vpnhouse-data # create a directory for the runtime data
+$ mkdir /opt/vpnhouse-data # create a directory for the runtime data
 $ docker run -d \
     --name=vpnhouse-tunnel \
     --restart=always \
@@ -53,7 +53,7 @@ $ docker run -d \
     -p 80:80              `# publish web admin port` \
     -p 443:443            `# publish web admin port (SSL)` \
     -p 3000:3000/udp      `# publish Wireguard port` \
-    -v $(pwd)/vpnhouse-data/:/opt/vpnhouse/tunnel/   `# mount a host directory with configs` \
+    -v /opt/vpnhouse-data/:/opt/vpnhouse/tunnel/   `# mount a host directory with configs` \
     vpnhouse/tunnel:v0.2.7
 ```
 
@@ -79,10 +79,10 @@ and you want to use it as a reverse proxy for the VPNHouse service.
 
 Click "Add new" to create a connection to your new VPN server.
 
-Give it a name and optional expiration date. Also, you may change the IP address,
-but the one suggested by the creation form is perfectly valid and can be used.
+Give it a name and optional expiration date. The suggested IP address is perfectly valid and can be used. 
+You don’t have to change it. But if you have a sound reason, you may activate the field and set the IP address by hand.
 
-<img src="https://media.nikonov.tech/add-peer-form.png" style="width: 60%; max-width: 240px" alt="Peers" />
+<img src="https://media.nikonov.tech/add_peer.png" style="width: 60%; max-width: 240px" alt="Peers" />
 
 
 ### Use your new VPN connection
