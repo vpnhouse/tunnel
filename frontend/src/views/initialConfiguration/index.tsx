@@ -13,13 +13,13 @@ import DomainConfiguration from '@common/components/DomainConfiguration';
 import { Mode, ProxySchema } from '@root/common/components/DomainConfiguration/types';
 import Checkbox from '@common/ui-kit/components/Checkbox';
 import { MIMIMUM_PASSWORD_LENGTH } from '@constants/global';
+import { getTruthStringLength } from '@common/utils/password';
 
 import { INVALID_SYMBOLS, PATTERN_ERRORS, SYMBOL_ERRORS, SYMBOL_SCHEMES } from '../settings/index.constants';
 import useStyles from './index.styles';
 import { Config, ConfigTargetType, PasswordError } from './types';
 import { dnsNameValidation } from '../settings/index.utils';
 import { checkRequiredFields, generateSubMaskValue } from './utils';
-import { getTruthStringLength } from '@common/utils/password';
 
 
 const InitialConfiguration = () => {
