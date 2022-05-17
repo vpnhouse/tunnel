@@ -30,7 +30,6 @@ export const SYMBOL_ERRORS = {
 };
 
 export const SYMBOL_SCHEMES: SymbolsSchemesType = {
-  admin_password: 'printableASCII',
   domain_name: 'dnsName',
   wireguard_keepalive: 'numbers',
   wireguard_server_ipv4: 'ipv4',
@@ -38,7 +37,6 @@ export const SYMBOL_SCHEMES: SymbolsSchemesType = {
   wireguard_subnet: 'cidr',
   dns: 'dns',
   connection_timeout: 'numbers',
-  confirm_password: 'printableASCII',
   schema: 'printableASCII',
   mode: 'printableASCII',
   ping_interval: 'numbers',
@@ -59,7 +57,8 @@ export const PATTERN_ERRORS = {
   cidr: 'Invalid subnet mask format. It must match pattern: IPV4/number between 0 and 32',
   port: 'Port number must be a whole number between 1 and 65535',
   required: 'This field is required',
-  password: 'Passwords need to match'
+  passwordNotMatch: 'Passwords need to match',
+  passwordLength: 'Password must contain at least 6 characters'
 };
 
 export const PATTERN_VALIDATION: PatternValidationType = {

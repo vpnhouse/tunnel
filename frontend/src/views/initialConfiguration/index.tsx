@@ -12,12 +12,14 @@ import { setGlobalLoading } from '@root/store/globalLoading';
 import DomainConfiguration from '@common/components/DomainConfiguration';
 import { Mode, ProxySchema } from '@root/common/components/DomainConfiguration/types';
 import Checkbox from '@common/ui-kit/components/Checkbox';
+import { MIMIMUM_PASSWORD_LENGTH } from '@constants/global';
 
 import { INVALID_SYMBOLS, PATTERN_ERRORS, SYMBOL_ERRORS, SYMBOL_SCHEMES } from '../settings/index.constants';
 import useStyles from './index.styles';
 import { Config, ConfigTargetType, PasswordError } from './types';
 import { dnsNameValidation } from '../settings/index.utils';
 import { checkRequiredFields, generateSubMaskValue } from './utils';
+import { getTruthStringLength } from '@common/utils/password';
 
 
 const InitialConfiguration = () => {
@@ -50,7 +52,8 @@ const InitialConfiguration = () => {
   const changeSettingsHandler = useCallback((event: ChangeEvent<HTMLElement>) => {
     const { name, value } = event.target as ConfigTargetType;
 
-    const check = INVALID_SYMBOLS[SYMBOL_SCHEMES[name]];
+    const invalidSymbols = SYMBOL_SCHEMES[name];
+    const check = invalidSymbols ? INVALID_SYMBOLS[invalidSymbols] : false;
 
     let isInvalid = false;
 
@@ -60,7 +63,7 @@ const InitialConfiguration = () => {
 
     setValidationError((prevError) => ({
       ...prevError,
-      [name]: isInvalid ? SYMBOL_ERRORS[SYMBOL_SCHEMES[name]] : ''
+      [name]: isInvalid ? SYMBOL_ERRORS[invalidSymbols!] : ''
     }));
 
     if (name === 'mode') {
@@ -82,16 +85,17 @@ const InitialConfiguration = () => {
   const validate = useCallback(() => {
     const validateRequiredFields = checkRequiredFields(settings);
     const passwordsMatch = settings?.admin_password === settings?.confirm_password;
+    const passwordLengthOk = getTruthStringLength(settings.admin_password) >= MIMIMUM_PASSWORD_LENGTH;
     const domainNameError = withDomain ? dnsNameValidation(settings.domain_name) : '';
     const isAllFieldsValid = Object.values(validateRequiredFields).every((error) => !error);
 
     const errors = {
-      ...(!passwordsMatch ? { confirm_password: PATTERN_ERRORS.password } : {}),
+      ...(!passwordsMatch ? { confirm_password: PATTERN_ERRORS.passwordNotMatch } : !passwordLengthOk ? { admin_password: PATTERN_ERRORS.passwordLength } : {}),
       ...(domainNameError ? { domain_name: PATTERN_ERRORS.dnsName } : {}),
       ...validateRequiredFields
     };
 
-    if (!isAllFieldsValid || domainNameError || !passwordsMatch) {
+    if (!isAllFieldsValid || domainNameError || !passwordsMatch || !passwordLengthOk) {
       setValidationError((prevState) => ({
         ...prevState,
         ...errors
