@@ -51,7 +51,9 @@ func (c Config) intoCaddyfile() caddy.CaddyfileInput {
 
 	if len(c.ForwardServers) == 0 {
 		c.ForwardServers = []string{
-			"1.1.1.1", "1.0.0.1",
+			"1.1.1.1", // cloudflare
+			"8.8.8.8", // google
+			"9.9.9.9", // quad9
 		}
 	}
 
@@ -65,31 +67,27 @@ func (c Config) intoCaddyfile() caddy.CaddyfileInput {
 	}
 
 	bs := head + strings.Join(opts, "\n") + tail
-	fmt.Println("+++ config")
-	fmt.Println(bs)
-	fmt.Println("+++ endconfigconfig")
 	return caddy.CaddyfileInput{
-		Filepath:       "",
 		Contents:       []byte(bs),
 		ServerTypeName: "dns",
 	}
 }
 
 type server struct {
-	i *caddy.Instance
+	instance *caddy.Instance
 }
 
 func (s *server) Shutdown() error {
-	if err := s.i.Stop(); err != nil {
+	if err := s.instance.Stop(); err != nil {
 		return err
 	}
 
-	s.i = nil
+	s.instance = nil
 	return nil
 }
 
 func (s *server) Running() bool {
-	return s.i != nil
+	return s.instance != nil
 }
 
 func NewFilteringServer(cfg Config) (*server, error) {
@@ -103,7 +101,7 @@ func NewFilteringServer(cfg Config) (*server, error) {
 	}
 
 	s := &server{
-		i: instance,
+		instance: instance,
 	}
 
 	return s, nil
