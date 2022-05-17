@@ -82,6 +82,17 @@ network:
 admin_api:  # desc
     # password hash for the admin interface, may be changed via the setting UI.
     password_hash: "$s2$16384$8$1$8zQCf7uWVjbbJ4+HjqTNEzON$dCf/5RdX50464N/JQT6ZJKDZ6VMN74lvHKxw6ooi/YA="
+
+# enable DNS filtering server
+dns_filter:
+    # where to forward legit requests
+    forward_servers:
+      - 9.9.9.9
+      - 1.1.1.1
+    # path to the gravity.db from the Pi Hole project
+    blacklist_db: "/opt/vpnhouse/gravity.db"
+    # prometheus listen address, disabled if empty
+    prom_listen_addr: "localhost:9999"
 ```
 
 Note that all the necessary configuration options can be provided via the web UI  and does not require the service (or container) restart.
