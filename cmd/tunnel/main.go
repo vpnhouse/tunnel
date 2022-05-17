@@ -28,6 +28,7 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/rapidoc"
 	"github.com/vpnhouse/tunnel/pkg/sentry"
 	"github.com/vpnhouse/tunnel/pkg/version"
+	"github.com/vpnhouse/tunnel/pkg/xdns"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
 	"go.uber.org/zap"
 )
@@ -142,6 +143,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		if err := redirectOnly.Run(runtime.Settings.HTTP.ListenAddr); err != nil {
 			return err
 		}
+		runtime.Services.RegisterService("httpRedirectServer", redirectOnly)
 
 		opts := xhttp.IssuerOpts{
 			Domain:   runtime.Settings.Domain.Name,
@@ -206,6 +208,15 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		} else {
 			zap.L().Info("initServices: skipping gRPC init - no configuration given")
 		}
+	}
+
+	// note: during the test we DO NOT override the DNS settings for peers.
+	if runtime.Settings.DNSFilter != nil {
+		filter, err := xdns.NewFilteringServer(*runtime.Settings.DNSFilter)
+		if err != nil {
+			return err
+		}
+		runtime.Services.RegisterService("dnsFilter", filter)
 	}
 
 	return nil

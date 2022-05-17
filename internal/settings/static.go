@@ -22,6 +22,7 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/sentry"
 	"github.com/vpnhouse/tunnel/pkg/validator"
 	"github.com/vpnhouse/tunnel/pkg/version"
+	"github.com/vpnhouse/tunnel/pkg/xdns"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
@@ -61,6 +62,7 @@ type Config struct {
 	Sentry             *sentry.Config          `yaml:"sentry,omitempty"`
 	EventLog           *eventlog.StorageConfig `yaml:"event_log,omitempty"`
 	ManagementKeystore string                  `yaml:"management_keystore,omitempty" valid:"path"`
+	DNSFilter          *xdns.Config            `yaml:"dns_filter"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
