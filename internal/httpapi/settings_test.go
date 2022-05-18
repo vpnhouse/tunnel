@@ -85,31 +85,37 @@ func TestSetDomainConfig(t *testing.T) {
 	}
 }
 
-func TestValidateSubet(t *testing.T) {
+func TestValidateSubnet(t *testing.T) {
 	cases := []struct {
-		in string
-		ok bool
+		in  string
+		out string
+		ok  bool
 	}{
-		{"10.0.0.0/8", true},
-		{"10.0.0.0/7", false},
-		{"10.0.0.0/30", true},
-		{"10.0.0.0/31", false},
-		{"10.11.12.13/8", true},
+		{"10.0.0.0/8", "10.0.0.0/8", true},
+		{"10.0.0.0/7", "", false},
+		{"10.0.0.0/30", "10.0.0.0/30", true},
+		{"10.0.0.0/31", "", false},
+		{"10.11.12.13/8", "10.0.0.0/8", true},
 
-		{"1.0.0.0/24", false},
-		{"11.0.0.0/24", false},
+		{"1.0.0.0/24", "", false},
+		{"11.0.0.0/24", "", false},
 
-		{"192.168.0.1/24", true},
-		{"192.168.192.168/24", true},
-		{"192.168.0.1/14", false},
+		{"192.168.0.1/24", "192.168.0.0/24", true},
+		{"192.168.0.1/16", "192.168.0.0/16", true},
+		{"192.168.192.168/24", "192.168.192.0/24", true},
+		{"192.168.0.1/14", "", false},
+		// any IP from the range must be OK
+		{"10.0.0.255/24", "10.0.0.0/24", true},
+		{"10.0.1.2/9", "10.0.0.0/9", true},
 	}
 
 	for _, cc := range cases {
-		err := validateSubnet(cc.in)
+		sub, err := validateSubnet(cc.in)
 		if cc.ok {
 			require.NoError(t, err, "input: %s", cc.in)
 		} else {
 			require.Error(t, err, "input: %s", cc.in)
 		}
+		assert.Equal(t, cc.out, sub)
 	}
 }

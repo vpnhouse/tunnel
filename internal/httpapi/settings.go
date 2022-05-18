@@ -60,10 +60,11 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 
-		if err := validateSubnet(req.ServerIpMask); err != nil {
+		subnet, err := validateSubnet(req.ServerIpMask)
+		if err != nil {
 			return nil, err
 		}
-		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
+		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(subnet)
 		// blocks for a certificate issuing, timeout is a LE request timeout is about 10s
 		if needCert := setDomainConfig(tun.runtime.Settings, dc); needCert {
 			if err := tun.issueCertificateSync(); err != nil {
@@ -168,10 +169,11 @@ func (tun *TunnelAPI) mergeStaticSettings(rt *runtime.TunnelRuntime, s adminAPI.
 		rt.Settings.Wireguard.Keepalive = *s.WireguardKeepalive
 	}
 	if s.WireguardSubnet != nil {
-		if err := validateSubnet(*s.WireguardSubnet); err != nil {
+		subnet, err := validateSubnet(*s.WireguardSubnet)
+		if err != nil {
 			return err
 		}
-		rt.Settings.Wireguard.Subnet = validator.Subnet(*s.WireguardSubnet)
+		rt.Settings.Wireguard.Subnet = validator.Subnet(subnet)
 	}
 	if s.WireguardServerPort != nil {
 		rt.Settings.Wireguard.NATedPort = *s.WireguardServerPort
@@ -267,23 +269,23 @@ func setDomainConfig(c *settings.Config, dc *xhttp.DomainConfig) bool {
 	return false
 }
 
-func validateSubnet(s string) error {
+func validateSubnet(s string) (string, error) {
 	_, netw, err := net.ParseCIDR(s)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if v4 := netw.IP.To4(); v4 == nil {
-		return xerror.EInvalidArgument("non-IPv4 subnet given", nil)
+		return "", xerror.EInvalidArgument("non-IPv4 subnet given", nil)
 	}
 	if ones, _ := netw.Mask.Size(); ones < 8 || ones > 30 {
-		return xerror.EInvalidArgument("invalid subnet size given, want /8 to /30", nil)
+		return "", xerror.EInvalidArgument("invalid subnet size given, want /8 to /30", nil)
 	}
 
 	if !xnet.IsPrivateIPNet(netw) {
-		return xerror.EInvalidArgument("non-private subnet given", nil)
+		return "", xerror.EInvalidArgument("non-private subnet given", nil)
 	}
 
-	return nil
+	return netw.String(), nil
 }
 
 // openApiSettingsFromRequest parses settings information from request body.
