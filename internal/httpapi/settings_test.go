@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
@@ -81,5 +82,34 @@ func TestSetDomainConfig(t *testing.T) {
 	for i, tt := range tests {
 		mustIssue := setDomainConfig(tt.c, tt.dc)
 		assert.Equal(t, tt.update, mustIssue, "failed on %d", i)
+	}
+}
+
+func TestValidateSubet(t *testing.T) {
+	cases := []struct {
+		in string
+		ok bool
+	}{
+		{"10.0.0.0/8", true},
+		{"10.0.0.0/7", false},
+		{"10.0.0.0/30", true},
+		{"10.0.0.0/31", false},
+		{"10.11.12.13/8", true},
+
+		{"1.0.0.0/24", false},
+		{"11.0.0.0/24", false},
+
+		{"192.168.0.1/24", true},
+		{"192.168.192.168/24", true},
+		{"192.168.0.1/14", false},
+	}
+
+	for _, cc := range cases {
+		err := validateSubnet(cc.in)
+		if cc.ok {
+			require.NoError(t, err, "input: %s", cc.in)
+		} else {
+			require.Error(t, err, "input: %s", cc.in)
+		}
 	}
 }

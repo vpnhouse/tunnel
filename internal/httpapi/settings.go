@@ -7,6 +7,7 @@ package httpapi
 import (
 	"crypto/tls"
 	"encoding/json"
+	"net"
 	"net/http"
 
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
@@ -45,10 +46,6 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			return nil, xerror.EInvalidArgument("failed to unmarshal request", err)
 		}
 
-		if err := validateInitialSetupRequest(req); err != nil {
-			return nil, err
-		}
-
 		var dc *xhttp.DomainConfig = nil
 		if req.Domain != nil {
 			dc = &xhttp.DomainConfig{
@@ -63,6 +60,9 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 
+		if err := validateSubnet(req.ServerIpMask); err != nil {
+			return nil, err
+		}
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(req.ServerIpMask)
 		// blocks for a certificate issuing, timeout is a LE request timeout is about 10s
 		if needCert := setDomainConfig(tun.runtime.Settings, dc); needCert {
@@ -91,14 +91,6 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		tun.runtime.Events.EmitEvent(control.EventRestart)
 		return nil, nil
 	})
-}
-
-func validateInitialSetupRequest(req adminAPI.InitialSetupRequest) error {
-	if len(req.AdminPassword) < 6 {
-		return xerror.EInvalidField("password too short", "admin_password", nil)
-	}
-
-	return nil
 }
 
 // AdminUpdateSettings implements handler for PATCH /api/tunnel/admin/settings request
@@ -176,6 +168,9 @@ func (tun *TunnelAPI) mergeStaticSettings(rt *runtime.TunnelRuntime, s adminAPI.
 		rt.Settings.Wireguard.Keepalive = *s.WireguardKeepalive
 	}
 	if s.WireguardSubnet != nil {
+		if err := validateSubnet(*s.WireguardSubnet); err != nil {
+			return err
+		}
 		rt.Settings.Wireguard.Subnet = validator.Subnet(*s.WireguardSubnet)
 	}
 	if s.WireguardServerPort != nil {
@@ -270,6 +265,25 @@ func setDomainConfig(c *settings.Config, dc *xhttp.DomainConfig) bool {
 	}
 
 	return false
+}
+
+func validateSubnet(s string) error {
+	_, netw, err := net.ParseCIDR(s)
+	if err != nil {
+		return err
+	}
+	if v4 := netw.IP.To4(); v4 == nil {
+		return xerror.EInvalidArgument("non-IPv4 subnet given", nil)
+	}
+	if ones, _ := netw.Mask.Size(); ones < 8 || ones > 30 {
+		return xerror.EInvalidArgument("invalid subnet size given, want /8 to /30", nil)
+	}
+
+	if !xnet.IsPrivateIPNet(netw) {
+		return xerror.EInvalidArgument("non-private subnet given", nil)
+	}
+
+	return nil
 }
 
 // openApiSettingsFromRequest parses settings information from request body.
