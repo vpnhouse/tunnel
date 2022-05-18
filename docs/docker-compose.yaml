@@ -1,3 +1,9 @@
+# note: if you use 3.xx-incompatible version,
+# please remove/update the version number below.
+# Also, you may want to remove the "pull_policy"
+# option due to compatibility issues.
+version: "3.0"
+
 services:
   tunnel:
     image: vpnhouse/tunnel:v0.2.7
