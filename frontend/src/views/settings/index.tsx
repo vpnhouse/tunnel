@@ -14,6 +14,8 @@ import { DEFAULT_DOMAIN_CONFIG } from '@common/components/DomainConfiguration/co
 import RefreshIcon from '@root/common/assets/RefreshIcon';
 import SaveIcon from '@common/assets/SaveIcon';
 import Checkbox from '@common/ui-kit/components/Checkbox';
+import { MIMIMUM_PASSWORD_LENGTH } from '@constants/global';
+import { getTruthStringLength } from '@common/utils/password';
 
 import {
   NUMERIC_FIELDS,
@@ -70,11 +72,12 @@ const Settings: FC = () => {
   const changeSettingsHandler = useCallback((event: ChangeEvent<HTMLElement>) => {
     const { name, value } = event.target as SettingsEventTargetType;
 
-    const isInvalid = INVALID_SYMBOLS[SYMBOL_SCHEMES[name]].test(value);
+    const invalidSymbols = SYMBOL_SCHEMES[name];
+    const isInvalid = invalidSymbols ? INVALID_SYMBOLS[invalidSymbols].test(value) : false;
 
     setValidationError((prevError) => ({
       ...prevError,
-      [name]: isInvalid ? SYMBOL_ERRORS[SYMBOL_SCHEMES[name]] : ''
+      [name]: isInvalid ? SYMBOL_ERRORS[invalidSymbols!] : ''
     }));
 
     setSettings((prevSettings: SettingsType | null) => ({
@@ -159,6 +162,10 @@ const Settings: FC = () => {
       domain_name: domainNameError
     }));
 
+    const passwordLengthOk = settingsChanged?.admin_password
+      ? (settings?.admin_password && getTruthStringLength(settings.admin_password) >= MIMIMUM_PASSWORD_LENGTH)
+      : true;
+
     /** Check if password and its confirmation match */
     const passwordsMatch = settingsChanged?.admin_password
       ? settings?.admin_password === settings?.confirm_password
@@ -166,7 +173,12 @@ const Settings: FC = () => {
 
     !passwordsMatch && setValidationError((prevError) => ({
       ...prevError,
-      confirm_password: PATTERN_ERRORS.password
+      confirm_password: PATTERN_ERRORS.passwordNotMatch
+    }));
+
+    !passwordLengthOk && setValidationError((prevError) => ({
+      ...prevError,
+      admin_password: PATTERN_ERRORS.passwordLength
     }));
 
     /** Check if other changed fields are in valid format */
@@ -183,7 +195,7 @@ const Settings: FC = () => {
       ...restFieldsErrors
     }));
 
-    return idDnsValid && passwordsMatch && isRestFieldsValid && !domainNameError;
+    return idDnsValid && passwordsMatch && isRestFieldsValid && !domainNameError && passwordLengthOk;
   }, [settings, settingsChanged, validateDns, domainConfig, withDomain]);
 
   const saveChangesHandler = useCallback((e: FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
@@ -192,7 +204,7 @@ const Settings: FC = () => {
 
     if (!validate()) return;
 
-    const { confirm_password, admin_password, ...rest } = settings as SettingsType;
+    const { confirm_password, ...rest } = settings as SettingsType;
 
     const body: SettingsResponseType = {
       ...rest,
@@ -228,7 +240,8 @@ const Settings: FC = () => {
   function changeDomainConfig(event: ChangeEvent<HTMLElement>) {
     const { name, value } = event.target as DomainEventTargetType;
 
-    const isInvalid = INVALID_SYMBOLS[SYMBOL_SCHEMES[name]].test(value);
+    const invalidSymbols = SYMBOL_SCHEMES[name];
+    const isInvalid = invalidSymbols ? INVALID_SYMBOLS[invalidSymbols].test(value) : false;
 
     setDomainConfig((prevState) => ({
       ...prevState,

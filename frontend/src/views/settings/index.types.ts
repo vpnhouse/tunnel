@@ -19,7 +19,7 @@ export type SettingsStringFields = keyof Pick<SettingsType, 'wireguard_public_ke
 export type SettingsInputNamesType = SettingsNumericFields | SettingsStringFields;
 
 export type SymbolsSchemesType = {
-  [key in ConfigFields | SettingsInputNamesType]: SymbolsPatternsNamesType;
+  [key in ConfigFields | SettingsInputNamesType]?: SymbolsPatternsNamesType;
 };
 
 export type SettingsKeysType = keyof Omit<SettingsType, 'wireguard_public_key' | 'send_stats'>;

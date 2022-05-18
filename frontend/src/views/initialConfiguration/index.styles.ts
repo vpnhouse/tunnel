@@ -19,7 +19,6 @@ const useStyles = makeStyles(({ palette, zIndex, typography }) =>
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      width: '700px',
       margin: '36px 0',
       '-webkit-user-select': 'none',
       '-moz-user-select': 'none',
