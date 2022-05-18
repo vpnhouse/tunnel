@@ -6,7 +6,7 @@ version: "3.0"
 
 services:
   tunnel:
-    image: vpnhouse/tunnel:v0.2.7
+    image: vpnhouse/tunnel:v0.2.8
     container_name: tunnel
     restart: always
     pull_policy: always
