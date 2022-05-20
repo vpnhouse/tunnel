@@ -10,6 +10,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/pkg/xap"
 	"go.uber.org/zap"
@@ -27,7 +28,7 @@ func main() {
 	}
 	password := os.Getenv("VPNHOUSE_EXTSTAT_PASSWORD")
 	if len(password) == 0 {
-		password = "areyouokay?"
+		password = uuid.New().String()
 	}
 
 	zap.ReplaceGlobals(xap.Development())
