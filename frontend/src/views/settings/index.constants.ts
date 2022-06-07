@@ -48,13 +48,13 @@ export const SYMBOL_SCHEMES: SymbolsSchemesType = {
 export const PATTERNS = {
   dnsName: /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}(?:\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61})*\.([a-zA-Z]{2,})$/,
   ipv4: /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
-  cidr: /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-2]?[0-9]|[3][0-2]?)$/
+  cidr: /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-2]?[0-9]|[3][0]?)$/
 };
 
 export const PATTERN_ERRORS = {
   dnsName: 'Invalid DNS name format',
   ipv4: 'Invalid IPV4 format',
-  cidr: 'Invalid subnet mask format. It must match pattern: IPV4/number between 0 and 32',
+  cidr: 'Invalid subnet mask format. It must match pattern: IPV4/number between 0 and 30',
   port: 'Port number must be a whole number between 1 and 65535',
   required: 'This field is required',
   passwordNotMatch: 'Passwords need to match',
