@@ -18,7 +18,7 @@ import { getTruthStringLength } from '@common/utils/password';
 import { INVALID_SYMBOLS, PATTERN_ERRORS, SYMBOL_ERRORS, SYMBOL_SCHEMES } from '../settings/index.constants';
 import useStyles from './index.styles';
 import { Config, ConfigTargetType, PasswordError } from './types';
-import {dnsNameValidation, subnetValidation} from '../settings/index.utils';
+import { dnsNameValidation, subnetValidation } from '../settings/index.utils';
 import { checkRequiredFields, generateSubMaskValue } from './utils';
 
 
@@ -89,7 +89,6 @@ const InitialConfiguration = () => {
     const domainNameError = withDomain ? dnsNameValidation(settings.domain_name) : '';
     const subnetError = subnetValidation(settings.wireguard_subnet);
     const isAllFieldsValid = Object.values(validateRequiredFields).every((error) => !error);
-    console.log('subnetError', subnetError);
 
     const errors = {
       ...(!passwordsMatch ? { confirm_password: PATTERN_ERRORS.passwordNotMatch } : !passwordLengthOk ? { admin_password: PATTERN_ERRORS.passwordLength } : {}),
