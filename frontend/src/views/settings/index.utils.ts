@@ -38,11 +38,11 @@ export const subnetValidation = (value: string) => {
   const invertedMask = ~mask;
 
   if ((subnetInteger & invertedMask) !== 0) {
-    return PATTERN_ERRORS.ipToSubnet;
+    return PATTERN_ERRORS.subnetNotPrivate;
   }
 
   if (!isSubnetPrivate(subnetInteger)) {
-    return PATTERN_ERRORS.ipToSubnet;
+    return PATTERN_ERRORS.subnetNotPrivate;
   }
 
   return '';

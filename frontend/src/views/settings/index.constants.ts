@@ -59,7 +59,7 @@ export const PATTERN_ERRORS = {
   required: 'This field is required',
   passwordNotMatch: 'Passwords need to match',
   passwordLength: 'Password must contain at least 6 characters',
-  ipToSubnet: 'Subnet should be private'
+  subnetNotPrivate: 'Subnet should be private'
 };
 
 export const PATTERN_VALIDATION: PatternValidationType = {
