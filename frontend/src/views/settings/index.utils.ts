@@ -1,4 +1,4 @@
-import { ip4ToInt, maskFromBits } from '@root/common/utils/ipv4';
+import { ip4ToInt, isSubnetPrivate, maskFromBits } from '@root/common/utils/ipv4';
 
 import { PATTERN_ERRORS, PATTERNS } from './index.constants';
 
@@ -38,6 +38,10 @@ export const subnetValidation = (value: string) => {
   const invertedMask = ~mask;
 
   if ((subnetInteger & invertedMask) !== 0) {
+    return PATTERN_ERRORS.ipToSubnet;
+  }
+
+  if (!isSubnetPrivate(subnetInteger)) {
     return PATTERN_ERRORS.ipToSubnet;
   }
 
