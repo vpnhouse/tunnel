@@ -21,6 +21,6 @@ export function isSubnetPrivate(subnetInteger: number): boolean {
     const privateSubnetInteger = ip4ToInt(privateSubnetString);
     const mask = maskFromBits(+bitsString);
 
-    return (subnetInteger & mask) === privateSubnetInteger;
+    return ((subnetInteger & mask) >>> 0) === privateSubnetInteger;
   });
 }
