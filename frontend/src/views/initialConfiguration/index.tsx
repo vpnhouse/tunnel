@@ -93,7 +93,7 @@ const InitialConfiguration = () => {
     const errors = {
       ...(!passwordsMatch ? { confirm_password: PATTERN_ERRORS.passwordNotMatch } : !passwordLengthOk ? { admin_password: PATTERN_ERRORS.passwordLength } : {}),
       ...(domainNameError ? { domain_name: PATTERN_ERRORS.dnsName } : {}),
-      ...(subnetError ? { wireguard_subnet: PATTERN_ERRORS.cidr } : {}),
+      ...(subnetError ? { wireguard_subnet: subnetError } : {}),
       ...validateRequiredFields
     };
 
