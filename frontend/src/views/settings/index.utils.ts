@@ -1,3 +1,5 @@
+import { ip4ToInt, isSubnetPrivate, maskFromBits } from '@root/common/utils/ipv4';
+
 import { PATTERN_ERRORS, PATTERNS } from './index.constants';
 
 export const addIdtoDns = (dns: string[]) =>
@@ -28,6 +30,20 @@ export const portValidation = (value: number) => {
 export const subnetValidation = (value: string) => {
   if (!value) return PATTERN_ERRORS.required;
   if (!PATTERNS.cidr.test(value)) return PATTERN_ERRORS.cidr;
+
+  const [subnetString, bitsString] = value.split('/');
+
+  const subnetInteger = ip4ToInt(subnetString);
+  const mask = maskFromBits(+bitsString);
+  const invertedMask = ~mask;
+
+  if ((subnetInteger & invertedMask) !== 0) {
+    return PATTERN_ERRORS.subnetNotPrivate;
+  }
+
+  if (!isSubnetPrivate(subnetInteger)) {
+    return PATTERN_ERRORS.subnetNotPrivate;
+  }
 
   return '';
 };

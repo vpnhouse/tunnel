@@ -541,7 +541,6 @@ module.exports = {
         'newline-after-var': 'off',
         'newline-before-return': 'off',
         'no-array-constructor': 'error',
-        'no-bitwise': 'error',
         'no-continue': 'error',
         'no-inline-comments': 'off',
         'no-mixed-operators': [
@@ -584,7 +583,6 @@ module.exports = {
         'no-negated-condition': 'off',
         'no-nested-ternary': 'off',
         'no-new-object': 'error',
-        'no-plusplus': 'error',
         'no-restricted-syntax': [
           'error',
           {
