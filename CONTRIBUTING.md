@@ -13,7 +13,7 @@ and answer the questions so we can understand and reproduce issue.
 
 Sometimes we can't give fix or answer immediately, please, be kind :smile:
 
-#Minor improvements
+# Minor improvements
 
 Submit [pull request](https://github.com/vpnhouse/tunnel/pulls) at any time. Please, supply your 
 updates with tests if possible.
