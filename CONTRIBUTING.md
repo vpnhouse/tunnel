@@ -31,7 +31,7 @@ If you are going to spend significant time implementing code for a pull request,
 issue first and "claim" it and get feedback before you invest a lot of time.
 
 **If someone already opened a pull request, but you think the pull request has stalled and you would
-like to open another pull request for the same or similar feature, leave a commend in stalled pull 
+like to open another pull request for the same or similar feature, leave a comment in stalled pull 
 request to resolve the situation and move things forward.**
 
 If possible make a pull request as small as possible, or submit multiple pull request to complete a
