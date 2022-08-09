@@ -2,9 +2,9 @@ import React, { FC } from 'react';
 import { TextField as MaterialTextField } from '@material-ui/core';
 
 import useStyles from './TextField.styles';
-import { PropsType } from './TextField.types';
+import { TextFieldProps } from './TextField.types';
 
-const TextField: FC<PropsType> = ({ endAdornment, ...props }) => {
+const TextField: FC<TextFieldProps> = ({ endAdornment, ...props }) => {
   const classes = useStyles(props);
 
   return (

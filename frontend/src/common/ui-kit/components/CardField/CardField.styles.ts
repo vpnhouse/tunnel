@@ -18,32 +18,22 @@ const useStyles = makeStyles(({ palette }) =>
       flexDirection: 'column',
       margin: '8px -10px 0 8px'
     },
-    field__faq: {
-      display: 'flex',
-      justifyContent: 'center',
-      flexDirection: 'column'
-    },
     disable__control: {
-      '& .Mui-checked': {
-        color: '#1FC477'
-      },
-      '& .MuiSwitch-colorSecondary + .MuiSwitch-track': {
-        backgroundColor: '#FBFBFB'
-      },
-      '& .MuiSwitch-colorSecondary.Mui-checked + .MuiSwitch-track': {
-        backgroundColor: '#fff',
-        opacity: '0.9'
-      }
-    },
-    field__faq_wrap: {
       display: 'flex',
       alignItems: 'center',
-      width: '100%'
+      justifyContent: 'flex-end',
+      minWidth: 160,
+      marginLeft: 14,
+      '&>label': {
+        marginRight: 0
+      }
     },
-    field__faq_icon: {
-      marginLeft: '12px',
-      cursor: 'pointer',
-      opacity: 0.5
+    field__withControl: {
+      display: 'flex',
+      alignItems: 'center',
+      width: '100%',
+      marginTop: 8,
+      marginBottom: 4
     },
     caption: ({ tableView }: StylesPropsTipe) => ({
       display: 'flex',

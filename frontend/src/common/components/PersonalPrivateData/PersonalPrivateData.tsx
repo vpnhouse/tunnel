@@ -1,6 +1,7 @@
 import React, { FC, useCallback, useState } from 'react';
 import QRCode from 'qrcode.react';
 
+import logoImage from '@common/assets/logo-high-resolution.png';
 import { Button } from '@common/ui-kit/components';
 
 import { PersonalPrivateDataProps } from './PersonalPrivateData.types';
@@ -17,7 +18,17 @@ const PersonalPrivateData: FC<PersonalPrivateDataProps> = ({ value }) => {
   return (
     <div className={classes.personalPrivateData}>
       <div className={classes.qrCodeWrapper}>
-        <QRCode value={value} renderAs="svg" size={256} />
+        <QRCode
+          value={value}
+          renderAs="svg"
+          size={256}
+          imageSettings={{
+            src: logoImage,
+            height: 105,
+            width: 83,
+            excavate: true
+          }}
+        />
       </div>
       <Button onClick={toggleData} variant="contained" color="primary">
         {isVisible ? 'Hide config for desktop clients' : 'Show config for desktop clients'}

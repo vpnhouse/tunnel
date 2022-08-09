@@ -1,6 +1,6 @@
 import React, { FC, useState } from 'react';
-import { Typography, Tooltip, Switch, FormControlLabel } from '@material-ui/core';
-import { HelpOutlineRounded, WarningRounded } from '@material-ui/icons';
+import { Typography, Switch, FormControlLabel } from '@material-ui/core';
+import { WarningRounded } from '@material-ui/icons';
 
 import { CopyToClipboardButton, TextField, FileInput, TextArea, DateTimePicker } from '../index';
 import { PropsType, TextFieldType } from './CardField.types';
@@ -18,8 +18,6 @@ const CardField: FC<PropsType> = ({
   validationError,
   serverError,
   options = PLAIN_TEXT_FIELD,
-  faq = false,
-  faqText,
   isDisable = false,
   disableControl = false,
   loadOptions
@@ -38,43 +36,9 @@ const CardField: FC<PropsType> = ({
         ? (
           <div className={type === 'TEXTAREA' ? classes.areaRoot : ''}>
             {(type === 'TEXT' || type === 'TEXTAREA') && (
-              <div className={faq ? classes.field__faq : ''}>
-                {faq
-                  ? (
-                    <>
-                      <div className={classes.field__faq_wrap}>
-                        <TextField
-                          {...(options as TextFieldType).textprops}
-                          fullWidth
-                          multiline={options.type === 'TEXTAREA'}
-                          variant="outlined"
-                          label={label}
-                          name={name}
-                          value={value}
-                          helperText={validationError}
-                          error={!!validationError}
-                          disabled={disabled}
-                        />
-                        <Tooltip placement="right-start" title={faqText || ''}>
-                          <HelpOutlineRounded className={classes.field__faq_icon} />
-                        </Tooltip>
-                      </div>
-                      {disableControl
-                        ? (
-                          <div className={classes.disable__control}>
-                            <FormControlLabel
-                              control={
-                                <Switch onChange={handleGameClick} />
-                              }
-                              label="Change field"
-                            />
-                          </div>
-                        )
-                        : ''
-                      }
-                    </>
-                  )
-                  : (
+              disableControl
+                ? (
+                  <div className={classes.field__withControl}>
                     <TextField
                       {...(options as TextFieldType).textprops}
                       fullWidth
@@ -85,11 +49,32 @@ const CardField: FC<PropsType> = ({
                       value={value}
                       helperText={validationError}
                       error={!!validationError}
-                      disabled={isDisable}
+                      disabled={disabled}
                     />
-                  )
-                }
-              </div>
+                    <div className={classes.disable__control}>
+                      <FormControlLabel
+                        control={
+                          <Switch onChange={handleGameClick} />
+                        }
+                        label="Change field"
+                      />
+                    </div>
+                  </div>
+                )
+                : (
+                  <TextField
+                    {...(options as TextFieldType).textprops}
+                    fullWidth
+                    multiline={options.type === 'TEXTAREA'}
+                    variant="outlined"
+                    label={label}
+                    name={name}
+                    value={value}
+                    helperText={validationError}
+                    error={!!validationError}
+                    disabled={isDisable}
+                  />
+                )
             )}
 
             {options.type === 'DATETIME' && (

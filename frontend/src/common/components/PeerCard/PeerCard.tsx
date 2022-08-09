@@ -16,6 +16,7 @@ import { FlatPeerType, PeerErrorType } from '@root/store/peers/types';
 import { openDialog } from '@root/store/dialogs';
 import DeleteIcon from '@common/assets/DeleteIcon';
 import CloseIcon from '@common/assets/CloseIcon';
+import { HintAdornment } from '@common/components';
 
 import { PeerCardEventTargetType, PropsType } from './PeerCard.types';
 import {
@@ -204,14 +205,13 @@ const PeerCard: FC<PropsType> = ({
           value={peer?.ipv4 || ''}
           validationError={validationError?.ipv4 || ''}
           serverError={serverError?.ipv4 || ''}
-          faq
-          faqText={FAQ_CREATE_PEER_IPV4}
           isDisable
           disableControl
           options={{
             type: 'TEXT',
             textprops: {
-              onChange: changePeerSettings
+              onChange: changePeerSettings,
+              endAdornment: (<HintAdornment text={FAQ_CREATE_PEER_IPV4} />)
             }
           }}
         />
