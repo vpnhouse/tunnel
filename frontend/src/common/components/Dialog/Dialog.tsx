@@ -50,7 +50,6 @@ const Dialog: FC = () => {
 
       <IconButton
         className={classes.closeDialog}
-        // @ts-ignore
         onClick={closeHandler}
         icon={CloseIcon}
         color="primary"

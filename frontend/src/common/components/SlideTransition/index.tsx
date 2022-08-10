@@ -8,8 +8,8 @@ const SlideTransition = React.forwardRef((
 ) => (
   <Slide
     appear
-    {...props}
     ref={ref}
+    {...props}
   />
 ));
 
