@@ -32,7 +32,7 @@ export const getAllPeersFx = createEffect<void, PeerRecordType[], Response>(
   () => fetchData(PEERS).then((res) => res.json())
 );
 
-export const getPeersWireguardFx = createEffect<{private_key: string; ipv4: string}, PeersWireguard, Response>(
+export const getPeersWireguardFx = createEffect<{private_key: string; label?: string | null; ipv4: string}, PeersWireguard, Response>(
   (data) => fetchData(GET_WIREGUARD).then((res) => res.json()).then((res) => ({
     peerData: data,
     ...res

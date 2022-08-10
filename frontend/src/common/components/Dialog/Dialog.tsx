@@ -9,7 +9,9 @@ import {
 } from '@material-ui/core';
 
 import { $dialogStore, closeDialog } from '@root/store/dialogs';
-import { Button } from '@common/ui-kit/components';
+import { Button, IconButton } from '@common/ui-kit/components';
+import CloseIcon from '@common/assets/CloseIcon';
+import SlideTransition from '@common/components/SlideTransition';
 
 import useStyles from './Dialog.styles';
 
@@ -28,16 +30,14 @@ const Dialog: FC = () => {
 
   if (!dialog) return null;
 
-  const data = new Blob([dialog?.downloadText ? dialog.downloadText.slice(1) : ''], { type: 'text/plain' });
-  const fileLink = window.URL.createObjectURL(data);
-
   return (
     <MaterialDialog
-      open={!!dialog}
-      disableBackdropClick
+      open={dialog.opened}
+      TransitionComponent={SlideTransition}
       classes={{
         paper: classes.paper
       }}
+      onClose={closeHandler}
     >
       <DialogTitle
         disableTypography
@@ -45,22 +45,31 @@ const Dialog: FC = () => {
           root: classes.title
         }}
       >
-        {dialog?.title}
+        {dialog.title}
       </DialogTitle>
+
+      <IconButton
+        className={classes.closeDialog}
+        // @ts-ignore
+        onClick={closeHandler}
+        icon={CloseIcon}
+        color="primary"
+      />
+
       <DialogContent
         classes={{
           root: classes.content
         }}
       >
-        {typeof dialog?.message === 'string' ? (
+        {typeof dialog.message === 'string' ? (
           <DialogContentText
             classes={{
               root: classes.contentText
             }}
           >
-            {dialog?.message}
+            {dialog.message}
           </DialogContentText>
-        ) : dialog?.message}
+        ) : dialog.message}
 
       </DialogContent>
       <DialogActions
@@ -68,21 +77,9 @@ const Dialog: FC = () => {
           root: classes.actions
         }}
       >
-        {dialog.onlyClose ? (
+        {dialog.actionComponent ? (
           <div className={classes.buttons}>
-            <Button variant="contained" color="secondary">
-              <a
-                className={classes.downloadLink}
-                download="vpnhouse.conf"
-                href={fileLink}
-                id="download-as-file-link"
-              >
-                Download file
-              </a>
-            </Button>
-            <Button onClick={closeHandler} variant="contained" color="secondary">
-              Close
-            </Button>
+            {dialog.actionComponent}
           </div>
         ) : (
           <div className={classes.buttons}>
@@ -90,7 +87,7 @@ const Dialog: FC = () => {
               Cancel
             </Button>
             <Button onClick={successHandler} variant="contained" color="primary">
-              {dialog?.successButtonTitle}
+              {dialog.successButtonTitle}
             </Button>
           </div>
         )}
