@@ -1,5 +1,5 @@
 import React, { FC } from 'react';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 
 import logoImage from '@common/assets/logo-high-resolution.png';
 
@@ -12,10 +12,10 @@ const PersonalPrivateData: FC<PersonalPrivateDataProps> = ({ value }) => {
   return (
     <div className={classes.personalPrivateData}>
       <div className={classes.qrCodeWrapper}>
-        <QRCode
+        <QRCodeSVG
           value={value}
-          renderAs="svg"
           size={224}
+          level="M"
           imageSettings={{
             src: logoImage,
             height: 70,
