@@ -1,28 +1,31 @@
-import React, { FC, useCallback, useState } from 'react';
-import QRCode from 'qrcode.react';
+import React, { FC } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 
-import { Button } from '@common/ui-kit/components';
+import logoImage from '@common/assets/logo-high-resolution.png';
 
 import { PersonalPrivateDataProps } from './PersonalPrivateData.types';
 import useStyles from './PersonalPrivateData.styles';
 
 const PersonalPrivateData: FC<PersonalPrivateDataProps> = ({ value }) => {
   const classes = useStyles();
-  const [isVisible, setIsVisible] = useState(false);
-
-  const toggleData = useCallback(() => {
-    setIsVisible((prevState) => !prevState);
-  }, []);
 
   return (
     <div className={classes.personalPrivateData}>
       <div className={classes.qrCodeWrapper}>
-        <QRCode value={value} renderAs="svg" size={256} />
+        <QRCodeSVG
+          value={value}
+          size={224}
+          level="M"
+          imageSettings={{
+            src: logoImage,
+            height: 70,
+            width: 59,
+            excavate: true
+          }}
+        />
       </div>
-      <Button onClick={toggleData} variant="contained" color="primary">
-        {isVisible ? 'Hide config for desktop clients' : 'Show config for desktop clients'}
-      </Button>
-      {isVisible && <div className={classes.dataWrapper}><pre>{value}</pre></div>}
+
+      <div className={classes.dataWrapper}><pre>{value}</pre></div>
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import PersonalPrivateData from '@root/common/components/PersonalPrivateData/PersonalPrivateData';
+import PersonalPrivateDataAction from '@root/common/components/PersonalPrivateData/PersonalPrivateDataAction';
 
 import {
   $peersStore,
@@ -123,11 +124,14 @@ getPeersWireguardFx.doneData.watch((res) => {
   Endpoint = ${res.server_ipv4}:${res.server_port}
   PersistentKeepalive = ${res.keepalive}
 `;
+
+  const textBlob = new Blob([template.slice(1)], { type: 'text/plain' });
+  const fileLink = window.URL.createObjectURL(textBlob);
+
   openDialog({
-    title: 'Scan me with WireGuard app',
+    title: `${res.peerData.label} configuration`,
     message: <PersonalPrivateData value={template} />,
-    onlyClose: true,
-    downloadText: template
+    actionComponent: <PersonalPrivateDataAction fileLink={fileLink} />
   });
 });
 
@@ -159,6 +163,7 @@ savePeerFx.doneData.watch((result) => {
   });
   getPeersWireguardFx({
     private_key,
+    label: rest.label,
     ipv4: peer.ipv4 as string
   });
 });

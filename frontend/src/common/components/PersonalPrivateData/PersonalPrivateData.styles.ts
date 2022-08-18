@@ -4,22 +4,23 @@ const useStyles = makeStyles(() =>
   createStyles({
     personalPrivateData: {
       display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      '& > button': {
-        margin: '15px 0'
-      }
+      alignItems: 'center'
     },
     qrCodeWrapper: {
-      padding: '15px',
-      background: '#fff'
+      padding: 16,
+      background: '#fff',
+      borderRadius: 8,
+      marginRight: 6,
+      maxHeight: 224
     },
     dataWrapper: {
       maxWidth: '100%',
       overflow: 'auto',
+      lineHeight: '24px',
+      marginTop: -24,
+      paddingRight: 24,
       '& > pre': {
-        margin: 0,
-        whiteSpace: 'pre-line'
+        margin: 0
       }
     }
   }));

@@ -125,6 +125,37 @@ const theme = createMuiTheme({
       disableRipple: true,
       disableTouchRipple: true
     }
+  },
+  overrides: {
+    MuiSwitch: {
+      root: {
+        padding: '7px 8px',
+        '& > .Mui-checked > .MuiIconButton-label': {
+          color: '#fafafa'
+        },
+        '&+.MuiFormControlLabel-label': {
+          fontWeight: 400,
+          marginLeft: 12
+        }
+      },
+      switchBase: {
+        padding: 0,
+        margin: 11
+      },
+      thumb: {
+        height: 16,
+        width: 16
+      },
+      track: {
+        borderRadius: 32,
+        backgroundColor: '#2B3142',
+        opacity: 1,
+        '$checked$checked + &': {
+          opacity: 1,
+          backgroundColor: '#1FC477'
+        }
+      }
+    }
   }
 });
 

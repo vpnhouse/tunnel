@@ -4,7 +4,10 @@ export type DialogType = {
   title: string;
   message: string | ReactElement;
   successButtonTitle?: string;
-  onlyClose?: boolean;
+  actionComponent?: ReactElement;
   successButtonHandler?: () => void;
-  downloadText?: string;
 }
+
+export type DialogStore = {
+  opened: boolean;
+} & DialogType;

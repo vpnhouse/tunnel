@@ -1,9 +1,11 @@
 import { OutlinedTextFieldProps } from '@material-ui/core/TextField/TextField';
 import { KeyboardDatePickerProps, KeyboardTimePickerProps } from '@material-ui/pickers';
 
+import { TextFieldProps } from '@common/ui-kit/components/TextField/TextField.types';
+
 export type TextFieldType = {
   type: 'TEXT';
-  textprops?: Partial<OutlinedTextFieldProps>;
+  textprops?: Partial<OutlinedTextFieldProps> & Pick<TextFieldProps, 'endAdornment'>;
 }
 
 export type TextAreaType = {
@@ -44,8 +46,6 @@ export type PropsType = {
   serverError: string;
   options?: CardFieldOptionsType;
   loadOptions?: LoadFileOptionsType;
-  faq?: boolean;
-  faqText?: string;
   isDisable?: boolean;
   disableControl? :boolean;
 }

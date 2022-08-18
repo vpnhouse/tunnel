@@ -8,6 +8,7 @@ import VisibilityAdornment from './VisibilityAdornment';
 import Dialog from './Dialog/Dialog';
 import TrustedKeyCard from './TrustedKeyCard/TrustedKeyCard';
 import GlobalLoader from './GlobalLoader';
+import HintAdornment from './HintAdornment';
 
 export {
   PrivateRoute,
@@ -19,5 +20,6 @@ export {
   VisibilityAdornment,
   Dialog,
   TrustedKeyCard,
-  GlobalLoader
+  GlobalLoader,
+  HintAdornment
 };

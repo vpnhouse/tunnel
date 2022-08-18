@@ -22,10 +22,8 @@ const useStyles = makeStyles(({ palette }) =>
     },
     adornedEnd: ({ value }: Partial<OutlinedTextFieldProps>) => ({
       color: value ? '' : palette.text.hint,
+      cursor: 'pointer',
       paddingRight: 20,
-      '&.Mui-focused': {
-        color: palette.primary.main
-      },
       '&.Mui-error': {
         color: palette.error.main
       }

@@ -20,6 +20,7 @@ export type PeersWireguard = {
   peerData: {
     private_key: string;
     ipv4: string;
+    label?: string | null;
   };
   dns: string[];
   server_public_key: string;
