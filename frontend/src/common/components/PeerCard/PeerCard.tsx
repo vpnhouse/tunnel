@@ -286,7 +286,7 @@ const PeerCard: FC<PropsType> = ({
                 color="primary"
                 onClick={savePeerHandler}
               >
-                Save
+                Get the QR code
               </Button>
             </div>
           </DialogContent>

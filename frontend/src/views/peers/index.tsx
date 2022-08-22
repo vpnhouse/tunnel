@@ -6,7 +6,6 @@ import { PeerCard } from '@common/components';
 import { Button } from '@common/ui-kit/components';
 import { $peersStore, cancelCreatePeer, createPeerFx, getAllPeersFx } from '@root/store/peers';
 import RefreshIcon from '@common/assets/RefreshIcon';
-import AddIcon from '@common/assets/AddIcon';
 
 import useStyles from './index.styles';
 
@@ -52,10 +51,9 @@ const Peers: FC = () => {
             className={classes.addButton}
             variant="contained"
             color="primary"
-            startIcon={<AddIcon />}
             onClick={addPeerHandler}
           >
-            Add
+            Get VPN
           </Button>
         </div>
       </div>

@@ -107,8 +107,10 @@ const useStyles = makeStyles(({ palette }) =>
         marginRight: '16px'
       },
       '& > button': {
-        width: 83,
         boxShadow: 'none'
+      },
+      '& > :first-child': {
+        width: 83
       }
     },
     commonError: {
