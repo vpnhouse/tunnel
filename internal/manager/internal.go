@@ -294,6 +294,7 @@ func (manager *Manager) backgroundOnce() {
 	wireguardPeers, _ := manager.wireguard.GetPeers()
 	peersTotal := 0
 	withHandshakes := 0
+	newerHour := 0
 
 	peers, err := manager.peers()
 	if err != nil {
@@ -313,6 +314,9 @@ func (manager *Manager) backgroundOnce() {
 			if !wgPeer.LastHandshakeTime.IsZero() {
 				manager.reportPeerTraffic(peer, wgPeer)
 				withHandshakes++
+				if time.Now().Sub(wgPeer.LastHandshakeTime).Hours() < 1 {
+					newerHour++
+				}
 			}
 		}
 	}
@@ -320,8 +324,18 @@ func (manager *Manager) backgroundOnce() {
 	manager.statistic = CachedStatistics{
 		PeersTotal:       peersTotal,
 		PeersWithTraffic: withHandshakes,
+		ActiveLastHour:   newerHour,
 		LinkStat:         linkStats,
 	}
+
+	zap.L().Info("STATS",
+		zap.Int("total", peersTotal),
+		zap.Int("connected", withHandshakes),
+		zap.Int("active", newerHour),
+		zap.Int("rx_bytes", int(linkStats.RxBytes)),
+		zap.Int("rx_packets", int(linkStats.RxPackets)),
+		zap.Int("tx_bytes", int(linkStats.TxBytes)),
+		zap.Int("tx_packets", int(linkStats.TxPackets)))
 
 	peersWithHandshakesGauge.Set(float64(withHandshakes))
 }

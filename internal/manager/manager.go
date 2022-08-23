@@ -23,6 +23,8 @@ type CachedStatistics struct {
 	// PeersWithTraffic is a number of peers
 	// being actually connected to this node
 	PeersWithTraffic int
+	// Having traffic during last hour
+	ActiveLastHour int
 	// Wireguard link statistic, may be nil
 	LinkStat *netlink.LinkStatistics
 }
