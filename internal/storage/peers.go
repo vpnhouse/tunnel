@@ -10,6 +10,7 @@ import (
 
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/tunnel/pkg/xstorage"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"go.uber.org/zap"
 )
@@ -21,7 +22,7 @@ func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]types.PeerInfo, e
 	}
 
 	zapFilter := zap.Any("filter", filter)
-	query, err := getSelectRequest("peers", filter)
+	query, err := xstorage.GetSelectRequest("peers", filter)
 	if err != nil {
 		return nil, xerror.EStorageError("can't get peer select query", err, zapFilter)
 	}
@@ -67,7 +68,7 @@ func (storage *Storage) CreatePeer(peer types.PeerInfo) (int64, error) {
 		peer.Updated = &now
 	}
 
-	query, err := getInsertRequest("peers", peer)
+	query, err := xstorage.GetInsertRequest("peers", peer)
 	if err != nil {
 		return -1, xerror.EStorageError("can't insert peer", err, zap.Any("peer", peer))
 	}
@@ -97,7 +98,7 @@ func (storage *Storage) UpdatePeer(peer types.PeerInfo) (int64, error) {
 	now := xtime.Now()
 	peer.Updated = &now
 
-	query, err := getUpdateRequest("peers", "id", peer, []string{"created"})
+	query, err := xstorage.GetUpdateRequest("peers", "id", peer, []string{"created"})
 	zap.L().Debug("Update peer", zap.Any("peer", peer), zap.String("query", query))
 
 	if err != nil {
