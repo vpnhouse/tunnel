@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { fetchData } from '@root/store/utils';
 import { GLOBAL_STATS } from '@constants/apiPaths';
-import { GlobalStats } from '@common/components/Menu/GlobalStatsBar/types';
+import { GlobalStats, GlobalStatsResponse } from '@common/components/Menu/GlobalStatsBar/types';
+import { BYTES_MEASURE_LIMITS } from '@common/components/Menu/GlobalStatsBar/constant';
 
 import useStyles from './styles';
 
@@ -13,12 +14,29 @@ const GlobalStatsBar = () => {
 
   const [stats, setStats] = useState<GlobalStats | null>(null);
 
-  async function fetchStats() {
-    const response = await fetchData(GLOBAL_STATS);
-    const data = await response.json();
+  const convertBytes = useCallback((bytes: number): string => {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const [index, metric] of BYTES_MEASURE_LIMITS.entries()) {
+      const { limit, label } = metric;
 
-    setStats(data);
-  }
+      if (bytes < limit) {
+        return `${(bytes / (1000 ** index)).toFixed(2)} ${label}`;
+      }
+    }
+
+    return `${bytes} B`;
+  }, []);
+
+  const fetchStats = useCallback(async () => {
+    const response = await fetchData(GLOBAL_STATS);
+    const data: GlobalStatsResponse = await response.json();
+
+    setStats({
+      ...data,
+      traffic_rx: convertBytes(data.traffic_rx),
+      traffic_tx: convertBytes(data.traffic_tx)
+    });
+  }, [convertBytes]);
 
   useEffect(() => {
     fetchStats();
@@ -27,7 +45,7 @@ const GlobalStatsBar = () => {
     return () => {
       clearInterval(fetchStatsInterval);
     };
-  }, []);
+  }, [fetchStats]);
 
   if (!stats) {
     return null;
