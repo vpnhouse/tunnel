@@ -322,10 +322,10 @@ func (manager *Manager) backgroundOnce() {
 	}
 
 	manager.statistic = CachedStatistics{
-		PeersTotal:       peersTotal,
-		PeersWithTraffic: withHandshakes,
-		ActiveLastHour:   newerHour,
-		LinkStat:         linkStats,
+		PeersTotal:          peersTotal,
+		PeersWithTraffic:    withHandshakes,
+		PeersActiveLastHour: newerHour,
+		LinkStat:            linkStats,
 	}
 
 	zap.L().Info("STATS",

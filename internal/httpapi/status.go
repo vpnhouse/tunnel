@@ -15,10 +15,22 @@ import (
 
 // AdminGetStatus returns current server status
 func (tun *TunnelAPI) AdminGetStatus(w http.ResponseWriter, r *http.Request) {
+	stats := tun.manager.GetCachedStatistics()
+	var rx, tx int64
+	if stats.LinkStat != nil {
+		rx = int64(stats.LinkStat.RxBytes)
+		tx = int64(stats.LinkStat.TxBytes)
+	}
+
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		flags := tun.runtime.Flags
 		status := adminAPI.ServiceStatusResponse{
 			RestartRequired: flags.RestartRequired,
+			PeersTotal:      &stats.PeersTotal,
+			PeersConnected:  &stats.PeersWithTraffic,
+			PeersActive:     &stats.PeersActiveLastHour,
+			TrafficRx:       &rx,
+			TrafficTx:       &tx,
 		}
 		return status, nil
 	})
