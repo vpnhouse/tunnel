@@ -26,8 +26,15 @@ type CachedStatistics struct {
 	// PeersActiveLastHour is number of peers
 	// having any exchange during last hour
 	PeersActiveLastHour int
+	// PeersActiveLastDay is number of peers
+	// having any exchange during last 24 hours
+	PeersActiveLastDay int
 	// Wireguard link statistic, may be nil
 	LinkStat *netlink.LinkStatistics
+	// Upstream traffic totally
+	Upstream int64
+	// Downstream traffic totally
+	Downstream int64
 }
 
 type Manager struct {
@@ -55,6 +62,10 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 		eventLog:      eventLog,
 		running:       true,
 		bgStopChannel: make(chan bool),
+		statistic: CachedStatistics{
+			Upstream:   storage.GetUpstreamMetric(),
+			Downstream: storage.GetDownstreamMetric(),
+		},
 	}
 
 	// Run background goroutine

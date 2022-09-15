@@ -295,6 +295,7 @@ func (manager *Manager) backgroundOnce() {
 	peersTotal := 0
 	withHandshakes := 0
 	newerHour := 0
+	newerDay := 0
 
 	peers, err := manager.peers()
 	if err != nil {
@@ -317,27 +318,43 @@ func (manager *Manager) backgroundOnce() {
 				if time.Now().Sub(wgPeer.LastHandshakeTime).Hours() < 1 {
 					newerHour++
 				}
+				if time.Now().Sub(wgPeer.LastHandshakeTime).Hours() < 24 {
+					newerDay++
+				}
 			}
 		}
+	}
+
+	diffUpstream := linkStats.RxBytes
+	diffDownstream := linkStats.TxBytes
+	if manager.statistic.LinkStat != nil {
+		diffUpstream -= manager.statistic.LinkStat.RxBytes
+		diffDownstream -= manager.statistic.LinkStat.TxBytes
 	}
 
 	manager.statistic = CachedStatistics{
 		PeersTotal:          peersTotal,
 		PeersWithTraffic:    withHandshakes,
 		PeersActiveLastHour: newerHour,
+		PeersActiveLastDay:  newerDay,
 		LinkStat:            linkStats,
+		Upstream:            manager.statistic.Upstream + int64(diffUpstream),
+		Downstream:          manager.statistic.Downstream + int64(diffDownstream),
 	}
 
 	zap.L().Info("STATS",
 		zap.Int("total", peersTotal),
 		zap.Int("connected", withHandshakes),
-		zap.Int("active", newerHour),
+		zap.Int("active_1h", newerHour),
+		zap.Int("active_1d", newerDay),
 		zap.Int("rx_bytes", int(linkStats.RxBytes)),
 		zap.Int("rx_packets", int(linkStats.RxPackets)),
 		zap.Int("tx_bytes", int(linkStats.TxBytes)),
 		zap.Int("tx_packets", int(linkStats.TxPackets)))
 
 	peersWithHandshakesGauge.Set(float64(withHandshakes))
+	manager.storage.SetUpstreamMetric(manager.statistic.Upstream)
+	manager.storage.SetDownstreamMetric(manager.statistic.Upstream)
 }
 
 func (manager *Manager) background() {
@@ -347,6 +364,8 @@ func (manager *Manager) background() {
 	expirationTicker := time.NewTicker(time.Second * 60)
 	defer expirationTicker.Stop()
 
+	// Fill stats on startup
+	manager.backgroundOnce()
 	for {
 		select {
 		case <-manager.bgStopChannel:
