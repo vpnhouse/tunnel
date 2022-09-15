@@ -23,13 +23,22 @@ type CachedStatistics struct {
 	// PeersWithTraffic is a number of peers
 	// being actually connected to this node
 	PeersWithTraffic int
-	// Having traffic during last hour
-	ActiveLastHour int
+	// PeersActiveLastHour is number of peers
+	// having any exchange during last hour
+	PeersActiveLastHour int
+	// PeersActiveLastDay is number of peers
+	// having any exchange during last 24 hours
+	PeersActiveLastDay int
 	// Wireguard link statistic, may be nil
 	LinkStat *netlink.LinkStatistics
+	// Upstream traffic totally
+	Upstream int64
+	// Downstream traffic totally
+	Downstream int64
 }
 
 type Manager struct {
+	readyChannel  chan int
 	runtime       *runtime.TunnelRuntime
 	mutex         sync.RWMutex
 	storage       *storage.Storage
@@ -47,6 +56,7 @@ type Manager struct {
 
 func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
 	manager := &Manager{
+		readyChannel:  make(chan int),
 		runtime:       runtime,
 		storage:       storage,
 		wireguard:     wireguard,
@@ -54,6 +64,10 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 		eventLog:      eventLog,
 		running:       true,
 		bgStopChannel: make(chan bool),
+		statistic: CachedStatistics{
+			Upstream:   storage.GetUpstreamMetric(),
+			Downstream: storage.GetDownstreamMetric(),
+		},
 	}
 
 	// Run background goroutine
@@ -62,6 +76,7 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 
 	manager.restorePeers()
 
+	manager.readyChannel <- 1
 	return manager, nil
 }
 

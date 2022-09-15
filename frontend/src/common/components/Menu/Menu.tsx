@@ -6,6 +6,7 @@ import { RouteMenuItem } from '@common/components';
 import { PEERS_ROUTE, SETTINGS_ROUTE } from '@constants/routes';
 import { getAllPeersFx } from '@root/store/peers';
 import LogoutMenuItem from '@common/components/LogoutMenuItem/LogoutMenuItem';
+import GlobalStatsBar from '@common/components/Menu/GlobalStatsBar';
 
 import useStyles from './Menu.styles';
 import PeersIcon from './assets/PeersIcon';
@@ -39,6 +40,7 @@ const Menu: FC = () => {
         route={SETTINGS_ROUTE}
         pageTitle="Settings"
       />
+      <GlobalStatsBar />
       <LogoutMenuItem />
     </List>
   );
