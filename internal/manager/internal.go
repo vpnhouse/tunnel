@@ -354,7 +354,7 @@ func (manager *Manager) backgroundOnce() {
 
 	peersWithHandshakesGauge.Set(float64(withHandshakes))
 	manager.storage.SetUpstreamMetric(manager.statistic.Upstream)
-	manager.storage.SetDownstreamMetric(manager.statistic.Upstream)
+	manager.storage.SetDownstreamMetric(manager.statistic.Downstream)
 }
 
 func (manager *Manager) background() {
