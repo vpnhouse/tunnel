@@ -6,3 +6,4 @@ export const STATUS = '/api/tunnel/admin/status';
 export const TRUSTED = '/api/tunnel/admin/trusted';
 export const GET_IPV4 = '/api/tunnel/admin/ip-pool/suggest';
 export const GET_WIREGUARD = '/api/tunnel/admin/connection-info/wireguard';
+export const GLOBAL_STATS = '/api/tunnel/admin/status';
