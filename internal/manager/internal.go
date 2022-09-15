@@ -364,16 +364,25 @@ func (manager *Manager) background() {
 	expirationTicker := time.NewTicker(time.Second * 60)
 	defer expirationTicker.Stop()
 
-	// Fill stats on startup
-	manager.backgroundOnce()
+	ready := false
+	background := func() {
+		zap.L().Debug("Running background processing round")
+		manager.backgroundOnce()
+	}
+
 	for {
 		select {
 		case <-manager.bgStopChannel:
 			zap.L().Info("Shutting down manager background process")
 			return
+		case <-manager.readyChannel:
+			ready = true
+			background()
+
 		case <-expirationTicker.C:
-			zap.L().Debug("Running expiration round")
-			manager.backgroundOnce()
+			if ready {
+				background()
+			}
 		}
 	}
 }

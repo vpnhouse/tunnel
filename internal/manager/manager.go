@@ -38,6 +38,7 @@ type CachedStatistics struct {
 }
 
 type Manager struct {
+	readyChannel  chan int
 	runtime       *runtime.TunnelRuntime
 	mutex         sync.RWMutex
 	storage       *storage.Storage
@@ -74,6 +75,7 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 
 	manager.restorePeers()
 
+	manager.readyChannel <- 1
 	return manager, nil
 }
 
