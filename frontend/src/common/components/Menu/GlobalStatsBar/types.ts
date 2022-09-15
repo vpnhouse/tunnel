@@ -3,8 +3,8 @@ export interface GlobalStats {
   peers_connected: number;
   peers_active_1h: number;
   peers_active_1d: number;
-  traffic_rx: string;
-  traffic_tx: string;
+  traffic_up: string;
+  traffic_down: string;
 }
 
 export interface GlobalStatsResponse {
@@ -12,6 +12,6 @@ export interface GlobalStatsResponse {
   peers_connected: number;
   peers_active_1h: number;
   peers_active_1d: number;
-  traffic_rx: number;
-  traffic_tx: number;
+  traffic_up: number;
+  traffic_down: number;
 }

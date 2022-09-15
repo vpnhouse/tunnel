@@ -24,8 +24,8 @@ func (tun *TunnelAPI) AdminGetStatus(w http.ResponseWriter, r *http.Request) {
 			PeersConnected:  &stats.PeersWithTraffic,
 			PeersActive1h:   &stats.PeersActiveLastHour,
 			PeersActive1d:   &stats.PeersActiveLastDay,
-			TrafficRx:       &stats.Upstream,
-			TrafficTx:       &stats.Downstream,
+			TrafficUp:       &stats.Upstream,
+			TrafficDown:     &stats.Downstream,
 		}
 		return status, nil
 	})

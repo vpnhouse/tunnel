@@ -894,6 +894,8 @@ github.com/vpnhouse/api v0.0.0-20220907111042-196d5e570664 h1:FwMEYlaQPJ6VEKyN7t
 github.com/vpnhouse/api v0.0.0-20220907111042-196d5e570664/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
 github.com/vpnhouse/api v0.0.0-20220915044926-43fbc80f352a h1:3v8cQicEJVVk/QZEDqlw6sdwyqxIc3Py6hHMNJ4VnEI=
 github.com/vpnhouse/api v0.0.0-20220915044926-43fbc80f352a/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
+github.com/vpnhouse/api v0.0.0-20220915095003-1bbb33cef4a8 h1:iPuZvCPq8b8FZNV31swnuuzWMLk6sUBv8rIVXrAdKzc=
+github.com/vpnhouse/api v0.0.0-20220915095003-1bbb33cef4a8/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
 github.com/vultr/govultr/v2 v2.7.1/go.mod h1:BvOhVe6/ZpjwcoL6/unkdQshmbS9VGbowI4QT+3DGVU=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.0.2/go.mod h1:1WAq6h33pAW+iRreB34OORO2Nf7qel3VV3fjBj+hCSs=

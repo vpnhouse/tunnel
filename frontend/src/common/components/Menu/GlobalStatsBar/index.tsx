@@ -33,8 +33,8 @@ const GlobalStatsBar = () => {
 
     setStats({
       ...data,
-      traffic_rx: convertBytes(data.traffic_rx),
-      traffic_tx: convertBytes(data.traffic_tx)
+      traffic_up: convertBytes(data.traffic_up),
+      traffic_down: convertBytes(data.traffic_down)
     });
   }, [convertBytes]);
 
@@ -51,7 +51,7 @@ const GlobalStatsBar = () => {
     return null;
   }
 
-  const { peers_active_1h, peers_active_1d, peers_connected, peers_total, traffic_tx, traffic_rx } = stats;
+  const { peers_active_1h, peers_active_1d, peers_connected, peers_total, traffic_up, traffic_down } = stats;
 
   return (
     <div className={classes.root}>
@@ -84,13 +84,13 @@ const GlobalStatsBar = () => {
       <div className={classes.row}>
         <span>Upstream traffic:</span>
 
-        <span>{traffic_tx}</span>
+        <span>{traffic_up}</span>
       </div>
 
       <div className={classes.row}>
         <span>Downstream traffic:</span>
 
-        <span>{traffic_rx}</span>
+        <span>{traffic_down}</span>
       </div>
     </div>
   );
