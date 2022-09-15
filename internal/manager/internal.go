@@ -378,7 +378,6 @@ func (manager *Manager) background() {
 		case <-manager.readyChannel:
 			ready = true
 			background()
-
 		case <-expirationTicker.C:
 			if ready {
 				background()

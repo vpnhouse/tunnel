@@ -56,6 +56,7 @@ type Manager struct {
 
 func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
 	manager := &Manager{
+		readyChannel:  make(chan int),
 		runtime:       runtime,
 		storage:       storage,
 		wireguard:     wireguard,
