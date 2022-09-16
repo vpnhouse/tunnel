@@ -293,9 +293,9 @@ const PeerCard: FC<PropsType> = ({
         </Dialog>
       ) : (
         <Paper className={clsx(classes.paper, isServerError && classes.paperError)} elevation={0}>
-          <div id="peerCardActions" className={classes.actions}>
+          <div id="peerCardActions" className={classes.actions} onClick={deletePeerHandler}>
             <div className={classes.deleteIcon}>
-              <DeleteIcon onClick={deletePeerHandler} width={15} height={16} />
+              <DeleteIcon width={15} height={16} />
             </div>
           </div>
 
