@@ -15,4 +15,5 @@ type netFilter interface {
 	newIsolatePeerRule(peerIP xnet.IP) error
 	newIsolateAllRule(ipNet *xnet.IPNet) error
 	findAndRemoveRule(id []byte) error
+	fillPortRestrictionRules(ports *PortRestrictionConfig) error
 }

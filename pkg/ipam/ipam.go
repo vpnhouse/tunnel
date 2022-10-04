@@ -32,10 +32,11 @@ type IPAM struct {
 }
 
 type Config struct {
-	Subnet       *xnet.IPNet
-	Interface    string
-	AccessPolicy NetworkAccess
-	RateLimiter  *RateLimiterConfig
+	Subnet           *xnet.IPNet
+	Interface        string
+	AccessPolicy     NetworkAccess
+	RateLimiter      *RateLimiterConfig
+	PortRestrictions *PortRestrictionConfig
 }
 
 func New(cfg Config) (*IPAM, error) {
@@ -86,6 +87,10 @@ func New(cfg Config) (*IPAM, error) {
 		if err := nf.newIsolateAllRule(cfg.Subnet); err != nil {
 			return nil, err
 		}
+	}
+
+	if cfg.PortRestrictions != nil {
+		nf.fillPortRestrictionRules(cfg.PortRestrictions)
 	}
 
 	return &IPAM{

@@ -99,10 +99,11 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Initialize ip addr manager
 	netpol := runtime.Settings.GetNetworkAccessPolicy()
 	ipv4am, err := ipam.New(ipam.Config{
-		Subnet:       wgcfg.Subnet.Unwrap(),
-		Interface:    wgcfg.Interface,
-		AccessPolicy: netpol.Access,
-		RateLimiter:  netpol.RateLimit,
+		Subnet:           wgcfg.Subnet.Unwrap(),
+		Interface:        wgcfg.Interface,
+		AccessPolicy:     netpol.Access,
+		RateLimiter:      netpol.RateLimit,
+		PortRestrictions: runtime.Settings.PortRestrictions,
 	})
 	if err != nil {
 		return err

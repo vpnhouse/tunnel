@@ -21,21 +21,21 @@ const (
 	AccessPolicyAllowAll
 )
 
-type aliasToInt struct {
+type accessPolicy struct {
 	v int
 }
 
-func (atoi aliasToInt) Int() int { return atoi.v }
+func (policy accessPolicy) Int() int { return policy.v }
 
-func (atoi *aliasToInt) UnmarshalText(raw []byte) error {
+func (policy *accessPolicy) UnmarshalText(raw []byte) error {
 	s := string(raw)
 	switch s {
 	case "default":
-		atoi.v = AccessPolicyDefault
+		policy.v = AccessPolicyDefault
 	case "internet_only":
-		atoi.v = AccessPolicyInternetOnly
+		policy.v = AccessPolicyInternetOnly
 	case "allow_all":
-		atoi.v = AccessPolicyAllowAll
+		policy.v = AccessPolicyAllowAll
 	default:
 		return fmt.Errorf("unknown policy %s", s)
 	}
@@ -43,8 +43,8 @@ func (atoi *aliasToInt) UnmarshalText(raw []byte) error {
 	return nil
 }
 
-func (atoi aliasToInt) MarshalText() ([]byte, error) {
-	switch atoi.v {
+func (policy accessPolicy) MarshalText() ([]byte, error) {
+	switch policy.v {
 	case AccessPolicyDefault:
 		return []byte("default"), nil
 	case AccessPolicyInternetOnly:
@@ -52,20 +52,20 @@ func (atoi aliasToInt) MarshalText() ([]byte, error) {
 	case AccessPolicyAllowAll:
 		return []byte("allow_all"), nil
 	default:
-		return nil, fmt.Errorf("unknown policy %d", atoi.v)
+		return nil, fmt.Errorf("unknown policy %d", policy.v)
 	}
 }
 
-func AliasInternetOnly() aliasToInt {
-	return aliasToInt{v: AccessPolicyInternetOnly}
+func AliasInternetOnly() accessPolicy {
+	return accessPolicy{v: AccessPolicyInternetOnly}
 }
 
-func AliasAllowAll() aliasToInt {
-	return aliasToInt{v: AccessPolicyAllowAll}
+func AliasAllowAll() accessPolicy {
+	return accessPolicy{v: AccessPolicyAllowAll}
 }
 
 type NetworkAccess struct {
-	DefaultPolicy aliasToInt `yaml:"default_policy,omitempty"`
+	DefaultPolicy accessPolicy `yaml:"default_policy,omitempty"`
 }
 
 type RateLimiterConfig struct {
