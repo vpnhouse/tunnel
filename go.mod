@@ -13,7 +13,7 @@ require (
 	github.com/go-acme/lego/v4 v4.6.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.0
-	github.com/google/nftables v0.0.0-20220402130106-19672dc9fe54
+	github.com/google/nftables v0.0.0-20221002140148-535f5eb8da79
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/jmoiron/sqlx v1.3.4

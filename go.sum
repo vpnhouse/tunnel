@@ -392,6 +392,8 @@ github.com/google/martian/v3 v3.1.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIG
 github.com/google/martian/v3 v3.2.1/go.mod h1:oBOf6HBosgwRXnUGWUB05QECsc6uvmMiJ3+6W4l/CUk=
 github.com/google/nftables v0.0.0-20220402130106-19672dc9fe54 h1:KjGHUOTclov7IfvqZXf3w1cSx1Bw1Exbe27/4KvpwHM=
 github.com/google/nftables v0.0.0-20220402130106-19672dc9fe54/go.mod h1:0F8on3JWMkm+xahTHItkiu/E1SPqMd0TOxNweQv8ptE=
+github.com/google/nftables v0.0.0-20221002140148-535f5eb8da79 h1:gHlwshQh1WGK6ghd5f4n3q8tV2/gNN8fp8fjmxKb07U=
+github.com/google/nftables v0.0.0-20221002140148-535f5eb8da79/go.mod h1:b97ulCCFipUC+kSin+zygkvUVpx0vyIAwxXFdY3PlNc=
 github.com/google/pprof v0.0.0-20181206194817-3ea8567a2e57/go.mod h1:zfwlbNMJ+OItoe0UupaVj+oy1omPYYDuagoSzA8v9mc=
 github.com/google/pprof v0.0.0-20190515194954-54271f7e092f/go.mod h1:zfwlbNMJ+OItoe0UupaVj+oy1omPYYDuagoSzA8v9mc=
 github.com/google/pprof v0.0.0-20191218002539-d4f498aebedc/go.mod h1:ZgVRPoUq/hfqzAqh7sHMqb3I9Rq5C59dIz2SbBwJ4eM=

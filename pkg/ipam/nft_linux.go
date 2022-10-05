@@ -331,7 +331,7 @@ func (nft *netfilterWrapper) findAndRemoveRule(id []byte) error {
 
 func nftNextSetName() string {
 	atomic.AddUint32(&nftSetCounter, 1)
-	return fmt.Sprintf("__set%d", nftSetCounter)
+	return fmt.Sprintf("__vh_set%d", nftSetCounter)
 }
 
 func nftUint16ToKey(v uint16) []byte {
@@ -340,50 +340,57 @@ func nftUint16ToKey(v uint16) []byte {
 	return r
 }
 
-func (nft *netfilterWrapper) setBlockedPorts4proto(ports []portRange, proto int, mode listMode) error {
+func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int, mode ListMode) error {
+	if ports == nil {
+		return nil
+	}
+
+	zap.L().Debug("Blocking ports", zap.Any("ports", ports))
+
 	set := nftables.Set{
 		Table:     nfPortfilterTable,
 		Name:      nftNextSetName(),
 		Anonymous: true,
 		Constant:  true,
-		Interval:  true,
-		KeyType: nftables.SetDatatype{
-			Name:  "inet_service",
-			Bytes: 2,
-		},
+		KeyType:   nftables.TypeInetService,
 	}
-	__ports := make([]portRange, len(ports))
+
+	__ports := make([]PortRange, len(ports))
 	copy(__ports, ports)
 	sort.Slice(__ports, func(i, j int) bool {
-		return __ports[i].high > __ports[j].high
+		return __ports[i].low < __ports[j].low
 	})
 
 	setElements := make([]nftables.SetElement, 0)
-	setElements = append(setElements, nftables.SetElement{
-		Key: nftUint16ToKey(0),
-	})
-	var low uint16 = 65535
-	for _, p := range ports {
-		if p.high <= low {
+	var highest uint16 = 0
+	for _, r := range __ports {
+		if r.low <= highest {
 			continue
 		}
 
-		low = p.low
-		setElements = append(setElements, nftables.SetElement{
-			Key: nftUint16ToKey(p.high + 1),
-		})
-		setElements = append(setElements, nftables.SetElement{
-			Key: nftUint16ToKey(p.low),
-		})
+		highest = r.high
+
+		for p := r.low; p <= r.high; p++ {
+			setElements = append(setElements, nftables.SetElement{
+				Key: nftUint16ToKey(p),
+			})
+		}
 	}
 
-	nft.c.AddSet(&set, setElements)
+	if err := nft.c.AddSet(&set, setElements); err != nil {
+		return xerror.EInternalError("nft: failed to create blocked ports set", err)
+	}
 
-	rule := nftables.Rule{
+	nft.c.AddRule(&nftables.Rule{
 		Table: nfPortfilterTable,
 		Chain: nfPortfilterChain,
 		Exprs: []expr.Any{
 			&expr.Meta{Key: expr.MetaKeyL4PROTO, Register: 1},
+			&expr.Cmp{
+				Op:       expr.CmpOpEq,
+				Register: 1,
+				Data:     []byte{unix.IPPROTO_TCP},
+			},
 			&expr.Payload{
 				DestRegister: 1,
 				Base:         expr.PayloadBaseTransportHeader,
@@ -393,25 +400,28 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []portRange, proto int,
 			&expr.Lookup{
 				SourceRegister: 0x1,
 				SetName:        set.Name,
+				SetID:          set.ID,
 			},
 			&expr.Verdict{Kind: expr.VerdictDrop},
 		},
-	}
+	})
 
-	nft.c.AddRule(&rule)
 	if err := nft.c.Flush(); err != nil {
-		return xerror.EInternalError("nft: failed to isolate peer", err)
+		return xerror.EInternalError("nft: failed to set blocked ports", err)
 	}
 
 	return nil
 }
 
 func (nft *netfilterWrapper) fillPortRestrictionRules(ports *PortRestrictionConfig) error {
-	err := nft.setBlockedPorts4proto(ports.udp.Ports, unix.IPPROTO_UDP, ports.udp.Mode)
+	defer listNFTObjects(nft.c)
+
+	zap.L().Debug("Blocking ports", zap.Any("ports", ports))
+	err := nft.setBlockedPorts4proto(ports.UDP.Ports, unix.IPPROTO_UDP, ports.UDP.Mode)
 	if err != nil {
 		return err
 	}
-	return nft.setBlockedPorts4proto(ports.tcp.Ports, unix.IPPROTO_TCP, ports.tcp.Mode)
+	return nft.setBlockedPorts4proto(ports.TCP.Ports, unix.IPPROTO_TCP, ports.TCP.Mode)
 }
 
 func listNFTObjects(nft *nftables.Conn) {
@@ -440,6 +450,16 @@ func listNFTObjects(nft *nftables.Conn) {
 				fmt.Println("    ", expressionText(exp))
 			}
 		}
+
+		sets, err := nft.GetSets(c.Table)
+
+		for _, s := range sets {
+			fmt.Println("  set:", "id:", s.ID, "name:", s.Name, s.Anonymous, s.Constant, s.Interval, s.IsMap, s.KeyType.Name, s.KeyType.Bytes)
+			elms, _ := nft.GetSetElements(s)
+			for _, e := range elms {
+				fmt.Println("    ", setElementText(e))
+			}
+		}
 	}
 }
 
@@ -457,7 +477,7 @@ func policyText(v *nftables.ChainPolicy) string {
 	}
 }
 
-func hookText(h nftables.ChainHook) string {
+func hookText(h *nftables.ChainHook) string {
 	switch h {
 	case nftables.ChainHookPrerouting:
 		return "prerouting"
@@ -472,6 +492,10 @@ func hookText(h nftables.ChainHook) string {
 	default:
 		return fmt.Sprintf("UNKNOWN v=%d", h)
 	}
+}
+
+func setElementText(e nftables.SetElement) string {
+	return fmt.Sprintf("%T :: %#v", e, e)
 }
 
 func expressionText(e expr.Any) string {
