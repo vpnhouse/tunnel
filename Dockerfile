@@ -9,8 +9,12 @@ COPY ./frontend /app/
 WORKDIR /app
 RUN npm install && npm run build
 
+from toolset as gomodules
+COPY go.mod /build/
+WORKDIR /build
+RUN go mod download
 
-FROM toolset as builder
+FROM gomodules as builder
 
 COPY . /build
 COPY --from=nodejs /app/dist /build/internal/frontend/dist/
