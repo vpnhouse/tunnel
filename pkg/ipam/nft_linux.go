@@ -409,6 +409,7 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 		Name:      nftNextSetName(),
 		Anonymous: true,
 		Constant:  true,
+		Interval:  true,
 		KeyType:   nftables.TypeInetService,
 	}
 
@@ -427,11 +428,14 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 
 		highest = r.high
 
-		for p := r.low; p <= r.high; p++ {
-			setElements = append(setElements, nftables.SetElement{
-				Key: nftUint16ToKey(p),
-			})
-		}
+		setElements = append(setElements, nftables.SetElement{
+			Key: nftUint16ToKey(r.low),
+		})
+		setElements = append(setElements, nftables.SetElement{
+			Key:         nftUint16ToKey(r.high + 1),
+			IntervalEnd: true,
+		})
+
 	}
 
 	if err := nft.c.AddSet(&set, setElements); err != nil {
