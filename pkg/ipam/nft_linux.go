@@ -148,7 +148,15 @@ func (nft *netfilterWrapper) initTable(table *nftables.Table, chain *nftables.Ch
 
 func (nft *netfilterWrapper) initPortfilterTable(table *nftables.Table, chain *nftables.Chain) {
 	nft.initTable(table, chain)
-	nft.addCtMatchRule(table, chain, []uint32{expr.CtStateBitESTABLISHED}, &expr.Verdict{Kind: expr.VerdictAccept})
+	nft.addCtMatchRule(
+		table,
+		chain,
+		[]uint32{
+			expr.CtStateBitESTABLISHED,
+			expr.CtStateBitRELATED,
+		},
+		&expr.Verdict{Kind: expr.VerdictAccept},
+	)
 
 }
 func (nft *netfilterWrapper) newIsolatePeerRule(peerIP xnet.IP) error {
