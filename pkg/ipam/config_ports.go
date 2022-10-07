@@ -5,8 +5,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -36,22 +34,30 @@ type PortRestrictionConfig struct {
 }
 
 func DefaultPortRestrictions() *PortRestrictionConfig {
-	cfg := PortRestrictionConfig{}
-	cfg.UDP.Ports = []PortRange{
-		port(69),
-		port(113),
-		port(135),
-		portRange(137, 139),
-		port(445),
-		port(514),
+	cfg := PortRestrictionConfig{
+		UDP: ProtocolPortConfig{
+			Mode: ListMode{
+				v: RestrictionModeBlockList,
+			},
+			Ports: []PortRange{
+				port(69),
+				port(113),
+				port(135),
+				portRange(137, 139),
+				port(445),
+				port(514),
+			},
+		},
+		TCP: ProtocolPortConfig{
+			Mode: ListMode{
+				v: RestrictionModeBlockList,
+			},
+			Ports: []PortRange{
+				port(113),
+				port(445),
+			},
+		},
 	}
-	cfg.TCP.Ports = []PortRange{
-		port(113),
-		port(445),
-	}
-
-	m, err := yaml.Marshal(cfg)
-	fmt.Println(m, err)
 
 	return &cfg
 }
