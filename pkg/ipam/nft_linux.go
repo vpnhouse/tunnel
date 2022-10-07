@@ -389,7 +389,7 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 			&expr.Cmp{
 				Op:       expr.CmpOpEq,
 				Register: 1,
-				Data:     []byte{unix.IPPROTO_TCP},
+				Data:     []byte{byte(proto)},
 			},
 			&expr.Payload{
 				DestRegister: 1,
@@ -414,8 +414,6 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 }
 
 func (nft *netfilterWrapper) fillPortRestrictionRules(ports *PortRestrictionConfig) error {
-	defer listNFTObjects(nft.c)
-
 	zap.L().Debug("Blocking ports", zap.Any("ports", ports))
 	err := nft.setBlockedPorts4proto(ports.UDP.Ports, unix.IPPROTO_UDP, ports.UDP.Mode)
 	if err != nil {
