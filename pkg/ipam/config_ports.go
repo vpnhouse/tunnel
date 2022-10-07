@@ -5,6 +5,8 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -12,6 +14,11 @@ const (
 	RestrictionModeBlockList = iota
 	// Allow ports from specified port range, blocking all owhers
 	RestrictionModeAllowList
+)
+
+var (
+	protocolUDP protocolID = protocolID{name: "UDP", id: unix.IPPROTO_UDP}
+	protocolTCP protocolID = protocolID{name: "TCP", id: unix.IPPROTO_TCP}
 )
 
 type ListMode struct {
@@ -31,6 +38,11 @@ type ProtocolPortConfig struct {
 type PortRestrictionConfig struct {
 	UDP ProtocolPortConfig `yaml:"udp,omitempty"`
 	TCP ProtocolPortConfig `yaml:"tcp,omitempty"`
+}
+
+type protocolID struct {
+	name string
+	id   uint8
 }
 
 func DefaultPortRestrictions() *PortRestrictionConfig {

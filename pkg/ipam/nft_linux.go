@@ -18,7 +18,6 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
 	"go.uber.org/zap"
-	"golang.org/x/sys/unix"
 )
 
 const nftPrefix = "vh_"
@@ -397,12 +396,12 @@ func (nft *netfilterWrapper) addCtMatchRule(table *nftables.Table, chain *nftabl
 	return nil
 }
 
-func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int, mode ListMode) error {
+func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto protocolID, mode ListMode) error {
 	if ports == nil {
 		return nil
 	}
 
-	zap.L().Debug("Setting up portfilter", zap.String("mode", mode.String()), zap.Any("ports", ports))
+	zap.L().Info("Setting up portfilter", zap.String("proto", proto.name), zap.String("mode", mode.String()), zap.Any("ports", ports))
 
 	set := nftables.Set{
 		Table:     nfPortfilterTable,
@@ -454,7 +453,7 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 			&expr.Cmp{
 				Op:       expr.CmpOpEq,
 				Register: 1,
-				Data:     []byte{byte(proto)},
+				Data:     []byte{byte(proto.id)},
 			},
 			&expr.Payload{
 				DestRegister: 1,
@@ -486,7 +485,7 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 				&expr.Cmp{
 					Op:       expr.CmpOpEq,
 					Register: 1,
-					Data:     []byte{byte(proto)},
+					Data:     []byte{byte(proto.id)},
 				},
 				&expr.Counter{},
 				&expr.Verdict{Kind: expr.VerdictDrop},
@@ -502,11 +501,11 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 }
 
 func (nft *netfilterWrapper) fillPortRestrictionRules(ports *PortRestrictionConfig) error {
-	err := nft.setBlockedPorts4proto(ports.UDP.Ports, unix.IPPROTO_UDP, ports.UDP.Mode)
+	err := nft.setBlockedPorts4proto(ports.UDP.Ports, protocolUDP, ports.UDP.Mode)
 	if err != nil {
 		return err
 	}
-	return nft.setBlockedPorts4proto(ports.TCP.Ports, unix.IPPROTO_TCP, ports.TCP.Mode)
+	return nft.setBlockedPorts4proto(ports.TCP.Ports, protocolTCP, ports.TCP.Mode)
 }
 
 func listNFTObjects(nft *nftables.Conn) {
