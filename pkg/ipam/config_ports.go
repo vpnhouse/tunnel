@@ -56,7 +56,9 @@ func DefaultPortRestrictions() *PortRestrictionConfig {
 	return &cfg
 }
 
-func (mode ListMode) Int() int { return mode.v }
+func (mode ListMode) Int() int        { return mode.v }
+func (mode ListMode) BlockList() bool { return mode.v == RestrictionModeBlockList }
+func (mode ListMode) AllowList() bool { return mode.v == RestrictionModeAllowList }
 
 func (mode *ListMode) UnmarshalText(raw []byte) error {
 	s := string(raw)
@@ -72,15 +74,19 @@ func (mode *ListMode) UnmarshalText(raw []byte) error {
 	return nil
 }
 
-func (mode ListMode) MarshalText() ([]byte, error) {
+func (mode ListMode) String() string {
 	switch mode.v {
 	case RestrictionModeAllowList:
-		return []byte("allow_list"), nil
+		return "allow_list"
 	case RestrictionModeBlockList:
-		return []byte("block_list"), nil
+		return "block_list"
 	default:
-		return nil, fmt.Errorf("unknown mode %d", mode.v)
+		return "unknown"
 	}
+}
+
+func (mode ListMode) MarshalText() ([]byte, error) {
+	return []byte(mode.String()), nil
 }
 
 func (rng *PortRange) UnmarshalText(raw []byte) error {

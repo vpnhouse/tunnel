@@ -74,7 +74,7 @@ func (nft *netfilterWrapper) init() error {
 	nft.c.FlushRuleset()
 	nft.enableMasquerade()
 	nft.initTable(nfIsolationTable, nfIsolationChain)
-	nft.initTable(nfPortfilterTable, nfPortfilterChain)
+	nft.initPortfilterTable(nfPortfilterTable, nfPortfilterChain)
 	if err := nft.c.Flush(); err != nil {
 		return xerror.EInternalError("nft: failed to init nftables", err)
 	}
@@ -146,6 +146,11 @@ func (nft *netfilterWrapper) initTable(table *nftables.Table, chain *nftables.Ch
 	})
 }
 
+func (nft *netfilterWrapper) initPortfilterTable(table *nftables.Table, chain *nftables.Chain) {
+	nft.initTable(table, chain)
+	nft.addCtMatchRule(table, chain, []uint32{expr.CtStateBitESTABLISHED}, &expr.Verdict{Kind: expr.VerdictAccept})
+
+}
 func (nft *netfilterWrapper) newIsolatePeerRule(peerIP xnet.IP) error {
 	zap.L().Debug("isolate peer", zap.String("ip", peerIP.String()))
 
@@ -340,12 +345,56 @@ func nftUint16ToKey(v uint16) []byte {
 	return r
 }
 
+func nftCtStateToKey(ctState uint32) []byte {
+	r := make([]byte, 4)
+	binary.LittleEndian.PutUint32(r, ctState)
+	return r
+}
+
+func (nft *netfilterWrapper) addCtMatchRule(table *nftables.Table, chain *nftables.Chain, ctStateBits []uint32, verdict *expr.Verdict) error {
+	ctSet := nftables.Set{
+		Table:     table,
+		Name:      nftNextSetName(),
+		Anonymous: true,
+		Constant:  true,
+		KeyType:   nftables.TypeCTState,
+	}
+
+	ctSetElements := make([]nftables.SetElement, len(ctStateBits))
+
+	for idx, st := range ctStateBits {
+		ctSetElements[idx] = nftables.SetElement{Key: nftCtStateToKey(st)}
+	}
+	if err := nft.c.AddSet(&ctSet, ctSetElements); err != nil {
+		return xerror.EInternalError("nft: failed to create blocked ports set", err)
+	}
+
+	nft.c.AddRule(&nftables.Rule{
+		Table: table,
+		Chain: chain,
+		Exprs: []expr.Any{
+			&expr.Ct{
+				Register: 1,
+			},
+			&expr.Lookup{
+				SourceRegister: 0x1,
+				SetName:        ctSet.Name,
+				SetID:          ctSet.ID,
+			},
+			&expr.Counter{},
+			&expr.Verdict{Kind: expr.VerdictAccept},
+		},
+	})
+
+	return nil
+}
+
 func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int, mode ListMode) error {
 	if ports == nil {
 		return nil
 	}
 
-	zap.L().Debug("Blocking ports", zap.Any("ports", ports))
+	zap.L().Debug("Setting up portfilter", zap.String("mode", mode.String()), zap.Any("ports", ports))
 
 	set := nftables.Set{
 		Table:     nfPortfilterTable,
@@ -381,6 +430,10 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 		return xerror.EInternalError("nft: failed to create blocked ports set", err)
 	}
 
+	verdict := expr.Verdict{Kind: expr.VerdictDrop}
+	if mode.AllowList() {
+		verdict = expr.Verdict{Kind: expr.VerdictAccept}
+	}
 	nft.c.AddRule(&nftables.Rule{
 		Table: nfPortfilterTable,
 		Chain: nfPortfilterChain,
@@ -402,9 +455,32 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 				SetName:        set.Name,
 				SetID:          set.ID,
 			},
-			&expr.Verdict{Kind: expr.VerdictDrop},
+			&expr.Counter{},
+			&verdict,
 		},
 	})
+
+	if mode.AllowList() {
+		nft.c.AddRule(&nftables.Rule{
+			Table: nfPortfilterTable,
+			Chain: nfPortfilterChain,
+			Exprs: []expr.Any{
+				&expr.Payload{
+					DestRegister: 1,
+					Base:         expr.PayloadBaseNetworkHeader,
+					Offset:       9,
+					Len:          1,
+				},
+				&expr.Cmp{
+					Op:       expr.CmpOpEq,
+					Register: 1,
+					Data:     []byte{byte(proto)},
+				},
+				&expr.Counter{},
+				&expr.Verdict{Kind: expr.VerdictDrop},
+			},
+		})
+	}
 
 	if err := nft.c.Flush(); err != nil {
 		return xerror.EInternalError("nft: failed to set blocked ports", err)
@@ -414,7 +490,6 @@ func (nft *netfilterWrapper) setBlockedPorts4proto(ports []PortRange, proto int,
 }
 
 func (nft *netfilterWrapper) fillPortRestrictionRules(ports *PortRestrictionConfig) error {
-	zap.L().Debug("Blocking ports", zap.Any("ports", ports))
 	err := nft.setBlockedPorts4proto(ports.UDP.Ports, unix.IPPROTO_UDP, ports.UDP.Mode)
 	if err != nil {
 		return err
