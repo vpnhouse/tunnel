@@ -52,17 +52,18 @@ type Config struct {
 	HTTP       HttpConfig       `yaml:"http"`
 
 	// optional configuration
-	ExternalStats      *extstat.Config         `yaml:"external_stats,omitempty"`
-	NetworkPolicy      *NetworkAccessPolicy    `yaml:"network,omitempty"`
-	SSL                *xhttp.SSLConfig        `yaml:"ssl,omitempty"`
-	Domain             *xhttp.DomainConfig     `yaml:"domain,omitempty"`
-	AdminAPI           *AdminAPIConfig         `yaml:"admin_api,omitempty"`
-	PublicAPI          *PublicAPIConfig        `yaml:"public_api,omitempty"`
-	GRPC               *grpc.Config            `yaml:"grpc,omitempty"`
-	Sentry             *sentry.Config          `yaml:"sentry,omitempty"`
-	EventLog           *eventlog.StorageConfig `yaml:"event_log,omitempty"`
-	ManagementKeystore string                  `yaml:"management_keystore,omitempty" valid:"path"`
-	DNSFilter          *xdns.Config            `yaml:"dns_filter"`
+	ExternalStats      *extstat.Config             `yaml:"external_stats,omitempty"`
+	NetworkPolicy      *NetworkAccessPolicy        `yaml:"network,omitempty"`
+	SSL                *xhttp.SSLConfig            `yaml:"ssl,omitempty"`
+	Domain             *xhttp.DomainConfig         `yaml:"domain,omitempty"`
+	AdminAPI           *AdminAPIConfig             `yaml:"admin_api,omitempty"`
+	PublicAPI          *PublicAPIConfig            `yaml:"public_api,omitempty"`
+	GRPC               *grpc.Config                `yaml:"grpc,omitempty"`
+	Sentry             *sentry.Config              `yaml:"sentry,omitempty"`
+	EventLog           *eventlog.StorageConfig     `yaml:"event_log,omitempty"`
+	ManagementKeystore string                      `yaml:"management_keystore,omitempty" valid:"path"`
+	DNSFilter          *xdns.Config                `yaml:"dns_filter"`
+	PortRestrictions   *ipam.PortRestrictionConfig `yaml:"ports,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
@@ -78,6 +79,7 @@ func (s *Config) GetNetworkAccessPolicy() NetworkAccessPolicy {
 			Access: ipam.NetworkAccess{DefaultPolicy: ipam.AliasInternetOnly()},
 		}
 	}
+
 	return *s.NetworkPolicy
 }
 
@@ -283,6 +285,7 @@ func safeDefaults(rootDir string) *Config {
 		Wireguard:          wireguard.DefaultConfig(),
 		AdminAPI:           adminAPIConfig,
 		ManagementKeystore: keystorePath,
+		PortRestrictions:   ipam.DefaultPortRestrictions(),
 	}
 }
 
