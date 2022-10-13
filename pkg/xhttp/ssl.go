@@ -205,19 +205,22 @@ func NewIssuer(opts IssuerOpts) (*Issuer, error) {
 func (is *Issuer) TLSConfig() (*tls.Config, error) {
 	certData, err := is.loadCachedCertificate()
 	if err == nil {
+		zap.L().Debug("successfully loaded cached certificate")
+		go is.letsEncryptRenewWorker(certData, true)
 		return certData.intoTLS(), nil
 	}
 
 	certData, err = is.issueAndSaveCertificate()
 	if err == nil {
-		go is.letsEncryptRenew(certData)
+		zap.L().Debug("successfully issued new certificate")
+		go is.letsEncryptRenewWorker(certData, false)
 		return certData.intoTLS(), nil
 	}
 
 	go func() {
 		certData := is.retryIssue()
 		is.opts.Callback(certData.intoTLS())
-		is.letsEncryptRenew(certData)
+		is.letsEncryptRenewWorker(certData, false)
 	}()
 
 	selfSigned, err := is.selfSigned()
@@ -437,8 +440,12 @@ func (is *Issuer) retryIssue() certData {
 // - every 24 hours if expiration >= 60 days but < 89 days;
 // - backoff timer with range of 1...256 minutes if the cert is valid for less than 24 hours;
 // - same backoff used to retry in case of errors from LE;
-func (is *Issuer) letsEncryptRenew(cdata certData) {
-	next := 24 * time.Hour
+func (is *Issuer) letsEncryptRenewWorker(cdata certData, immediate bool) {
+	next := time.Duration(0)
+	if !immediate {
+		next = 24 * time.Hour
+	}
+
 	t := time.NewTimer(next)
 	defer t.Stop()
 
@@ -464,8 +471,8 @@ func (is *Issuer) letsEncryptRenew(cdata certData) {
 func (is *Issuer) renewOnce(existing certData) bool {
 	const t30days = 30 * 24 * time.Hour
 	expiresIn := existing.cert.Leaf.NotAfter.Sub(time.Now())
-	is30daysToExpire := expiresIn > t30days
-	if !is30daysToExpire {
+	more30daysToExpire := expiresIn > t30days
+	if more30daysToExpire {
 		is.log.Debug("more than 30 days to expire, nothing to do", zap.Duration("expire_in", expiresIn))
 		return true
 	}
