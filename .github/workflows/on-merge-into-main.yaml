@@ -27,4 +27,4 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: vpnhouse/tunnel:latest
+          tags: vpnhouse/tunnel:main
