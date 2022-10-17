@@ -101,17 +101,16 @@ You don’t have to change it. But if you have a sound reason, you may activate 
 
 ### How to update service
 
-If you're using our [docker-compose](https://raw.githubusercontent.com/vpnhouse/tunnel/main/docs/docker-compose.yaml) file, juse change container's version inside and run:
+If you're using our [docker-compose](https://raw.githubusercontent.com/vpnhouse/tunnel/main/docs/docker-compose.yaml) file, just change container's version inside and run:
 
-```docker-compose up -d```
+```shell
+docker-compose up -d```
 
 If you started service by `docker run` command as recommended in [Server](#server) quick start section, then just stop and remove old container and start a new one:
 
-```docker stop vpnhouse-tunnel && docker rm vpnhouse-tunnel```
-
 ```shell
-$ mkdir /opt/vpnhouse-data # create a directory for the runtime data
-$ docker run -d \
+docker stop vpnhouse-tunnel && docker rm vpnhouse-tunnel && \
+docker run -d \
     --name=vpnhouse-tunnel \
     --restart=always \
     --cap-add NET_ADMIN   `# add extra privilege to manage Wireguard interface` \
