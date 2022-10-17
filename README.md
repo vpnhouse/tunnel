@@ -107,7 +107,7 @@ If you're using our [docker-compose](https://raw.githubusercontent.com/vpnhouse/
 docker-compose up -d
 ```
 
-If you started service by `docker run` command as recommended in [server](#server) quick start section, then just stop and remove old container and start a new one:
+If you started service by `docker run` command as recommended in [server](#server) quick start section, then just stop and remove old container and then start a new one:
 
 ```shell
 docker stop vpnhouse-tunnel && docker rm vpnhouse-tunnel && \
