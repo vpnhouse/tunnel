@@ -16,6 +16,7 @@ A basic, self-contained management service for WireGuard with a self-serve web U
     - [Initial setup](#initial-setup)
     - [Add a VPN peer](#add-a-vpn-peer)
     - [Use your new VPN connection](#use-your-new-vpn-connection)
+    - [How to update service](#how-to-update-service)
     - [Deep dive](#deep-dive)
 
 ### Features
