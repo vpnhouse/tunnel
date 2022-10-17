@@ -104,7 +104,8 @@ You don’t have to change it. But if you have a sound reason, you may activate 
 If you're using our [docker-compose](https://raw.githubusercontent.com/vpnhouse/tunnel/main/docs/docker-compose.yaml) file, just change container's version inside and run:
 
 ```shell
-docker-compose up -d```
+docker-compose up -d
+```
 
 If you started service by `docker run` command as recommended in [Server](#server) quick start section, then just stop and remove old container and start a new one:
 
