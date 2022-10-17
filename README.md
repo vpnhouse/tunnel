@@ -46,8 +46,8 @@ A basic, self-contained management service for WireGuard with a self-serve web U
 Start the server in the Docker container:
 
 ```shell
-$ mkdir /opt/vpnhouse-data # create a directory for the runtime data
-$ docker run -d \
+mkdir /opt/vpnhouse-data && # create a directory for the runtime data \
+docker run -d \
     --name=vpnhouse-tunnel \
     --restart=always \
     --cap-add NET_ADMIN   `# add extra privilege to manage Wireguard interface` \
