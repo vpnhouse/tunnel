@@ -99,6 +99,28 @@ You don’t have to change it. But if you have a sound reason, you may activate 
 
 <img src="https://media.nikonov.tech/config-text.png" style="width: 60%; max-width: 240px" alt="QR" />
 
+### How to update service
+
+If you're using our [docker-compose](https://raw.githubusercontent.com/vpnhouse/tunnel/main/docs/docker-compose.yaml) file, juse change container's version inside and run:
+
+```docker-compose up -d```
+
+If you started service by `docker run` command as recommended in [Server](#server) quick start section, then just stop and remove old container and start a new one:
+
+```docker stop vpnhouse-tunnel && docker rm vpnhouse-tunnel```
+
+```shell
+$ mkdir /opt/vpnhouse-data # create a directory for the runtime data
+$ docker run -d \
+    --name=vpnhouse-tunnel \
+    --restart=always \
+    --cap-add NET_ADMIN   `# add extra privilege to manage Wireguard interface` \
+    -p 80:80              `# publish web admin port` \
+    -p 443:443            `# publish web admin port (SSL)` \
+    -p 3000:3000/udp      `# publish Wireguard port` \
+    -v /opt/vpnhouse-data/:/opt/vpnhouse/tunnel/   `# mount a host directory with configs` \
+    vpnhouse/tunnel:v0.3.4
+```
 
 ### Deep dive
 
