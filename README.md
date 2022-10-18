@@ -111,7 +111,7 @@ docker-compose up -d
 If you started service by `docker run` command as recommended in [server](#server) quick start section, then just stop and remove old container and then start a new one:
 
 ```shell
-docker stop vpnhouse-tunnel && docker rm vpnhouse-tunnel && \
+docker stop vpnhouse-tunnel; docker rm -f vpnhouse-tunnel && \
 docker run -d \
     --name=vpnhouse-tunnel \
     --restart=always \
