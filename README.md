@@ -16,6 +16,7 @@ A basic, self-contained management service for WireGuard with a self-serve web U
     - [Initial setup](#initial-setup)
     - [Add a VPN peer](#add-a-vpn-peer)
     - [Use your new VPN connection](#use-your-new-vpn-connection)
+    - [How to update service](#how-to-update-service)
     - [Deep dive](#deep-dive)
 
 ### Features
@@ -45,8 +46,8 @@ A basic, self-contained management service for WireGuard with a self-serve web U
 Start the server in the Docker container:
 
 ```shell
-$ mkdir /opt/vpnhouse-data # create a directory for the runtime data
-$ docker run -d \
+mkdir /opt/vpnhouse-data && # create a directory for the runtime data \
+docker run -d \
     --name=vpnhouse-tunnel \
     --restart=always \
     --cap-add NET_ADMIN   `# add extra privilege to manage Wireguard interface` \
@@ -99,6 +100,28 @@ You don’t have to change it. But if you have a sound reason, you may activate 
 
 <img src="https://media.nikonov.tech/config-text.png" style="width: 60%; max-width: 240px" alt="QR" />
 
+### How to update service
+
+If you're using our [docker-compose](https://raw.githubusercontent.com/vpnhouse/tunnel/main/docs/docker-compose.yaml) file, just change container's version inside and run:
+
+```shell
+docker-compose up -d
+```
+
+If you started service by `docker run` command as recommended in [server](#server) quick start section, then just stop and remove old container and then start a new one:
+
+```shell
+docker stop vpnhouse-tunnel; docker rm -f vpnhouse-tunnel && \
+docker run -d \
+    --name=vpnhouse-tunnel \
+    --restart=always \
+    --cap-add NET_ADMIN   `# add extra privilege to manage Wireguard interface` \
+    -p 80:80              `# publish web admin port` \
+    -p 443:443            `# publish web admin port (SSL)` \
+    -p 3000:3000/udp      `# publish Wireguard port` \
+    -v /opt/vpnhouse-data/:/opt/vpnhouse/tunnel/   `# mount a host directory with configs` \
+    vpnhouse/tunnel:v0.3.4
+```
 
 ### Deep dive
 
