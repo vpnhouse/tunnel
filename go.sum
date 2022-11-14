@@ -898,6 +898,10 @@ github.com/vpnhouse/api v0.0.0-20220915044926-43fbc80f352a h1:3v8cQicEJVVk/QZEDq
 github.com/vpnhouse/api v0.0.0-20220915044926-43fbc80f352a/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
 github.com/vpnhouse/api v0.0.0-20220915095003-1bbb33cef4a8 h1:iPuZvCPq8b8FZNV31swnuuzWMLk6sUBv8rIVXrAdKzc=
 github.com/vpnhouse/api v0.0.0-20220915095003-1bbb33cef4a8/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
+github.com/vpnhouse/api v0.0.0-20221114075228-bd002ddb9f96 h1:/wGgTwRLu13XgsFAwnhGsKWO0lMMB0Oa6vuf+vatTgE=
+github.com/vpnhouse/api v0.0.0-20221114075228-bd002ddb9f96/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
+github.com/vpnhouse/api v0.0.0-20221114084047-b2900074f60e h1:rteruk4Rhlp5ERPtWlrAFlcTXIAe3NOVWAN76W9Ya9o=
+github.com/vpnhouse/api v0.0.0-20221114084047-b2900074f60e/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
 github.com/vultr/govultr/v2 v2.7.1/go.mod h1:BvOhVe6/ZpjwcoL6/unkdQshmbS9VGbowI4QT+3DGVU=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.0.2/go.mod h1:1WAq6h33pAW+iRreB34OORO2Nf7qel3VV3fjBj+hCSs=

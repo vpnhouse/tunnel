@@ -48,6 +48,7 @@ var (
 	EConfigurationRequiredType = &ErrorType{http.StatusConflict, openapi.ErrorResultCONFIGURATIONREQUIRED}
 	EForbiddenType             = &ErrorType{http.StatusForbidden, openapi.ErrorResultFORBIDDEN}
 	EInvalidConfigurationType  = &ErrorType{http.StatusInternalServerError, openapi.ErrorResultINVALIDCONFIGURATION}
+	EEntityTooLargeType        = &ErrorType{http.StatusRequestEntityTooLarge, openapi.ErrorResultTOOLONG}
 )
 
 func EInternalError(description string, err error, fields ...zap.Field) *Error {
@@ -148,6 +149,10 @@ func EForbidden(msg string) *Error {
 
 func EInvalidConfiguration(msg string, field string) *Error {
 	return newError(EInvalidConfigurationType, msg, defaultSerializer, nil, &field)
+}
+
+func EEntityTooLarge(description string, err error, fields ...zap.Field) *Error {
+	return newError(EEntityTooLargeType, description, defaultSerializer, err, nil, fields...)
 }
 
 type errorSerializerFunc func(error *Error) (int, []byte)
