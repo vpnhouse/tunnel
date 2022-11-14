@@ -3,7 +3,8 @@ import { createStyles, makeStyles } from '@material-ui/core/styles';
 const useStyles = makeStyles(({ palette }) =>
   createStyles({
     root: {
-      flex: '1 0 auto'
+      flex: '1 0 auto',
+      position: 'relative'
     },
     pickers: {
       display: 'flex',
@@ -11,10 +12,11 @@ const useStyles = makeStyles(({ palette }) =>
     },
     validationError: {
       color: palette.error.main,
-      marginTop: '-22px',
       marginBottom: '5px',
       textAlign: 'end',
-      paddingRight: '14px'
+      paddingRight: '14px',
+      position: 'absolute',
+      right: 0
     }
   }));
 
