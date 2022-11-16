@@ -15,7 +15,11 @@ ifeq (${DOCKER_TAG},)
 	DOCKER_TAG = unknown
 endif
 
-FEATURE_SET  ?= personal
+DEFAULT_FEATURE_SET=personal
+FEATURE_SET  ?= $(DEFAULT_FEATURE_SET)
+ifneq ($(FEATURE_SET), $(DEFAULT_FEATURE_SET))
+DOCKER_TAG := $(DOCKER_TAG)-$(FEATURE_SET)
+endif
 DOCKER_IMAGE ?= vpnhouse/tunnel:$(DOCKER_TAG)
 
 GO_VERSION_PATH = github.com/vpnhouse/tunnel/pkg/version
