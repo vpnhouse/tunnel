@@ -19,7 +19,8 @@ FROM gomodules as builder
 COPY . /build
 COPY --from=nodejs /app/dist /build/internal/frontend/dist/
 WORKDIR /build
-RUN make build/app
+ARG FEATURE_SET={$FEATURE_SET:-personal}
+RUN FEATURE_SET=$FEATURE_SET make build/app
 
 
 FROM alpine:3.15
