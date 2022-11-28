@@ -298,7 +298,6 @@ func (manager *Manager) updatePeerStats() {
 
 	results := manager.statsService.UpdatePeerStats(peers, wireguardPeers)
 
-	// Tidy up expired and calc total peers
 	for _, peer := range results.ExpiredPeers {
 		err = manager.unsetPeer(*peer)
 		if err != nil {
@@ -308,6 +307,12 @@ func (manager *Manager) updatePeerStats() {
 
 	// Send events along updated peer stats
 	for _, peer := range results.UpdatedPeers {
+		_, err = manager.storage.UpdatePeer(*peer)
+		if err != nil {
+			zap.L().Error("failed to update peer stats", zap.Error(err))
+			continue
+		}
+
 		err = manager.eventLog.Push(uint32(proto.EventType_PeerTraffic), time.Now().Unix(), peer.IntoProto())
 		if err != nil {
 			zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerTraffic)))
