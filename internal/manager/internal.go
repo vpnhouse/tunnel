@@ -263,12 +263,10 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 }
 
 func (manager *Manager) lock() error {
-	manager.mutex.Lock()
-	if !manager.running {
-		manager.mutex.Unlock()
+	if !manager.running.Load() {
 		return xerror.EUnavailable("server is shutting down", nil)
 	}
-
+	manager.mutex.Lock()
 	return nil
 }
 
@@ -276,7 +274,7 @@ func (manager *Manager) unlock() {
 	manager.mutex.Unlock()
 }
 
-func (manager *Manager) backgroundOnce() {
+func (manager *Manager) updatePeerStats() {
 	if err := manager.lock(); err != nil {
 		return
 	}
@@ -292,36 +290,27 @@ func (manager *Manager) backgroundOnce() {
 	// ignore error because it logged by the common.Error wrapper.
 	// it is safe to call reportTrafficByPeer with nil map.
 	wireguardPeers, _ := manager.wireguard.GetPeers()
-	peersTotal := 0
-	withHandshakes := 0
-	newerHour := 0
-	newerDay := 0
 
 	peers, err := manager.peers()
 	if err != nil {
 		return
 	}
 
-	for _, peer := range peers {
-		if peer.Expired() {
-			_ = manager.unsetPeer(peer)
-			continue
-		}
+	results := manager.statsService.UpdatePeerStats(peers, wireguardPeers)
 
-		peersTotal++
-		wgPeer, ok := findWgPeerByPublicKey(peer, wireguardPeers)
-		if ok {
-			// no handshake - no traffic, avoid spamming empty events to the log
-			if !wgPeer.LastHandshakeTime.IsZero() {
-				manager.reportPeerTraffic(peer, wgPeer)
-				withHandshakes++
-				if time.Now().Sub(wgPeer.LastHandshakeTime).Hours() < 1 {
-					newerHour++
-				}
-				if time.Now().Sub(wgPeer.LastHandshakeTime).Hours() < 24 {
-					newerDay++
-				}
-			}
+	// Tidy up expired and calc total peers
+	for _, peer := range results.ExpiredPeers {
+		err = manager.unsetPeer(*peer)
+		if err != nil {
+			zap.L().Error("failed to unset expired peer", zap.Error(err))
+		}
+	}
+
+	// Send events along updated peer stats
+	for _, peer := range results.UpdatedPeers {
+		err = manager.eventLog.Push(uint32(proto.EventType_PeerTraffic), time.Now().Unix(), peer.IntoProto())
+		if err != nil {
+			zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerTraffic)))
 		}
 	}
 
@@ -333,55 +322,45 @@ func (manager *Manager) backgroundOnce() {
 	}
 
 	manager.statistic = CachedStatistics{
-		PeersTotal:          peersTotal,
-		PeersWithTraffic:    withHandshakes,
-		PeersActiveLastHour: newerHour,
-		PeersActiveLastDay:  newerDay,
+		PeersTotal:          results.NumPeers,
+		PeersWithTraffic:    results.NumPeersWithHadshakes,
+		PeersActiveLastHour: results.NumPeersActiveLastHour,
+		PeersActiveLastDay:  results.NumPeersActiveLastDay,
 		LinkStat:            linkStats,
 		Upstream:            manager.statistic.Upstream + int64(diffUpstream),
 		Downstream:          manager.statistic.Downstream + int64(diffDownstream),
 	}
 
 	zap.L().Info("STATS",
-		zap.Int("total", peersTotal),
-		zap.Int("connected", withHandshakes),
-		zap.Int("active_1h", newerHour),
-		zap.Int("active_1d", newerDay),
+		zap.Int("total", results.NumPeers),
+		zap.Int("connected", results.NumPeersWithHadshakes),
+		zap.Int("active_1h", results.NumPeersActiveLastHour),
+		zap.Int("active_1d", results.NumPeersActiveLastDay),
 		zap.Int("rx_bytes", int(linkStats.RxBytes)),
 		zap.Int("rx_packets", int(linkStats.RxPackets)),
 		zap.Int("tx_bytes", int(linkStats.TxBytes)),
 		zap.Int("tx_packets", int(linkStats.TxPackets)))
 
-	peersWithHandshakesGauge.Set(float64(withHandshakes))
+	peersWithHandshakesGauge.Set(float64(results.NumPeersWithHadshakes))
 	manager.storage.SetUpstreamMetric(manager.statistic.Upstream)
 	manager.storage.SetDownstreamMetric(manager.statistic.Downstream)
 }
 
 func (manager *Manager) background() {
-	defer manager.bgWaitGroup.Done()
-
 	// TODO (Sergey Kovalev): Move interval to settings
 	expirationTicker := time.NewTicker(time.Second * 60)
-	defer expirationTicker.Stop()
-
-	ready := false
-	background := func() {
-		zap.L().Debug("Running background processing round")
-		manager.backgroundOnce()
-	}
+	defer func() {
+		expirationTicker.Stop()
+		close(manager.done)
+	}()
 
 	for {
 		select {
-		case <-manager.bgStopChannel:
+		case <-manager.stop:
 			zap.L().Info("Shutting down manager background process")
 			return
-		case <-manager.readyChannel:
-			ready = true
-			background()
 		case <-expirationTicker.C:
-			if ready {
-				background()
-			}
+			manager.updatePeerStats()
 		}
 	}
 }
@@ -415,15 +394,4 @@ func findWgPeerByPublicKey(peer types.PeerInfo, wgPeers map[string]wgtypes.Peer)
 	}
 
 	return wgPeer, true
-}
-
-// reportPeerTraffic reports peer's rx/tx traffic to the eventlog.
-func (manager *Manager) reportPeerTraffic(peer types.PeerInfo, wgPeer wgtypes.Peer) {
-	info := peer.IntoProto()
-	info.BytesTx = uint64(wgPeer.TransmitBytes)
-	info.BytesRx = uint64(wgPeer.ReceiveBytes)
-
-	if err := manager.eventLog.Push(uint32(proto.EventType_PeerTraffic), time.Now().Unix(), &info); err != nil {
-		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
-	}
 }

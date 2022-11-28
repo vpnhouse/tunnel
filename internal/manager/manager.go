@@ -6,6 +6,7 @@ package manager
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/vishvananda/netlink"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
@@ -38,16 +39,16 @@ type CachedStatistics struct {
 }
 
 type Manager struct {
-	readyChannel  chan int
 	runtime       *runtime.TunnelRuntime
 	mutex         sync.RWMutex
 	storage       *storage.Storage
 	wireguard     *wireguard.Wireguard
 	ip4am         *ipam.IPAM
 	eventLog      eventlog.EventManager
-	running       bool
-	bgStopChannel chan bool
-	bgWaitGroup   sync.WaitGroup
+	statsService  peerStatsService 
+	running       atomic.Bool
+	stop          chan struct{}
+	done          chan struct{}
 
 	// statistic guarded by mutex and
 	// updated by the backgroundOnce routine.
@@ -56,51 +57,45 @@ type Manager struct {
 
 func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
 	manager := &Manager{
-		readyChannel:  make(chan int),
 		runtime:       runtime,
 		storage:       storage,
 		wireguard:     wireguard,
 		ip4am:         ip4am,
 		eventLog:      eventLog,
-		running:       true,
-		bgStopChannel: make(chan bool),
+		stop:          make(chan struct{}),
+		done:          make(chan struct{}),
 		statistic: CachedStatistics{
 			Upstream:   storage.GetUpstreamMetric(),
 			Downstream: storage.GetDownstreamMetric(),
 		},
 	}
 
-	// Run background goroutine
-	manager.bgWaitGroup.Add(1)
-	go manager.background()
-
 	manager.restorePeers()
-
-	manager.readyChannel <- 1
+	manager.running.Store(true)
+	
+	// Run background goroutine
+	go manager.background()
+	
 	return manager, nil
 }
 
 func (manager *Manager) Shutdown() error {
+
 	// Shutdown background goroutine
 	zap.L().Debug("Sending stop signal to manager background goroutine")
-	manager.bgStopChannel <- true
+	close(manager.stop)
 
 	zap.L().Debug("Waiting for shutting down background goroutine")
-	manager.bgWaitGroup.Wait()
-
-	// Get lock and forbid all further operations
-	zap.L().Debug("Acquiring main manager lock")
-	manager.mutex.Lock()
-	defer manager.mutex.Unlock()
+	<- manager.done
 
 	zap.L().Debug("Marking manager as not accepting any requests anymore")
-	manager.running = false
+	manager.running.Store(false)
 
 	return nil
 }
 
 func (manager *Manager) Running() bool {
-	return manager.running
+	return manager.running.Load()
 }
 
 func (manager *Manager) GetCachedStatistics() CachedStatistics {
