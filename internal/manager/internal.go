@@ -263,7 +263,7 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 }
 
 func (manager *Manager) lock() error {
-	if !manager.running.Load() {
+	if !manager.running.Load().(bool) {
 		return xerror.EUnavailable("server is shutting down", nil)
 	}
 	manager.mutex.Lock()

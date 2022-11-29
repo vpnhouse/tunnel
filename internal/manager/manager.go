@@ -46,7 +46,7 @@ type Manager struct {
 	ip4am         *ipam.IPAM
 	eventLog      eventlog.EventManager
 	statsService  peerStatsService 
-	running       atomic.Bool
+	running       atomic.Value
 	stop          chan struct{}
 	done          chan struct{}
 
@@ -95,7 +95,7 @@ func (manager *Manager) Shutdown() error {
 }
 
 func (manager *Manager) Running() bool {
-	return manager.running.Load()
+	return manager.running.Load().(bool)
 }
 
 func (manager *Manager) GetCachedStatistics() CachedStatistics {
