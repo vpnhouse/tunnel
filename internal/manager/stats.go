@@ -125,12 +125,14 @@ func (s *peerStatsService) updatePeerStatsFromWgPeer(wgPeer wgtypes.Peer, peer *
 	}
 
 	if wgPeer.ReceiveBytes > stats.Upstream {
-		peer.Upstream += (wgPeer.ReceiveBytes - stats.Upstream)
+		// Upstream never be nil
+		*peer.Upstream += (wgPeer.ReceiveBytes - stats.Upstream)
 		isUpdated = true
 	}
 
 	if wgPeer.TransmitBytes > stats.Downstream {
-		peer.Downstream += (wgPeer.TransmitBytes - stats.Downstream)
+		// Downstream never be nil
+		*peer.Downstream += (wgPeer.TransmitBytes - stats.Downstream)
 		isUpdated = true
 	}
 

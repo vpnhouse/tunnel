@@ -129,8 +129,8 @@ func (storage *Storage) UpdatePeerStats(peer *types.PeerInfo) error {
 	}{
 		ID:         peer.ID,
 		Activity:   peer.Activity,
-		Upstream:   peer.Upstream,
-		Downstream: peer.Downstream,
+		Upstream:   *peer.Upstream,   // Upstream never be nil
+		Downstream: *peer.Downstream, // Downstream never be nil
 		Updated:    &updated,
 	}
 	_, err := storage.db.NamedExec(UpdatePeerStatsSql, args)

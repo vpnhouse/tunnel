@@ -45,8 +45,8 @@ type PeerInfo struct {
 	NetworkAccessPolicy *int `db:"net_access_policy"`
 	RateLimit           *int `db:"net_rate_limit"`
 
-	Upstream   int64       `db:"upstream"`
-	Downstream int64       `db:"downstream"`
+	Upstream   *int64      `db:"upstream"`
+	Downstream *int64      `db:"downstream"`
 	Activity   *xtime.Time `db:"activity"`
 }
 
@@ -91,8 +91,10 @@ func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
 		p.Expires = proto.TimestampFromTime(peer.Expires.Time)
 	}
 
-	p.BytesRx = uint64(peer.Upstream)
-	p.BytesTx = uint64(peer.Downstream)
+	// Upstream never be nil
+	p.BytesRx = uint64(*peer.Upstream)
+	// Downstream never be nil
+	p.BytesTx = uint64(*peer.Downstream)
 
 	return p
 }
