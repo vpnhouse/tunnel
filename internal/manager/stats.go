@@ -84,7 +84,7 @@ func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeer
 
 		if peer.Activity != nil {
 			results.NumPeersWithHadshakes++
-			lastActiveDeltaHours := now.Sub(peer.Activity.Time)
+			lastActiveDeltaHours := now.Sub(peer.Activity.Time).Hours()
 			if lastActiveDeltaHours < 1 {
 				results.NumPeersActiveLastHour++
 			}
