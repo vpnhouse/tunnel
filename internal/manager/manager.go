@@ -39,16 +39,16 @@ type CachedStatistics struct {
 }
 
 type Manager struct {
-	runtime       *runtime.TunnelRuntime
-	mutex         sync.RWMutex
-	storage       *storage.Storage
-	wireguard     *wireguard.Wireguard
-	ip4am         *ipam.IPAM
-	eventLog      eventlog.EventManager
-	statsService  peerStatsService 
-	running       atomic.Value
-	stop          chan struct{}
-	done          chan struct{}
+	runtime      *runtime.TunnelRuntime
+	mutex        sync.RWMutex
+	storage      *storage.Storage
+	wireguard    *wireguard.Wireguard
+	ip4am        *ipam.IPAM
+	eventLog     eventlog.EventManager
+	statsService peerStatsService
+	running      atomic.Value
+	stop         chan struct{}
+	done         chan struct{}
 
 	// statistic guarded by mutex and
 	// updated by the backgroundOnce routine.
@@ -57,13 +57,13 @@ type Manager struct {
 
 func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
 	manager := &Manager{
-		runtime:       runtime,
-		storage:       storage,
-		wireguard:     wireguard,
-		ip4am:         ip4am,
-		eventLog:      eventLog,
-		stop:          make(chan struct{}),
-		done:          make(chan struct{}),
+		runtime:   runtime,
+		storage:   storage,
+		wireguard: wireguard,
+		ip4am:     ip4am,
+		eventLog:  eventLog,
+		stop:      make(chan struct{}),
+		done:      make(chan struct{}),
 		statistic: CachedStatistics{
 			Upstream:   storage.GetUpstreamMetric(),
 			Downstream: storage.GetDownstreamMetric(),
@@ -72,10 +72,10 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 
 	manager.restorePeers()
 	manager.running.Store(true)
-	
+
 	// Run background goroutine
 	go manager.background()
-	
+
 	return manager, nil
 }
 
@@ -86,7 +86,7 @@ func (manager *Manager) Shutdown() error {
 	close(manager.stop)
 
 	zap.L().Debug("Waiting for shutting down background goroutine")
-	<- manager.done
+	<-manager.done
 
 	zap.L().Debug("Marking manager as not accepting any requests anymore")
 	manager.running.Store(false)
