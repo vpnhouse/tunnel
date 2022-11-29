@@ -1,5 +1,5 @@
 UPDATE
-    peer
+    peers
 SET
     activity = :activity,
     upstream = :upstream,
