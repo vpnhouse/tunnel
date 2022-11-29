@@ -13,8 +13,8 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"github.com/vpnhouse/tunnel/proto"
-	"go.uber.org/zap"
 	"go.uber.org/multierr"
+	"go.uber.org/zap"
 )
 
 func (manager *Manager) peers() ([]types.PeerInfo, error) {
