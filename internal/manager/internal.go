@@ -363,6 +363,8 @@ func (manager *Manager) background() {
 		close(manager.done)
 	}()
 
+	manager.syncPeerStats()
+
 	for {
 		select {
 		case <-manager.stop:
