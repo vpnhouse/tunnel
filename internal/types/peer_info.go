@@ -45,9 +45,9 @@ type PeerInfo struct {
 	NetworkAccessPolicy *int `db:"net_access_policy"`
 	RateLimit           *int `db:"net_rate_limit"`
 
-	Upstream            int64 `db:"upstream"`
-	Downstream          int64 `db:"downstream"`
-	Activity            *xtime.Time `db:"activity"`
+	Upstream   int64       `db:"upstream"`
+	Downstream int64       `db:"downstream"`
+	Activity   *xtime.Time `db:"activity"`
 }
 
 func (peer *PeerInfo) GetNetworkPolicy() ipam.Policy {
