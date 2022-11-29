@@ -6,6 +6,7 @@ package storage
 
 import (
 	"database/sql"
+	_ "embed"
 	"errors"
 
 	"github.com/vpnhouse/tunnel/internal/types"
@@ -13,6 +14,11 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xstorage"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"go.uber.org/zap"
+)
+
+var (
+	//go:embed db/queries/update_peer_stats.sql
+	UpdatePeerStatsSql string
 )
 
 func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]types.PeerInfo, error) {
@@ -110,6 +116,28 @@ func (storage *Storage) UpdatePeer(peer types.PeerInfo) (int64, error) {
 	}
 
 	return peer.ID, nil
+}
+
+func (storage *Storage) UpdatePeerStats(peer *types.PeerInfo) error {
+	updated := xtime.Now()
+	args := struct {
+		ID         int64       `db:"id"`
+		Activity   *xtime.Time `db:"activity"`
+		Upstream   int64       `db:"upstream"`
+		Downstream int64       `db:"downstream"`
+		Updated    *xtime.Time `db:"updated"`
+	}{
+		ID:         peer.ID,
+		Activity:   peer.Activity,
+		Upstream:   peer.Upstream,
+		Downstream: peer.Downstream,
+		Updated:    &updated,
+	}
+	_, err := storage.db.NamedExec(UpdatePeerStatsSql, args)
+	if err != nil {
+		return xerror.EStorageError("can't update peer stats in sqlite", err, zap.Any("peer", peer), zap.String("query", UpdatePeerStatsSql))
+	}
+	return nil
 }
 
 func (storage *Storage) GetPeer(id int64) (types.PeerInfo, error) {

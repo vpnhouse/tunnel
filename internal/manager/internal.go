@@ -14,7 +14,7 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"go.uber.org/multierr"
 )
 
 func (manager *Manager) peers() ([]types.PeerInfo, error) {
@@ -59,25 +59,25 @@ func (manager *Manager) restorePeers() {
 }
 
 func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
-	errManager := manager.storage.DeletePeer(peer.ID)
-	errWireguard := manager.wireguard.UnsetPeer(peer)
-	errPool := manager.ip4am.Unset(*peer.Ipv4)
+	var errResult error
 
-	// TODO(nikonov): report an actual traffic on remove
+	err := manager.storage.DeletePeer(peer.ID)
+	multierr.Append(errResult, err)
+
+	err = manager.wireguard.UnsetPeer(peer)
+	multierr.Append(errResult, err)
+
+	err = manager.ip4am.Unset(*peer.Ipv4)
+	multierr.Append(errResult, err)
+
 	allPeersGauge.Dec()
+
 	if err := manager.eventLog.Push(uint32(proto.EventType_PeerRemove), time.Now().Unix(), peer.IntoProto()); err != nil {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
 	}
 
-	return func(errors ...error) error {
-		for _, e := range errors {
-			if e != nil {
-				return e
-			}
-		}
-		return nil
-	}(errManager, errPool, errWireguard)
+	return errResult
 }
 
 // setPeer mutates the given PeerInfo,
@@ -274,7 +274,7 @@ func (manager *Manager) unlock() {
 	manager.mutex.Unlock()
 }
 
-func (manager *Manager) updatePeerStats() {
+func (manager *Manager) syncPeerStats() {
 	if err := manager.lock(); err != nil {
 		return
 	}
@@ -353,9 +353,9 @@ func (manager *Manager) updatePeerStats() {
 
 func (manager *Manager) background() {
 	// TODO (Sergey Kovalev): Move interval to settings
-	expirationTicker := time.NewTicker(time.Second * 60)
+	syncPeerTicker := time.NewTicker(time.Second * 60)
 	defer func() {
-		expirationTicker.Stop()
+		syncPeerTicker.Stop()
 		close(manager.done)
 	}()
 
@@ -364,39 +364,8 @@ func (manager *Manager) background() {
 		case <-manager.stop:
 			zap.L().Info("Shutting down manager background process")
 			return
-		case <-expirationTicker.C:
-			manager.updatePeerStats()
+		case <-syncPeerTicker.C:
+			manager.syncPeerStats()
 		}
 	}
-}
-
-// findWgPeerByPublicKey returns wireguard peer for matching peer public key, if any.
-func findWgPeerByPublicKey(peer types.PeerInfo, wgPeers map[string]wgtypes.Peer) (wgtypes.Peer, bool) {
-	// make it safe to call with empty or nil map
-	if len(wgPeers) == 0 {
-		return wgtypes.Peer{}, false
-	}
-
-	if peer.WireguardPublicKey == nil {
-		// should this ever happen?
-		// why we even have this as string *pointer*?
-		zap.L().Error("got a peer without the public key",
-			zap.Any("id", peer.ID),
-			zap.Any("user_id", peer.UserId),
-			zap.Any("install_id", peer.InstallationId))
-		return wgtypes.Peer{}, false
-	}
-
-	key := *peer.WireguardPublicKey
-	wgPeer, ok := wgPeers[key]
-	if !ok {
-		zap.L().Error("peer is presented in the manager's storage but not configured on the interface",
-			zap.String("pub_key", *peer.WireguardPublicKey),
-			zap.Any("id", peer.ID),
-			zap.Any("user_id", peer.UserId),
-			zap.Any("install_id", peer.InstallationId))
-		return wgtypes.Peer{}, false
-	}
-
-	return wgPeer, true
 }

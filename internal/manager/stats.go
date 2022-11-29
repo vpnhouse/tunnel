@@ -6,6 +6,7 @@ import (
 
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
+	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
@@ -16,12 +17,12 @@ type wireguardStats struct {
 }
 
 type updatePeerStatsResults struct {
-	UpdatedPeers   []*types.PeerInfo
-	ExpiredPeers   []*types.PeerInfo
-	NumPeersWithHadshakes int
+	UpdatedPeers           []*types.PeerInfo
+	ExpiredPeers           []*types.PeerInfo
+	NumPeersWithHadshakes  int
 	NumPeersActiveLastHour int
-	NumPeersActiveLastDay int
-	NumPeers int
+	NumPeersActiveLastDay  int
+	NumPeers               int
 }
 
 type peerStatsService struct {
@@ -49,23 +50,34 @@ func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeer
 	now := time.Now()
 
 	for _, peer := range peers {
-		if peer.Expires != nil && peer.Expires.Time.Before(now) {
-			results.ExpiredPeers = append(results.ExpiredPeers, &peer)
-			continue
-		}
-
 		if peer.WireguardPublicKey == nil {
+			// We should never be here so it's added to be in safe
+			zap.L().Error(
+				"got a peer without the public key",
+				zap.Any("id", peer.ID),
+				zap.Any("user_id", peer.UserId),
+				zap.Any("install_id", peer.InstallationId),
+			)
 			continue
 		}
 
 		wgPeer, ok := wireguardPeers[*peer.WireguardPublicKey]
 		if !ok {
+			zap.L().Error(
+				"peer is presented in the manager's storage but not configured on the interface",
+				zap.String("pub_key", *peer.WireguardPublicKey),
+				zap.Any("id", peer.ID),
+				zap.Any("user_id", peer.UserId),
+				zap.Any("install_id", peer.InstallationId),
+			)
+			// Remove peer stats in case it's gone
 			if _, ok := s.stats[*peer.WireguardPublicKey]; ok {
 				delete(s.stats, *peer.WireguardPublicKey)
 			}
 			continue
 		}
 
+		// Update peer stats and add peer to the update peers list for futher processing
 		if s.updatePeerStatsFromWgPeer(wgPeer, &peer) {
 			results.UpdatedPeers = append(results.UpdatedPeers, &peer)
 		}
@@ -80,8 +92,14 @@ func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeer
 				results.NumPeersActiveLastDay++
 			}
 		}
+
+		// Peer is expired - add it to the output list for later processing
+		if peer.Expires != nil && peer.Expires.Time.Before(now) {
+			results.ExpiredPeers = append(results.ExpiredPeers, &peer)
+		}
 	}
 
+	// Finally snap the current number of available peers
 	results.NumPeers = len(s.stats)
 
 	return results
