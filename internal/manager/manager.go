@@ -40,7 +40,7 @@ type CachedStatistics struct {
 
 type Manager struct {
 	runtime      *runtime.TunnelRuntime
-	mutex        sync.RWMutex
+	lock         sync.RWMutex
 	storage      *storage.Storage
 	wireguard    *wireguard.Wireguard
 	ip4am        *ipam.IPAM
@@ -50,9 +50,7 @@ type Manager struct {
 	stop         chan struct{}
 	done         chan struct{}
 
-	// statistic guarded by mutex and
-	// updated by the backgroundOnce routine.
-	statistic CachedStatistics
+	statistic atomic.Value // *CachedStatistics
 }
 
 func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
@@ -64,14 +62,14 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 		eventLog:  eventLog,
 		stop:      make(chan struct{}),
 		done:      make(chan struct{}),
-		statistic: CachedStatistics{
-			Upstream:   storage.GetUpstreamMetric(),
-			Downstream: storage.GetDownstreamMetric(),
-		},
 	}
 
 	manager.restorePeers()
 	manager.running.Store(true)
+	manager.statistic.Store(&CachedStatistics{
+		Upstream:   storage.GetUpstreamMetric(),
+		Downstream: storage.GetDownstreamMetric(),
+	})
 
 	// Run background goroutine
 	go manager.background()
@@ -98,9 +96,6 @@ func (manager *Manager) Running() bool {
 	return manager.running.Load().(bool)
 }
 
-func (manager *Manager) GetCachedStatistics() CachedStatistics {
-	manager.mutex.RLock()
-	defer manager.mutex.RUnlock()
-
-	return manager.statistic
+func (manager *Manager) GetCachedStatistics() *CachedStatistics {
+	return manager.statistic.Load().(*CachedStatistics)
 }

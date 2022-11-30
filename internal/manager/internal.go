@@ -262,23 +262,12 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 	return peers[0], nil
 }
 
-func (manager *Manager) lock() error {
-	if !manager.running.Load().(bool) {
-		return xerror.EUnavailable("server is shutting down", nil)
-	}
-	manager.mutex.Lock()
-	return nil
-}
-
-func (manager *Manager) unlock() {
-	manager.mutex.Unlock()
-}
-
 func (manager *Manager) syncPeerStats() {
-	if err := manager.lock(); err != nil {
+	if !manager.running.Load().(bool) {
 		return
 	}
-	defer manager.unlock()
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
 
 	linkStats, err := manager.wireguard.GetLinkStatistic()
 	if err == nil {
@@ -323,21 +312,23 @@ func (manager *Manager) syncPeerStats() {
 		}
 	}
 
+	oldStats := manager.GetCachedStatistics()
+
 	diffUpstream := linkStats.RxBytes
 	diffDownstream := linkStats.TxBytes
-	if manager.statistic.LinkStat != nil {
-		diffUpstream -= manager.statistic.LinkStat.RxBytes
-		diffDownstream -= manager.statistic.LinkStat.TxBytes
+	if oldStats.LinkStat != nil {
+		diffUpstream -= oldStats.LinkStat.RxBytes
+		diffDownstream -= oldStats.LinkStat.TxBytes
 	}
 
-	manager.statistic = CachedStatistics{
+	newStats := &CachedStatistics{
 		PeersTotal:          results.NumPeers,
 		PeersWithTraffic:    results.NumPeersWithHadshakes,
 		PeersActiveLastHour: results.NumPeersActiveLastHour,
 		PeersActiveLastDay:  results.NumPeersActiveLastDay,
 		LinkStat:            linkStats,
-		Upstream:            manager.statistic.Upstream + int64(diffUpstream),
-		Downstream:          manager.statistic.Downstream + int64(diffDownstream),
+		Upstream:            oldStats.Upstream + int64(diffUpstream),
+		Downstream:          oldStats.Downstream + int64(diffDownstream),
 	}
 
 	zap.L().Info("STATS",
@@ -351,8 +342,10 @@ func (manager *Manager) syncPeerStats() {
 		zap.Int("tx_packets", int(linkStats.TxPackets)))
 
 	peersWithHandshakesGauge.Set(float64(results.NumPeersWithHadshakes))
-	manager.storage.SetUpstreamMetric(manager.statistic.Upstream)
-	manager.storage.SetDownstreamMetric(manager.statistic.Downstream)
+	manager.storage.SetUpstreamMetric(newStats.Upstream)
+	manager.storage.SetDownstreamMetric(newStats.Downstream)
+
+	manager.statistic.Store(newStats)
 }
 
 func (manager *Manager) background() {
