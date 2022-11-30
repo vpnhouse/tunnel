@@ -9,8 +9,10 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"gopkg.in/hlandau/passlib.v1"
@@ -21,9 +23,10 @@ type Ipv4List []string
 type UrlList []string
 
 // TODO(nikonov): probably it will be better to implement this type
-//  as a complex struct with the UnmarshaText method.
-//  This way we will have an ability to store IP and mask
-//  separately, so perform operations on IPs/ranges in a more convenient way.
+//
+//	as a complex struct with the UnmarshaText method.
+//	This way we will have an ability to store IP and mask
+//	separately, so perform operations on IPs/ranges in a more convenient way.
 type Subnet string
 
 func (s Subnet) Unwrap() *xnet.IPNet {
@@ -47,6 +50,8 @@ func init() {
 	govalidator.CustomTypeTagMap.Set("ipv4list", isIPv4List)
 	govalidator.CustomTypeTagMap.Set("urllist", isURLList)
 	govalidator.CustomTypeTagMap.Set("subnet", isSubnet)
+	govalidator.CustomTypeTagMap.Set("size", isSize)
+	govalidator.CustomTypeTagMap.Set("interval", isInterval)
 }
 
 func ValidateStruct(s interface{}) error {
@@ -111,6 +116,44 @@ func isProjectName(str string) bool {
 		return false
 	}
 
+	return true
+}
+
+func isSize(value interface{}, _ interface{}) bool {
+	var s string
+	switch v := value.(type) {
+	case string:
+		s = v
+	case human.Size:
+		s = v.String()
+	default:
+		return false
+	}
+
+	_, err := human.ParseSizeFromHuman(s)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func isInterval(value interface{}, _ interface{}) bool {
+	var s string
+	switch v := value.(type) {
+	case string:
+		s = v
+	case human.Size:
+		s = v.String()
+	case time.Duration:
+		return true
+	default:
+		return false
+	}
+
+	_, err := time.ParseDuration(s)
+	if err != nil {
+		return false
+	}
 	return true
 }
 

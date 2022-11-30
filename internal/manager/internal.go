@@ -80,7 +80,7 @@ func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
 	return errResult
 }
 
-// setPeer mutates the given PeerInfo,
+// setPeer changes the given PeerInfo,
 // fields: ID, IPv4
 func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 	err := func() error {
@@ -140,7 +140,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 	return nil
 }
 
-// updatePeer mutates given newPeer,
+// updatePeer changes given newPeer,
 // fields: ID, IPv4
 func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 	if newPeer.Expired() {

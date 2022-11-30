@@ -18,6 +18,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/grpc"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
+	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/sentry"
 	"github.com/vpnhouse/tunnel/pkg/validator"
@@ -64,6 +65,7 @@ type Config struct {
 	ManagementKeystore string                      `yaml:"management_keystore,omitempty" valid:"path"`
 	DNSFilter          *xdns.Config                `yaml:"dns_filter"`
 	PortRestrictions   *ipam.PortRestrictionConfig `yaml:"ports,omitempty"`
+	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
@@ -156,6 +158,30 @@ func defaultPublicAPIConfig() *PublicAPIConfig {
 	return &PublicAPIConfig{
 		PingInterval: 600,  // 10min
 		PeerTTL:      3600, // 1h
+	}
+}
+
+type PeerStatisticConfig struct {
+	// Min interval to sent updated peers with new traffic counters
+	// Interval must be defined in duration format.
+	// Valid time units: "ns", "us", "ms", "s", "m", "h".
+	// https://pkg.go.dev/time#ParseDuration
+	// or
+	// be defined as integer in seconds
+	TrafficChangeSendEventInterval human.Interval `yaml:"traffic_change_send_event_interval" valid:"interval"`
+	// Min pace to sent updated peers with new traffic counters
+	// Interval must be defined in duration format.
+	// Valid size units in human readable format "b", "kb", "mb", "gb"
+	// https://pkg.go.dev/time#ParseDuration
+	// or
+	// be defined as integer in bytes
+	TrafficChangeSendEventPace human.Size `yaml:"traffic_change_send_event_pace" valid:"size"`
+}
+
+func defaultPeerStatisticConfig() *PeerStatisticConfig {
+	return &PeerStatisticConfig{
+		TrafficChangeSendEventInterval: human.MustParseInterval("5s"),
+		TrafficChangeSendEventPace:     human.MustParseSize("50Mb"),
 	}
 }
 
@@ -286,6 +312,7 @@ func safeDefaults(rootDir string) *Config {
 		AdminAPI:           adminAPIConfig,
 		ManagementKeystore: keystorePath,
 		PortRestrictions:   ipam.DefaultPortRestrictions(),
+		PeerStatistics:     defaultPeerStatisticConfig(),
 	}
 }
 
