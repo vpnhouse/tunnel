@@ -17,6 +17,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	DefaultPeerUpdateInterval = time.Second * 60 // 1minute
+)
+
 func (manager *Manager) peers() ([]types.PeerInfo, error) {
 	return manager.storage.SearchPeers(nil)
 }
@@ -356,7 +360,7 @@ func (manager *Manager) syncPeerStats() {
 }
 
 func (manager *Manager) background() {
-	syncInterval := time.Second
+	syncInterval := DefaultPeerUpdateInterval
 	if manager.runtime.Settings != nil && manager.runtime.Settings.PeerStatistics != nil {
 		syncInterval = manager.runtime.Settings.PeerStatistics.UpdateStatisticsInterval.Value()
 	}
