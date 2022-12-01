@@ -126,6 +126,8 @@ func isSize(value interface{}, _ interface{}) bool {
 		s = v
 	case human.Size:
 		s = v.String()
+	case uint64:
+		return true
 	default:
 		return false
 	}
@@ -142,7 +144,7 @@ func isInterval(value interface{}, _ interface{}) bool {
 	switch v := value.(type) {
 	case string:
 		s = v
-	case human.Size:
+	case human.Interval:
 		s = v.String()
 	case time.Duration:
 		return true
