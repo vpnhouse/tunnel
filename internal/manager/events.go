@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -55,7 +56,8 @@ func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog ev
 		}
 		peersMap[*peer.WireguardPublicKey] = peer
 	}
-	return &peerTrafficUpdateEventSender{
+
+	sender := &peerTrafficUpdateEventSender{
 		maxUpstreamBytes:   maxUpstreamBytes,
 		maxDownstreamBytes: maxDownstreamBytes,
 		sendInterval:       sendInterval,
@@ -63,6 +65,10 @@ func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog ev
 		peers:              peersMap,
 		updatedPeers:       make(map[string]*types.PeerInfo, len(peers)),
 	}
+
+	go sender.run()
+
+	return sender
 }
 
 func (s *peerTrafficUpdateEventSender) Add(peer *types.PeerInfo) {
@@ -130,12 +136,14 @@ func (s *peerTrafficUpdateEventSender) sendUpdates() {
 	s.state.Reset()
 }
 
-func (s *peerTrafficUpdateEventSender) Run() {
+func (s *peerTrafficUpdateEventSender) run() {
 	sendPeerTicker := time.NewTicker(s.sendInterval)
+	zap.L().Debug("Start sending peer traffic updates", zap.String("interval", fmt.Sprint(s.sendInterval)))
 
 	defer func() {
 		sendPeerTicker.Stop()
 		close(s.done)
+		zap.L().Debug("Stop sending peer traffic updates")
 	}()
 
 	for {

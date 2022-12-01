@@ -82,6 +82,8 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 }
 
 func (manager *Manager) Shutdown() error {
+	zap.L().Debug("Marking manager as not accepting any requests anymore")
+	manager.running.Store(false)
 
 	// Shutdown background goroutine
 	zap.L().Debug("Sending stop signal to manager background goroutine")
@@ -90,8 +92,8 @@ func (manager *Manager) Shutdown() error {
 	zap.L().Debug("Waiting for shutting down background goroutine")
 	<-manager.done
 
-	zap.L().Debug("Marking manager as not accepting any requests anymore")
-	manager.running.Store(false)
+	// Stop sending all events
+	manager.peerTrafficSender.Stop()
 
 	return nil
 }
