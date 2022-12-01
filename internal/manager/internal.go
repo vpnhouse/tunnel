@@ -142,6 +142,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerAdd)))
 	}
 	manager.peerTrafficSender.Add(peer)
+
 	return nil
 }
 
@@ -239,6 +240,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerUpdate)))
 	}
+
 	return nil
 }
 
@@ -268,12 +270,6 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 }
 
 func (manager *Manager) syncPeerStats() {
-	if !manager.running.Load().(bool) {
-		return
-	}
-	manager.lock.Lock()
-	defer manager.lock.Unlock()
-
 	linkStats, err := manager.wireguard.GetLinkStatistic()
 	if err == nil {
 		// non-nil error will be logged
@@ -371,7 +367,9 @@ func (manager *Manager) background() {
 		close(manager.done)
 	}()
 
+	manager.lock.Lock()
 	manager.syncPeerStats()
+	manager.lock.Unlock()
 
 	for {
 		select {
@@ -379,7 +377,9 @@ func (manager *Manager) background() {
 			zap.L().Info("Shutting down manager background process")
 			return
 		case <-syncPeerTicker.C:
+			manager.lock.Lock()
 			manager.syncPeerStats()
+			manager.lock.Unlock()
 		}
 	}
 }
