@@ -74,6 +74,10 @@ func (storage *Storage) CreatePeer(peer types.PeerInfo) (int64, error) {
 		peer.Updated = &now
 	}
 
+	zeroCounter := int64(0)
+	peer.Upstream = &zeroCounter
+	peer.Downstream = &zeroCounter
+
 	query, err := xstorage.GetInsertRequest("peers", peer)
 	if err != nil {
 		return -1, xerror.EStorageError("can't insert peer", err, zap.Any("peer", peer))
