@@ -164,7 +164,7 @@ func defaultPublicAPIConfig() *PublicAPIConfig {
 
 type PeerStatisticConfig struct {
 	// Interval to update tunnel (all peers) statistics
-	// Min valid value = 1s
+	// Min valid value = 1m
 	UpdateStatisticsInterval human.Interval `yaml:"update_statistics_interval" valid:"interval"`
 	// Min interval to sent updated peers with new traffic counters
 	// Interval must be defined in duration format.
@@ -188,7 +188,8 @@ type PeerStatisticConfig struct {
 
 func defaultPeerStatisticConfig() *PeerStatisticConfig {
 	return &PeerStatisticConfig{
-		TrafficChangeSendEventInterval: human.MustParseInterval("5s"),
+		UpdateStatisticsInterval:       human.MustParseInterval("1m"),
+		TrafficChangeSendEventInterval: human.MustParseInterval("5m"),
 		MaxUpstreamTrafficChange:       human.MustParseSize("50Mb"),
 		MaxDownstreamTrafficChange:     human.MustParseSize("50Mb"),
 	}
@@ -196,7 +197,7 @@ func defaultPeerStatisticConfig() *PeerStatisticConfig {
 
 func (s *PeerStatisticConfig) validate() {
 	if s.UpdateStatisticsInterval.Value() < time.Second {
-		s.UpdateStatisticsInterval = human.MustParseInterval("1s")
+		s.UpdateStatisticsInterval = human.MustParseInterval("1m")
 	}
 
 	if s.UpdateStatisticsInterval.Value() > s.TrafficChangeSendEventInterval.Value() {

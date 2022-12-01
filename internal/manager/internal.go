@@ -60,16 +60,14 @@ func (manager *Manager) restorePeers() {
 }
 
 func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
-	var errResult error
-
 	err := manager.storage.DeletePeer(peer.ID)
-	multierr.Append(errResult, err)
+	errs := multierr.Append(nil, err)
 
 	err = manager.wireguard.UnsetPeer(peer)
-	multierr.Append(errResult, err)
+	errs = multierr.Append(errs, err)
 
 	err = manager.ip4am.Unset(*peer.Ipv4)
-	multierr.Append(errResult, err)
+	errs = multierr.Append(errs, err)
 
 	allPeersGauge.Dec()
 	if err := manager.eventLog.Push(uint32(proto.EventType_PeerRemove), time.Now().Unix(), peer.IntoProto()); err != nil {
@@ -79,7 +77,7 @@ func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
 
 	manager.peerTrafficSender.Remove(&peer)
 
-	return errResult
+	return errs
 }
 
 // setPeer changes the given PeerInfo,
