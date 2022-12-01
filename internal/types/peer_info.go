@@ -90,12 +90,12 @@ func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
 	if peer.Expires != nil {
 		p.Expires = proto.TimestampFromTime(peer.Expires.Time)
 	}
-
-	// Upstream never be nil
-	p.BytesRx = uint64(*peer.Upstream)
-	// Downstream never be nil
-	p.BytesTx = uint64(*peer.Downstream)
-
+	if peer.Upstream != nil {
+		p.BytesRx = uint64(*peer.Upstream)
+	}
+	if peer.Downstream != nil {
+		p.BytesTx = uint64(*peer.Downstream)
+	}
 	if peer.Activity != nil {
 		p.Activity = proto.TimestampFromTime(peer.Activity.Time)
 	}

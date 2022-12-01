@@ -5,6 +5,8 @@
 package manager
 
 import (
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
@@ -51,6 +53,9 @@ func (manager *Manager) UnsetPeer(id int64) error {
 
 	info, err := manager.storage.GetPeer(id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
 		return err
 	}
 
