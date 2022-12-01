@@ -55,6 +55,7 @@ func (manager *Manager) restorePeers() {
 
 		_ = manager.wireguard.SetPeer(peer)
 		allPeersGauge.Inc()
+		manager.peerTrafficSender.Add(&peer)
 	}
 }
 
@@ -71,11 +72,12 @@ func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
 	multierr.Append(errResult, err)
 
 	allPeersGauge.Dec()
-
 	if err := manager.eventLog.Push(uint32(proto.EventType_PeerRemove), time.Now().Unix(), peer.IntoProto()); err != nil {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
 	}
+
+	manager.peerTrafficSender.Remove(&peer)
 
 	return errResult
 }
@@ -137,6 +139,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerAdd)))
 	}
+	manager.peerTrafficSender.Add(peer)
 	return nil
 }
 
@@ -288,15 +291,7 @@ func (manager *Manager) syncPeerStats() {
 	// Update peer stats according to current metrics in wireguard peers
 	results := manager.statsService.UpdatePeerStats(peers, wireguardPeers)
 
-	// Delete expired peers
-	for _, peer := range results.ExpiredPeers {
-		err = manager.unsetPeer(*peer)
-		if err != nil {
-			zap.L().Error("failed to unset expired peer", zap.Error(err))
-		}
-	}
-
-	// Persist and send events along updated peers
+	// Save stats of the updated peers
 	for _, peer := range results.UpdatedPeers {
 		// Store updated peers
 		err = manager.storage.UpdatePeerStats(peer)
@@ -304,11 +299,25 @@ func (manager *Manager) syncPeerStats() {
 			zap.L().Error("failed to update peer stats", zap.Error(err))
 			continue
 		}
+	}
 
+	// Send notifications about peers with first connection
+	for _, peer := range results.FirstConnectedPeers {
 		// Send event containing updated peer
-		err = manager.eventLog.Push(uint32(proto.EventType_PeerTraffic), time.Now().Unix(), peer.IntoProto())
+		err := manager.eventLog.Push(uint32(proto.EventType_PeerFirstConnect), time.Now().Unix(), peer.IntoProto())
 		if err != nil {
-			zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerTraffic)))
+			zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerFirstConnect)))
+		}
+	}
+
+	// Notify with the peers with traffic updates
+	manager.peerTrafficSender.Send(results.TrafficUpdatedPeers)
+
+	// Delete expired peers
+	for _, peer := range results.ExpiredPeers {
+		err = manager.unsetPeer(*peer)
+		if err != nil {
+			zap.L().Error("failed to unset expired peer", zap.Error(err))
 		}
 	}
 
@@ -349,8 +358,12 @@ func (manager *Manager) syncPeerStats() {
 }
 
 func (manager *Manager) background() {
-	// TODO (Sergey Kovalev): Move interval to settings
-	syncPeerTicker := time.NewTicker(time.Second * 60)
+	syncInterval := time.Second
+	if manager.runtime.Settings != nil && manager.runtime.Settings.PeerStatistics != nil {
+		syncInterval = manager.runtime.Settings.PeerStatistics.UpdateStatisticsInterval.Value()
+	}
+	syncPeerTicker := time.NewTicker(syncInterval)
+
 	defer func() {
 		syncPeerTicker.Stop()
 		close(manager.done)

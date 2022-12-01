@@ -39,29 +39,33 @@ type CachedStatistics struct {
 }
 
 type Manager struct {
-	runtime      *runtime.TunnelRuntime
-	lock         sync.RWMutex
-	storage      *storage.Storage
-	wireguard    *wireguard.Wireguard
-	ip4am        *ipam.IPAM
-	eventLog     eventlog.EventManager
-	statsService peerStatsService
-	running      atomic.Value
-	stop         chan struct{}
-	done         chan struct{}
+	runtime           *runtime.TunnelRuntime
+	lock              sync.RWMutex
+	storage           *storage.Storage
+	wireguard         *wireguard.Wireguard
+	ip4am             *ipam.IPAM
+	eventLog          eventlog.EventManager
+	statsService      peerStatsService
+	peerTrafficSender *peerTrafficUpdateEventSender
+	running           atomic.Value
+	stop              chan struct{}
+	done              chan struct{}
 
 	statistic atomic.Value // *CachedStatistics
 }
 
 func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
+	peerTrafficSender := NewPeerTrafficUpdateEventSender(runtime, eventLog, nil)
+
 	manager := &Manager{
-		runtime:   runtime,
-		storage:   storage,
-		wireguard: wireguard,
-		ip4am:     ip4am,
-		eventLog:  eventLog,
-		stop:      make(chan struct{}),
-		done:      make(chan struct{}),
+		runtime:           runtime,
+		storage:           storage,
+		wireguard:         wireguard,
+		ip4am:             ip4am,
+		eventLog:          eventLog,
+		peerTrafficSender: peerTrafficSender,
+		stop:              make(chan struct{}),
+		done:              make(chan struct{}),
 	}
 
 	manager.restorePeers()

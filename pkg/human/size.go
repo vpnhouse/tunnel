@@ -124,9 +124,13 @@ func (s *Size) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 	} else {
-		v, err = ParseSizeFromHuman(vStr)
-		if err != nil {
-			return err
+		if vStr == "" {
+			v = 0
+		} else {
+			v, err = ParseSizeFromHuman(vStr)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -138,8 +142,12 @@ func (s Size) MarshalYAML() (interface{}, error) {
 	return FormatSizeToHuman(uint64(s)), nil
 }
 
-func (s *Size) Value() int {
-	return int(*s)
+func (s *Size) Value() int64 {
+	return int64(*s)
+}
+
+func (s *Size) IsZero() bool {
+	return int(*s) == 0
 }
 
 func MustParseSize(s string) Size {

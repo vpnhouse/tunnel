@@ -20,9 +20,13 @@ func (s *Interval) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		// Convert to seconds
 		v = time.Second * time.Duration(val)
 	} else {
-		v, err = time.ParseDuration(vStr)
-		if err != nil {
-			return err
+		if vStr == "" {
+			v = 0
+		} else {
+			v, err = time.ParseDuration(vStr)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -36,6 +40,10 @@ func (s Interval) MarshalYAML() (interface{}, error) {
 
 func (s *Interval) Value() time.Duration {
 	return time.Duration(*s)
+}
+
+func (s *Interval) IsZero() bool {
+	return time.Duration(*s) == 0
 }
 
 func MustParseInterval(s string) Interval {

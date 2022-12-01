@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
@@ -162,12 +163,17 @@ func defaultPublicAPIConfig() *PublicAPIConfig {
 }
 
 type PeerStatisticConfig struct {
+	// Interval to update tunnel (all peers) statistics
+	// Min valid value = 1s
+	UpdateStatisticsInterval human.Interval `yaml:"update_statistics_interval" valid:"interval"`
 	// Min interval to sent updated peers with new traffic counters
 	// Interval must be defined in duration format.
 	// Valid time units: "ns", "us", "ms", "s", "m", "h".
 	// https://pkg.go.dev/time#ParseDuration
 	// or
 	// be defined as integer in seconds
+	// Note: it must be >= UpdateStatisticsInterval
+	// = UpdateStatisticsInterval if < UpdateStatisticsInterval
 	TrafficChangeSendEventInterval human.Interval `yaml:"traffic_change_send_event_interval" valid:"interval"`
 	// Min pace to sent updated peers with new traffic counters
 	// Interval must be defined in duration format.
@@ -175,13 +181,26 @@ type PeerStatisticConfig struct {
 	// https://pkg.go.dev/time#ParseDuration
 	// or
 	// be defined as integer in bytes
-	TrafficChangeSendEventPace human.Size `yaml:"traffic_change_send_event_pace" valid:"size"`
+	// "" or 0 means it's disabled
+	MaxUpstreamTrafficChange   human.Size `yaml:"max_upstream_traffic_change" valid:"size"`
+	MaxDownstreamTrafficChange human.Size `yaml:"max_downstream_traffic_change" valid:"size"`
 }
 
 func defaultPeerStatisticConfig() *PeerStatisticConfig {
 	return &PeerStatisticConfig{
 		TrafficChangeSendEventInterval: human.MustParseInterval("5s"),
-		TrafficChangeSendEventPace:     human.MustParseSize("50Mb"),
+		MaxUpstreamTrafficChange:       human.MustParseSize("50Mb"),
+		MaxDownstreamTrafficChange:     human.MustParseSize("50Mb"),
+	}
+}
+
+func (s *PeerStatisticConfig) validate() {
+	if s.UpdateStatisticsInterval.Value() < time.Second {
+		s.UpdateStatisticsInterval = human.MustParseInterval("1s")
+	}
+
+	if s.UpdateStatisticsInterval.Value() > s.TrafficChangeSendEventInterval.Value() {
+		s.TrafficChangeSendEventInterval = s.UpdateStatisticsInterval
 	}
 }
 
@@ -285,6 +304,10 @@ func (s *Config) validate() error {
 		if s.Domain == nil || len(s.Domain.Name) == 0 {
 			return xerror.EInternalError("SSL server is enabled, but no domain name is set", nil)
 		}
+	}
+
+	if s.PeerStatistics != nil {
+		s.PeerStatistics.validate()
 	}
 
 	return nil

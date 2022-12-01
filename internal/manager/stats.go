@@ -10,6 +10,28 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
+type peerChangeType int
+type peerChangeSumary int
+
+const (
+	peerChangeNone          peerChangeType = 0
+	peerChangeFirstActivity peerChangeType = 1
+	peerChangeActivity      peerChangeType = 2
+	peerChangeTraffic       peerChangeType = 4
+)
+
+func (s peerChangeSumary) HasChanges() bool {
+	return int(s) != int(peerChangeNone)
+}
+
+func (s peerChangeSumary) Has(t peerChangeType) bool {
+	return (int(s) & int(t)) == int(t)
+}
+
+func (s *peerChangeSumary) Set(t peerChangeType) {
+	*s = peerChangeSumary(int(*s) | int(t))
+}
+
 // Keeps accumulated peer counters updated for certian wireguard peer
 type wireguardStats struct {
 	Upstream   int64
@@ -19,6 +41,8 @@ type wireguardStats struct {
 type updatePeerStatsResults struct {
 	UpdatedPeers           []*types.PeerInfo
 	ExpiredPeers           []*types.PeerInfo
+	FirstConnectedPeers    []*types.PeerInfo
+	TrafficUpdatedPeers    []*types.PeerInfo
 	NumPeersWithHadshakes  int
 	NumPeersActiveLastHour int
 	NumPeersActiveLastDay  int
@@ -43,8 +67,9 @@ func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeer
 	defer s.lock.Unlock()
 
 	results := updatePeerStatsResults{
-		UpdatedPeers: make([]*types.PeerInfo, 0, len(peers)),
-		ExpiredPeers: make([]*types.PeerInfo, 0, len(peers)),
+		UpdatedPeers:        make([]*types.PeerInfo, 0, len(peers)),
+		ExpiredPeers:        make([]*types.PeerInfo, 0, len(peers)),
+		FirstConnectedPeers: make([]*types.PeerInfo, 0, len(peers)),
 	}
 
 	now := time.Now()
@@ -78,8 +103,17 @@ func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeer
 		}
 
 		// Update peer stats and add peer to the update peers list for futher processing
-		if s.updatePeerStatsFromWgPeer(wgPeer, &peer) {
+		changes := s.updatePeerStatsFromWgPeer(wgPeer, &peer)
+		if changes.HasChanges() {
 			results.UpdatedPeers = append(results.UpdatedPeers, &peer)
+		}
+
+		if changes.Has(peerChangeFirstActivity) {
+			results.FirstConnectedPeers = append(results.FirstConnectedPeers, &peer)
+		}
+
+		if changes.Has(peerChangeTraffic) {
+			results.TrafficUpdatedPeers = append(results.TrafficUpdatedPeers, &peer)
 		}
 
 		if peer.Activity != nil {
@@ -105,16 +139,20 @@ func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeer
 	return results
 }
 
-func (s *peerStatsService) updatePeerStatsFromWgPeer(wgPeer wgtypes.Peer, peer *types.PeerInfo) bool {
+func (s *peerStatsService) updatePeerStatsFromWgPeer(wgPeer wgtypes.Peer, peer *types.PeerInfo) peerChangeSumary {
+	var changeSum peerChangeSumary
+
 	if peer.WireguardPublicKey == nil {
-		return false
+		return changeSum
 	}
 
-	isUpdated := false
 	if !wgPeer.LastHandshakeTime.IsZero() {
 		if peer.Activity == nil || peer.Activity.Time.Unix() < wgPeer.LastHandshakeTime.Unix() {
+			if peer.Activity == nil {
+				changeSum.Set(peerChangeFirstActivity)
+			}
+			changeSum.Set(peerChangeActivity)
 			peer.Activity = xtime.FromTimePtr(&wgPeer.LastHandshakeTime)
-			isUpdated = true
 		}
 	}
 
@@ -127,17 +165,17 @@ func (s *peerStatsService) updatePeerStatsFromWgPeer(wgPeer wgtypes.Peer, peer *
 	if wgPeer.ReceiveBytes > stats.Upstream {
 		// Upstream never be nil
 		*peer.Upstream += (wgPeer.ReceiveBytes - stats.Upstream)
-		isUpdated = true
+		changeSum.Set(peerChangeTraffic)
 	}
 
 	if wgPeer.TransmitBytes > stats.Downstream {
 		// Downstream never be nil
 		*peer.Downstream += (wgPeer.TransmitBytes - stats.Downstream)
-		isUpdated = true
+		changeSum.Set(peerChangeTraffic)
 	}
 
 	stats.Upstream = wgPeer.ReceiveBytes
 	stats.Downstream = wgPeer.TransmitBytes
 
-	return isUpdated
+	return changeSum
 }
