@@ -12,6 +12,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"go.uber.org/zap"
@@ -104,4 +105,8 @@ func (manager *Manager) Running() bool {
 
 func (manager *Manager) GetCachedStatistics() *CachedStatistics {
 	return manager.statistic.Load().(*CachedStatistics)
+}
+
+func (manager *Manager) GetPeerSpeeds(peer *types.PeerInfo) (int64, int64) {
+	return manager.statsService.GetPeerSpeeds(manager.runtime.Settings.PeerStatistics.UpdateStatisticsInterval, peer)
 }

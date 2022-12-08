@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
+	"github.com/vpnhouse/tunnel/internal/manager"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
@@ -40,7 +41,7 @@ func (tun *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request) {
 
 		foundPeers := make([]adminAPI.PeerRecord, len(peers))
 		for i, peer := range peers {
-			oPeer, err := exportPeer(peer)
+			oPeer, err := exportPeer(peer, tun.manager)
 			if err != nil {
 				return nil, err
 			}
@@ -70,7 +71,7 @@ func (tun *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, id in
 			return nil, err
 		}
 
-		exported, err := exportPeer(peer)
+		exported, err := exportPeer(peer, tun.manager)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +102,7 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 
-		return getPeerForSerialization(tun.storage, peer.ID)
+		return getPeerForSerialization(tun.storage, peer.ID, tun.manager)
 	})
 }
 
@@ -157,7 +158,7 @@ func (tun *TunnelAPI) PublicPeerActivate(w http.ResponseWriter, r *http.Request,
 			return nil, err
 		}
 
-		fullPeer, err := getPeerForSerialization(tun.storage, peerID)
+		fullPeer, err := getPeerForSerialization(tun.storage, peerID, tun.manager)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +216,7 @@ func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id
 			return nil, err
 		}
 
-		exported, err := exportPeer(insertedPeer)
+		exported, err := exportPeer(insertedPeer, tun.manager)
 		if err != nil {
 			return nil, err
 		}
@@ -229,13 +230,13 @@ func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id
 	})
 }
 
-func getPeerForSerialization(db *storage.Storage, id int64) (adminAPI.PeerRecord, error) {
+func getPeerForSerialization(db *storage.Storage, id int64, mgr *manager.Manager) (adminAPI.PeerRecord, error) {
 	insertedPeer, err := db.GetPeer(id)
 	if err != nil {
 		return adminAPI.PeerRecord{}, err
 	}
 
-	oPeer, err := exportPeer(insertedPeer)
+	oPeer, err := exportPeer(insertedPeer, mgr)
 	if err != nil {
 		return adminAPI.PeerRecord{}, err
 	}
