@@ -336,7 +336,10 @@ func (manager *Manager) syncPeerStats() {
 		LinkStat:            linkStats,
 		Upstream:            oldStats.Upstream + int64(diffUpstream),
 		Downstream:          oldStats.Downstream + int64(diffDownstream),
+		Collected:           time.Now().Unix(),
 	}
+
+	newStats.UpdateSpeeds(oldStats)
 
 	zap.L().Info("STATS",
 		zap.Int("total", results.NumPeers),

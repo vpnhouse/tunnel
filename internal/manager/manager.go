@@ -7,6 +7,7 @@ package manager
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/vishvananda/netlink"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
@@ -35,8 +36,31 @@ type CachedStatistics struct {
 	LinkStat *netlink.LinkStatistics
 	// Upstream traffic totally
 	Upstream int64
+	// Upstream traffic speed
+	UpstreamSpeed int64
 	// Downstream traffic totally
 	Downstream int64
+	// Downstream traffic speed
+	DownstreamSpeed int64
+
+	// The time in seconds then statistics was collected
+	Collected int64
+}
+
+func (s *CachedStatistics) UpdateSpeeds(prevStats *CachedStatistics) {
+	if s.Collected == 0 || prevStats.Collected >= s.Collected || prevStats == nil {
+		return
+	}
+
+	seconds := s.Collected - prevStats.Collected
+
+	if s.Upstream >= prevStats.Upstream {
+		s.UpstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
+	}
+
+	if s.Downstream >= prevStats.Downstream {
+		s.DownstreamSpeed = (s.Downstream - prevStats.Downstream) / seconds
+	}
 }
 
 type Manager struct {
@@ -74,6 +98,7 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 	manager.statistic.Store(&CachedStatistics{
 		Upstream:   storage.GetUpstreamMetric(),
 		Downstream: storage.GetDownstreamMetric(),
+		Collected:  time.Now().Unix(),
 	})
 
 	// Run background goroutine
