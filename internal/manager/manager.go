@@ -15,6 +15,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
+	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"go.uber.org/zap"
 )
@@ -37,11 +38,11 @@ type CachedStatistics struct {
 	// Upstream traffic totally
 	Upstream int64
 	// Upstream traffic speed
-	UpstreamSpeed int64
+	upstreamSpeed int64
 	// Downstream traffic totally
 	Downstream int64
 	// Downstream traffic speed
-	DownstreamSpeed int64
+	downstreamSpeed int64
 
 	// The time in seconds then statistics was collected
 	Collected int64
@@ -55,12 +56,28 @@ func (s *CachedStatistics) UpdateSpeeds(prevStats *CachedStatistics) {
 	seconds := s.Collected - prevStats.Collected
 
 	if s.Upstream >= prevStats.Upstream {
-		s.UpstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
+		s.upstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
 	}
 
 	if s.Downstream >= prevStats.Downstream {
-		s.DownstreamSpeed = (s.Downstream - prevStats.Downstream) / seconds
+		s.downstreamSpeed = (s.Downstream - prevStats.Downstream) / seconds
 	}
+}
+
+func (s *CachedStatistics) LastUpstreamSpeed(updateInterval human.Interval) int64 {
+	// Return speed only if stats was initialized and update time is out of given
+	if s.Collected == 0 || s.Collected+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
+		return 0
+	}
+	return s.upstreamSpeed
+}
+
+func (s *CachedStatistics) LastDownstreamSpeed(updateInterval human.Interval) int64 {
+	// Return speed only if stats was initialized and update time is out of given
+	if s.Collected == 0 || s.Collected+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
+		return 0
+	}
+	return s.downstreamSpeed
 }
 
 type Manager struct {

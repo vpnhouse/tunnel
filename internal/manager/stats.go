@@ -69,7 +69,7 @@ func (s *wireguardStats) Update(now time.Time, upstream int64, downstream int64)
 
 func (s *wireguardStats) LastUpstreamSpeed(updateInterval human.Interval) int64 {
 	// Return speed only if stats was initialized and update time is out of given
-	if s.Updated != 0 || s.Updated+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
+	if s.Updated == 0 || s.Updated+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
 		return 0
 	}
 	return s.upstreamSpeed
@@ -77,7 +77,7 @@ func (s *wireguardStats) LastUpstreamSpeed(updateInterval human.Interval) int64 
 
 func (s *wireguardStats) LastDownstreamSpeed(updateInterval human.Interval) int64 {
 	// Return speed only if stats was initialized and update time is out of given
-	if s.Updated != 0 || s.Updated+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
+	if s.Updated == 0 || s.Updated+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
 		return 0
 	}
 	return s.downstreamSpeed
