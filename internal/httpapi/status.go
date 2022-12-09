@@ -16,8 +16,7 @@ import (
 // AdminGetStatus returns current server status
 func (tun *TunnelAPI) AdminGetStatus(w http.ResponseWriter, r *http.Request) {
 	stats := tun.manager.GetCachedStatistics()
-	upSpeed := stats.LastUpstreamSpeed(tun.runtime.Settings.PeerStatistics.UpdateStatisticsInterval)
-	downSpeed := stats.LastDownstreamSpeed(tun.runtime.Settings.PeerStatistics.UpdateStatisticsInterval)
+	upSpeed, downSpeed := stats.LastSpeeds(tun.runtime.Settings.PeerStatistics.UpdateStatisticsInterval)
 	xhttp.JSONResponse(w, func() (interface{}, error) {
 		flags := tun.runtime.Flags
 		status := adminAPI.ServiceStatusResponse{

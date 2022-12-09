@@ -64,20 +64,12 @@ func (s *CachedStatistics) UpdateSpeeds(prevStats *CachedStatistics) {
 	}
 }
 
-func (s *CachedStatistics) LastUpstreamSpeed(updateInterval human.Interval) int64 {
+func (s *CachedStatistics) LastSpeeds(updateInterval human.Interval) (int64, int64) {
 	// Return speed only if stats was initialized and update time is out of given
 	if s.Collected == 0 || s.Collected+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
-		return 0
+		return 0, 0
 	}
-	return s.upstreamSpeed
-}
-
-func (s *CachedStatistics) LastDownstreamSpeed(updateInterval human.Interval) int64 {
-	// Return speed only if stats was initialized and update time is out of given
-	if s.Collected == 0 || s.Collected+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
-		return 0
-	}
-	return s.downstreamSpeed
+	return s.upstreamSpeed, s.downstreamSpeed
 }
 
 type Manager struct {

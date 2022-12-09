@@ -67,20 +67,12 @@ func (s *wireguardStats) Update(now time.Time, upstream int64, downstream int64)
 	}
 }
 
-func (s *wireguardStats) LastUpstreamSpeed(updateInterval human.Interval) int64 {
+func (s *wireguardStats) LastSpeeds(updateInterval human.Interval) (int64, int64) {
 	// Return speed only if stats was initialized and update time is out of given
 	if s.Updated == 0 || s.Updated+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
-		return 0
+		return 0, 0
 	}
-	return s.upstreamSpeed
-}
-
-func (s *wireguardStats) LastDownstreamSpeed(updateInterval human.Interval) int64 {
-	// Return speed only if stats was initialized and update time is out of given
-	if s.Updated == 0 || s.Updated+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
-		return 0
-	}
-	return s.downstreamSpeed
+	return s.upstreamSpeed, s.downstreamSpeed
 }
 
 type updatePeerStatsResults struct {
@@ -112,7 +104,7 @@ func (s *peerStatsService) GetPeerSpeeds(updateInterval human.Interval, peer *ty
 	if !ok {
 		return 0, 0
 	}
-	return peerStats.LastUpstreamSpeed(updateInterval), peerStats.LastDownstreamSpeed(updateInterval)
+	return peerStats.LastSpeeds(updateInterval)
 }
 
 func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
