@@ -106,8 +106,12 @@ func (s *peerTrafficUpdateEventSender) Send(peers []*types.PeerInfo) {
 			// assume the peer gone and simply do nothing
 			continue
 		}
-		s.state.UpstreamBytesChange += *peer.Upstream - *oldPeer.Upstream
-		s.state.DownstreamBytesChange += *peer.Downstream - *oldPeer.Downstream
+		if peer.Upstream != nil && oldPeer.Upstream != nil {
+			s.state.UpstreamBytesChange += *peer.Upstream - *oldPeer.Upstream
+		}
+		if peer.Downstream != nil && oldPeer.Downstream != nil {
+			s.state.DownstreamBytesChange += *peer.Downstream - *oldPeer.Downstream
+		}
 		s.updatedPeers[*peer.WireguardPublicKey] = peer
 		s.peers[*peer.WireguardPublicKey] = peer
 	}

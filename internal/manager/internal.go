@@ -108,6 +108,16 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 			}
 		}
 
+		// Set counters to zeros to prevent any fails on update stats operation
+		if peer.Upstream == nil {
+			var zeroVal int64
+			peer.Upstream = &zeroVal
+		}
+		if peer.Downstream == nil {
+			var zeroVal int64
+			peer.Downstream = &zeroVal
+		}
+
 		// Create peer in storage
 		id, err := manager.storage.CreatePeer(*peer)
 		if err != nil {
