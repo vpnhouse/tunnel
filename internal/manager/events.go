@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	DefaultSentEventInterval = time.Second * 60 // 1minute
+	DefaultSentEventInterval = time.Minute
 )
 
 type trafficState struct {

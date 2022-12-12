@@ -14,7 +14,6 @@ import (
 	commonAPI "github.com/vpnhouse/api/go/server/common"
 	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
-	"github.com/vpnhouse/tunnel/internal/manager"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/version"
@@ -135,6 +134,63 @@ func (tun *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.Handl
 	}
 }
 
+func (tun *TunnelAPI) ExportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
+	// Validate peer
+	err := peer.Validate()
+	if err != nil {
+		return adminAPI.Peer{}, err
+	}
+
+	// Handle wireguard information
+	wg := &tunnelAPI.PeerWireguard{
+		PublicKey: peer.WireguardPublicKey,
+	}
+
+	// Handle ipv4 address
+	ip := peer.Ipv4.String()
+
+	upSpeed, downSpeed := tun.manager.GetPeerSpeeds(&peer)
+
+	oPeer := adminAPI.Peer{
+		Label:            peer.Label,
+		Ipv4:             &ip,
+		InfoWireguard:    wg,
+		Created:          peer.Created.TimePtr(),
+		Updated:          peer.Updated.TimePtr(),
+		Expires:          peer.Expires.TimePtr(),
+		Claims:           peer.Claims,
+		Identifiers:      exportIdentifiers(&peer.PeerIdentifiers),
+		NetAccessPolicy:  (*adminAPI.PeerNetAccessPolicy)(peer.NetworkAccessPolicy),
+		RateLimit:        peer.RateLimit,
+		Activity:         peer.Activity.TimePtr(),
+		TrafficUp:        peer.Upstream,
+		TrafficDown:      peer.Downstream,
+		TrafficUpSpeed:   &upSpeed,
+		TrafficDownSpeed: &downSpeed,
+	}
+
+	return oPeer, nil
+}
+
+func (tun *TunnelAPI) GetPeerForSerialization(id int64) (adminAPI.PeerRecord, error) {
+	insertedPeer, err := tun.storage.GetPeer(id)
+	if err != nil {
+		return adminAPI.PeerRecord{}, err
+	}
+
+	oPeer, err := tun.ExportPeer(insertedPeer)
+	if err != nil {
+		return adminAPI.PeerRecord{}, err
+	}
+
+	record := adminAPI.PeerRecord{
+		Id:   id,
+		Peer: oPeer,
+	}
+
+	return record, nil
+}
+
 func importIdentifiers(oIdentifiers *commonAPI.ConnectionIdentifiers) (*types.PeerIdentifiers, error) {
 	if oIdentifiers == nil {
 		return &types.PeerIdentifiers{}, nil
@@ -243,44 +299,6 @@ func exportIdentifiers(identifiers *types.PeerIdentifiers) *commonAPI.Connection
 	}
 
 	return oIdentifiers
-}
-
-func exportPeer(peer types.PeerInfo, mgr *manager.Manager) (adminAPI.Peer, error) {
-	// Validate peer
-	err := peer.Validate()
-	if err != nil {
-		return adminAPI.Peer{}, err
-	}
-
-	// Handle wireguard information
-	wg := &tunnelAPI.PeerWireguard{
-		PublicKey: peer.WireguardPublicKey,
-	}
-
-	// Handle ipv4 address
-	ip := peer.Ipv4.String()
-
-	upSpeed, downSpeed := mgr.GetPeerSpeeds(&peer)
-
-	oPeer := adminAPI.Peer{
-		Label:            peer.Label,
-		Ipv4:             &ip,
-		InfoWireguard:    wg,
-		Created:          peer.Created.TimePtr(),
-		Updated:          peer.Updated.TimePtr(),
-		Expires:          peer.Expires.TimePtr(),
-		Claims:           peer.Claims,
-		Identifiers:      exportIdentifiers(&peer.PeerIdentifiers),
-		NetAccessPolicy:  (*adminAPI.PeerNetAccessPolicy)(peer.NetworkAccessPolicy),
-		RateLimit:        peer.RateLimit,
-		Activity:         peer.Activity.TimePtr(),
-		TrafficUp:        peer.Upstream,
-		TrafficUpSpeed:   &upSpeed,
-		TrafficDown:      peer.Downstream,
-		TrafficDownSpeed: &downSpeed,
-	}
-
-	return oPeer, nil
 }
 
 func parseIdentifierUUID(v *string) (*uuid.UUID, error) {
