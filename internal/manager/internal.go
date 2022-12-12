@@ -361,7 +361,7 @@ func (manager *Manager) syncPeerStats() {
 func (manager *Manager) background() {
 	syncInterval := DefaultPeerUpdateInterval
 	if manager.runtime.Settings != nil && manager.runtime.Settings.PeerStatistics != nil {
-		syncInterval = manager.runtime.Settings.PeerStatistics.UpdateStatisticsInterval.Value()
+		syncInterval = manager.runtime.Settings.GetUpdateStatisticsInterval().Value()
 	}
 	syncPeerTicker := time.NewTicker(syncInterval)
 

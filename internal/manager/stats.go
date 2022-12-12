@@ -150,7 +150,7 @@ func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeer
 		}
 
 		// Update peer stats and add peer to the update peers list for futher processing
-		changes := s.updatePeerStatsFromWgPeer(wgPeer, &peer)
+		changes := s.updatePeerStatsFromWgPeer(now, wgPeer, &peer)
 		if changes.HasAnyChanges() {
 			results.UpdatedPeers = append(results.UpdatedPeers, &peer)
 		}
@@ -186,7 +186,7 @@ func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeer
 	return results
 }
 
-func (s *peerStatsService) updatePeerStatsFromWgPeer(wgPeer wgtypes.Peer, peer *types.PeerInfo) peerChangeSummary {
+func (s *peerStatsService) updatePeerStatsFromWgPeer(now time.Time, wgPeer wgtypes.Peer, peer *types.PeerInfo) peerChangeSummary {
 	var changeSum peerChangeSummary
 
 	if peer.WireguardPublicKey == nil {
@@ -221,8 +221,7 @@ func (s *peerStatsService) updatePeerStatsFromWgPeer(wgPeer wgtypes.Peer, peer *
 		changeSum.Set(peerChangeTraffic)
 	}
 
-	stats.Upstream = wgPeer.ReceiveBytes
-	stats.Downstream = wgPeer.TransmitBytes
+	stats.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes)
 
 	return changeSum
 }

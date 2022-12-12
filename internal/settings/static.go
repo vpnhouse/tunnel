@@ -129,6 +129,13 @@ func (s *Config) GetPublicAPIConfig() *PublicAPIConfig {
 	return defaultPublicAPIConfig()
 }
 
+func (s *Config) GetUpdateStatisticsInterval() human.Interval {
+	if s == nil || s.PeerStatistics == nil {
+		return human.MustParseInterval(DefaultUpdateStatisticsInterval)
+	}
+	return s.PeerStatistics.UpdateStatisticsInterval
+}
+
 type HttpConfig struct {
 	// ListenAddr for HTTP server, default: ":80"
 	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`
@@ -188,16 +195,16 @@ type PeerStatisticConfig struct {
 
 func defaultPeerStatisticConfig() *PeerStatisticConfig {
 	return &PeerStatisticConfig{
-		UpdateStatisticsInterval:       human.MustParseInterval("1m"),
-		TrafficChangeSendEventInterval: human.MustParseInterval("5m"),
-		MaxUpstreamTrafficChange:       human.MustParseSize("50Mb"),
-		MaxDownstreamTrafficChange:     human.MustParseSize("50Mb"),
+		UpdateStatisticsInterval:       human.MustParseInterval(DefaultUpdateStatisticsInterval),
+		TrafficChangeSendEventInterval: human.MustParseInterval(DefaultTrafficChangeSendEventInterval),
+		MaxUpstreamTrafficChange:       human.MustParseSize(DefaultMaxUpstreamTrafficChange),
+		MaxDownstreamTrafficChange:     human.MustParseSize(DefaultMaxDownstreamTrafficChange),
 	}
 }
 
 func (s *PeerStatisticConfig) validate() {
 	if s.UpdateStatisticsInterval.Value() < time.Second {
-		s.UpdateStatisticsInterval = human.MustParseInterval("1m")
+		s.UpdateStatisticsInterval = human.MustParseInterval(DefaultUpdateStatisticsInterval)
 	}
 
 	if s.UpdateStatisticsInterval.Value() > s.TrafficChangeSendEventInterval.Value() {

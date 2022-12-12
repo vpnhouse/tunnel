@@ -142,5 +142,5 @@ func (manager *Manager) GetCachedStatistics() *CachedStatistics {
 }
 
 func (manager *Manager) GetPeerSpeeds(peer *types.PeerInfo) (int64, int64) {
-	return manager.statsService.GetPeerSpeeds(manager.runtime.Settings.PeerStatistics.UpdateStatisticsInterval, peer)
+	return manager.statsService.GetPeerSpeeds(manager.runtime.Settings.GetUpdateStatisticsInterval(), peer)
 }

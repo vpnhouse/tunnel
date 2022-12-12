@@ -38,12 +38,12 @@ func (s Interval) MarshalYAML() (interface{}, error) {
 	return fmt.Sprint(time.Duration(s)), nil
 }
 
-func (s *Interval) Value() time.Duration {
-	return time.Duration(*s)
+func (s Interval) Value() time.Duration {
+	return time.Duration(s)
 }
 
-func (s *Interval) IsZero() bool {
-	return time.Duration(*s) == 0
+func (s Interval) IsZero() bool {
+	return time.Duration(s) == 0
 }
 
 func MustParseInterval(s string) Interval {
