@@ -7,7 +7,7 @@ import { BYTES_MEASURE_LIMITS } from '@common/components/Menu/GlobalStatsBar/con
 
 import useStyles from './styles';
 
-const FETCH_STATS_INTERVAL = 15000;
+const FETCH_STATS_INTERVAL = 5000;
 
 const GlobalStatsBar = () => {
   const classes = useStyles();
