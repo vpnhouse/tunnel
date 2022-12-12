@@ -90,7 +90,7 @@ const GlobalStatsBar = () => {
       </div>
 
       <div className={classes.row}>
-        <span>Upstream traffic speed:</span>
+        <span>Upstream speed:</span>
 
         <span>{traffic_up_speed}</span>
       </div>
@@ -102,7 +102,7 @@ const GlobalStatsBar = () => {
       </div>
 
       <div className={classes.row}>
-        <span>Downstream traffic speed:</span>
+        <span>Downstream speed:</span>
 
         <span>{traffic_down_speed}</span>
       </div>
