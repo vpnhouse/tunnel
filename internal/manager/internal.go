@@ -293,12 +293,12 @@ func (manager *Manager) syncPeerStats() {
 	}
 
 	// Update peer stats according to current metrics in wireguard peers
-	results := manager.statsService.UpdatePeerStats(peers, wireguardPeers)
+	results := manager.statsService.UpdatePeersStats(peers, wireguardPeers)
 
 	// Save stats of the updated peers
 	for _, peer := range results.UpdatedPeers {
 		// Store updated peers
-		err = manager.storage.UpdatePeerStats(peer)
+		_, err = manager.storage.UpdatePeer(*peer)
 		if err != nil {
 			zap.L().Error("failed to update peer stats", zap.Error(err))
 			continue

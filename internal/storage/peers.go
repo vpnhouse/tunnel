@@ -6,7 +6,6 @@ package storage
 
 import (
 	"database/sql"
-	_ "embed"
 	"errors"
 	"time"
 
@@ -15,11 +14,6 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xstorage"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"go.uber.org/zap"
-)
-
-var (
-	//go:embed db/queries/update_peer_stats.sql
-	UpdatePeerStatsSql string
 )
 
 func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]types.PeerInfo, error) {
@@ -134,38 +128,6 @@ func (storage *Storage) UpdatePeer(peer types.PeerInfo) (int64, error) {
 	}
 
 	return peer.ID, nil
-}
-
-func (storage *Storage) UpdatePeerStats(peer *types.PeerInfo) error {
-	updated := xtime.Now()
-	args := struct {
-		ID         int64       `db:"id"`
-		Activity   *xtime.Time `db:"activity"`
-		Upstream   int64       `db:"upstream"`
-		Downstream int64       `db:"downstream"`
-		Updated    *xtime.Time `db:"updated"`
-	}{
-		ID:         peer.ID,
-		Activity:   peer.Activity,
-		Upstream:   *peer.Upstream,   // Upstream never be nil
-		Downstream: *peer.Downstream, // Downstream never be nil
-		Updated:    &updated,
-	}
-	res, err := storage.db.NamedExec(UpdatePeerStatsSql, args)
-	if err != nil {
-		return xerror.EStorageError("can't update peer stats in sqlite", err, zap.Any("peer", peer), zap.String("query", UpdatePeerStatsSql))
-	}
-	rowsAffected, _ := res.RowsAffected()
-	zap.L().Debug(
-		"peer updated",
-		zap.String("label", *peer.Label),
-		zap.String("activity", peer.Activity.Time.Format(time.RFC3339)),
-		zap.String("updated", peer.Updated.Time.Format(time.RFC3339)),
-		zap.Int64("upstream", *peer.Upstream),
-		zap.Int64("downstream", *peer.Downstream),
-		zap.Int64("rows_updated", rowsAffected),
-	)
-	return nil
 }
 
 func (storage *Storage) GetPeer(id int64) (types.PeerInfo, error) {

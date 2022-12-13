@@ -110,7 +110,7 @@ func (s *peerStatsService) GetPeerSpeeds(updateInterval human.Interval, peer *ty
 	return peerStats.LastSpeeds(updateInterval)
 }
 
-func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
+func (s *peerStatsService) UpdatePeersStats(peers []types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
 	s.once.Do(s.init)
 
 	s.lock.Lock()
