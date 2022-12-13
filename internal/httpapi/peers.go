@@ -39,7 +39,7 @@ func (tun *TunnelAPI) AdminListPeers(w http.ResponseWriter, r *http.Request) {
 
 		foundPeers := make([]adminAPI.PeerRecord, len(peers))
 		for i, peer := range peers {
-			oPeer, err := tun.ExportPeer(peer)
+			oPeer, err := tun.exportPeer(peer)
 			if err != nil {
 				return nil, err
 			}
@@ -69,7 +69,7 @@ func (tun *TunnelAPI) AdminGetPeer(w http.ResponseWriter, r *http.Request, id in
 			return nil, err
 		}
 
-		exported, err := tun.ExportPeer(peer)
+		exported, err := tun.exportPeer(peer)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +100,7 @@ func (tun *TunnelAPI) AdminCreatePeer(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 
-		return tun.GetPeerForSerialization(peer.ID)
+		return tun.getPeerForSerialization(peer.ID)
 	})
 }
 
@@ -156,7 +156,7 @@ func (tun *TunnelAPI) PublicPeerActivate(w http.ResponseWriter, r *http.Request,
 			return nil, err
 		}
 
-		fullPeer, err := tun.GetPeerForSerialization(peerID)
+		fullPeer, err := tun.getPeerForSerialization(peerID)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +214,7 @@ func (tun *TunnelAPI) AdminUpdatePeer(w http.ResponseWriter, r *http.Request, id
 			return nil, err
 		}
 
-		exported, err := tun.ExportPeer(insertedPeer)
+		exported, err := tun.exportPeer(insertedPeer)
 		if err != nil {
 			return nil, err
 		}

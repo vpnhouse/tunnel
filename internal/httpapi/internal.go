@@ -134,7 +134,7 @@ func (tun *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.Handl
 	}
 }
 
-func (tun *TunnelAPI) ExportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
+func (tun *TunnelAPI) exportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
 	// Validate peer
 	err := peer.Validate()
 	if err != nil {
@@ -172,13 +172,13 @@ func (tun *TunnelAPI) ExportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
 	return oPeer, nil
 }
 
-func (tun *TunnelAPI) GetPeerForSerialization(id int64) (adminAPI.PeerRecord, error) {
+func (tun *TunnelAPI) getPeerForSerialization(id int64) (adminAPI.PeerRecord, error) {
 	insertedPeer, err := tun.storage.GetPeer(id)
 	if err != nil {
 		return adminAPI.PeerRecord{}, err
 	}
 
-	oPeer, err := tun.ExportPeer(insertedPeer)
+	oPeer, err := tun.exportPeer(insertedPeer)
 	if err != nil {
 		return adminAPI.PeerRecord{}, err
 	}
