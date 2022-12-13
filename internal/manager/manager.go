@@ -55,6 +55,10 @@ func (s *CachedStatistics) UpdateSpeeds(prevStats *CachedStatistics) {
 
 	seconds := s.Collected - prevStats.Collected
 
+	if seconds == 0 {
+		return
+	}
+
 	if s.Upstream >= prevStats.Upstream {
 		s.upstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
 	}
@@ -65,7 +69,7 @@ func (s *CachedStatistics) UpdateSpeeds(prevStats *CachedStatistics) {
 }
 
 func (s *CachedStatistics) LastSpeeds(updateInterval human.Interval) (int64, int64) {
-	// Return speed only if stats was initialized and update time is out of given
+	// Return speed only if stats was initialized and update time is not out as twice as more than given interval
 	if s.Collected == 0 || s.Collected+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
 		return 0, 0
 	}

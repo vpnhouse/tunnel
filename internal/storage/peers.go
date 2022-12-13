@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
+	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
@@ -54,6 +55,15 @@ func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]types.PeerInfo, e
 			zap.L().Error("skipping invalid peer", zap.Error(err), zapFilter)
 			continue
 		}
+
+		zap.L().Debug(
+			"read peer",
+			zap.String("label", *p.Label),
+			zap.String("activity", p.Activity.Time.Format(time.RFC3339)),
+			zap.String("updated", p.Updated.Time.Format(time.RFC3339)),
+			zap.Int64("upstream", *p.Upstream),
+			zap.Int64("downstream", *p.Downstream),
+		)
 
 		peers = append(peers, p)
 	}
@@ -141,10 +151,20 @@ func (storage *Storage) UpdatePeerStats(peer *types.PeerInfo) error {
 		Downstream: *peer.Downstream, // Downstream never be nil
 		Updated:    &updated,
 	}
-	_, err := storage.db.NamedExec(UpdatePeerStatsSql, args)
+	res, err := storage.db.NamedExec(UpdatePeerStatsSql, args)
 	if err != nil {
 		return xerror.EStorageError("can't update peer stats in sqlite", err, zap.Any("peer", peer), zap.String("query", UpdatePeerStatsSql))
 	}
+	rowsAffected, _ := res.RowsAffected()
+	zap.L().Debug(
+		"peer updated",
+		zap.String("label", *peer.Label),
+		zap.String("activity", peer.Activity.Time.Format(time.RFC3339)),
+		zap.String("updated", peer.Updated.Time.Format(time.RFC3339)),
+		zap.Int64("upstream", *peer.Upstream),
+		zap.Int64("downstream", *peer.Downstream),
+		zap.Int64("rows_updated", rowsAffected),
+	)
 	return nil
 }
 

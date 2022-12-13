@@ -57,6 +57,9 @@ func (s *wireguardStats) Update(now time.Time, upstream int64, downstream int64)
 	}
 
 	seconds := ts - s.Updated
+	if seconds == 0 {
+		return
+	}
 
 	if upstream >= s.Upstream {
 		s.upstreamSpeed = (upstream - s.Upstream) / seconds
@@ -68,7 +71,7 @@ func (s *wireguardStats) Update(now time.Time, upstream int64, downstream int64)
 }
 
 func (s *wireguardStats) LastSpeeds(updateInterval human.Interval) (int64, int64) {
-	// Return speed only if stats was initialized and update time is out of given
+	// Return speed only if stats was initialized and update time is not out as twice as more than given interval
 	if s.Updated == 0 || s.Updated+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
 		return 0, 0
 	}
@@ -166,6 +169,13 @@ func (s *peerStatsService) UpdatePeerStats(peers []types.PeerInfo, wireguardPeer
 		if peer.Activity != nil {
 			results.NumPeersWithHadshakes++
 			lastActiveDeltaHours := now.Sub(peer.Activity.Time).Hours()
+			zap.L().Debug(
+				"peer data",
+				zap.String("label", *peer.Label),
+				zap.String("activity", peer.Activity.Time.Format(time.RFC3339)),
+				zap.Bool("is_active_last_hour", lastActiveDeltaHours < 1),
+				zap.Bool("is_active_last_day", lastActiveDeltaHours < 24),
+			)
 			if lastActiveDeltaHours < 1 {
 				results.NumPeersActiveLastHour++
 			}
@@ -211,15 +221,28 @@ func (s *peerStatsService) updatePeerStatsFromWgPeer(now time.Time, wgPeer wgtyp
 
 	if wgPeer.ReceiveBytes > stats.Upstream {
 		// Upstream never be nil
-		*peer.Upstream += (wgPeer.ReceiveBytes - stats.Upstream)
+		*peer.Upstream += wgPeer.ReceiveBytes - stats.Upstream
 		changeSum.Set(peerChangeTraffic)
 	}
 
 	if wgPeer.TransmitBytes > stats.Downstream {
 		// Downstream never be nil
-		*peer.Downstream += (wgPeer.TransmitBytes - stats.Downstream)
+		*peer.Downstream += wgPeer.TransmitBytes - stats.Downstream
 		changeSum.Set(peerChangeTraffic)
 	}
+
+	zap.L().Debug(
+		"update",
+		zap.String("label", *peer.Label),
+		zap.Int64("wg_upstream", wgPeer.ReceiveBytes),
+		zap.Int64("stats_upstream", stats.Upstream),
+		zap.Int64("peer_upstream", *peer.Upstream),
+		zap.Int64("change_upstream", wgPeer.ReceiveBytes-stats.Upstream),
+		zap.Int64("wg_downstream", wgPeer.TransmitBytes),
+		zap.Int64("stats_downstream", stats.Downstream),
+		zap.Int64("peer_downstream", *peer.Downstream),
+		zap.Int64("change_downstream", wgPeer.TransmitBytes-stats.Downstream),
+	)
 
 	stats.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes)
 
