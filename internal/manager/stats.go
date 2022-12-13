@@ -110,7 +110,7 @@ func (s *peerStatsService) GetPeerSpeeds(updateInterval human.Interval, peer *ty
 	return peerStats.LastSpeeds(updateInterval)
 }
 
-func (s *peerStatsService) UpdatePeersStats(peers []types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
+func (s *peerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
 	s.once.Do(s.init)
 
 	s.lock.Lock()
@@ -153,17 +153,17 @@ func (s *peerStatsService) UpdatePeersStats(peers []types.PeerInfo, wireguardPee
 		}
 
 		// Update peer stats and add peer to the update peers list for futher processing
-		changes := s.updatePeerStatsFromWgPeer(now, wgPeer, &peer)
+		changes := s.updatePeerStatsFromWgPeer(now, wgPeer, peer)
 		if changes.HasAnyChanges() {
-			results.UpdatedPeers = append(results.UpdatedPeers, &peer)
+			results.UpdatedPeers = append(results.UpdatedPeers, peer)
 		}
 
 		if changes.Has(peerChangeFirstActivity) {
-			results.FirstConnectedPeers = append(results.FirstConnectedPeers, &peer)
+			results.FirstConnectedPeers = append(results.FirstConnectedPeers, peer)
 		}
 
 		if changes.Has(peerChangeTraffic) {
-			results.TrafficUpdatedPeers = append(results.TrafficUpdatedPeers, &peer)
+			results.TrafficUpdatedPeers = append(results.TrafficUpdatedPeers, peer)
 		}
 
 		if peer.Activity != nil {
@@ -186,7 +186,7 @@ func (s *peerStatsService) UpdatePeersStats(peers []types.PeerInfo, wireguardPee
 
 		// Peer is expired - add it to the output list for later processing
 		if peer.Expires != nil && peer.Expires.Time.Before(now) {
-			results.ExpiredPeers = append(results.ExpiredPeers, &peer)
+			results.ExpiredPeers = append(results.ExpiredPeers, peer)
 		}
 	}
 

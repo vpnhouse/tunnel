@@ -134,7 +134,7 @@ func (tun *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.Handl
 	}
 }
 
-func (tun *TunnelAPI) exportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
+func (tun *TunnelAPI) exportPeer(peer *types.PeerInfo) (adminAPI.Peer, error) {
 	// Validate peer
 	err := peer.Validate()
 	if err != nil {
@@ -149,7 +149,7 @@ func (tun *TunnelAPI) exportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
 	// Handle ipv4 address
 	ip := peer.Ipv4.String()
 
-	upSpeed, downSpeed := tun.manager.GetPeerSpeeds(&peer)
+	upSpeed, downSpeed := tun.manager.GetPeerSpeeds(peer)
 
 	oPeer := adminAPI.Peer{
 		Label:            peer.Label,

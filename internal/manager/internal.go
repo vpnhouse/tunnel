@@ -17,7 +17,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (manager *Manager) peers() ([]types.PeerInfo, error) {
+func (manager *Manager) peers() ([]*types.PeerInfo, error) {
 	return manager.storage.SearchPeers(nil)
 }
 
@@ -55,11 +55,11 @@ func (manager *Manager) restorePeers() {
 
 		_ = manager.wireguard.SetPeer(peer)
 		allPeersGauge.Inc()
-		manager.peerTrafficSender.Add(&peer)
+		manager.peerTrafficSender.Add(peer)
 	}
 }
 
-func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
+func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
 	err := manager.storage.DeletePeer(peer.ID)
 	errs := multierr.Append(nil, err)
 
@@ -75,7 +75,7 @@ func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
 	}
 
-	manager.peerTrafficSender.Remove(&peer)
+	manager.peerTrafficSender.Remove(peer)
 
 	return errs
 }
@@ -122,7 +122,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 		peer.ID = id
 
 		// Set peer in wireguard
-		if err := manager.wireguard.SetPeer(*peer); err != nil {
+		if err := manager.wireguard.SetPeer(peer); err != nil {
 			return err
 		}
 
@@ -156,7 +156,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 // fields: ID, IPv4
 func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 	if newPeer.Expired() {
-		return manager.unsetPeer(*newPeer)
+		return manager.unsetPeer(newPeer)
 	}
 
 	// Find old peer to remove it from wireguard interface
@@ -194,7 +194,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		// Update database
 		now := xtime.Now()
 		newPeer.Updated = &now
-		id, err := manager.storage.UpdatePeer(*newPeer)
+		id, err := manager.storage.UpdatePeer(newPeer)
 		if err != nil {
 			return ipOK, dbOK, wgOK, err
 		}
@@ -210,7 +210,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 			}
 		}
 
-		if err := manager.wireguard.SetPeer(*newPeer); err != nil {
+		if err := manager.wireguard.SetPeer(newPeer); err != nil {
 			zap.L().Error("failed to set new peer, trying to revert old", zap.Error(err))
 			err = manager.wireguard.SetPeer(oldPeer)
 			return ipOK, dbOK, wgOK, err
@@ -234,7 +234,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 
 		if wgOK {
 			// Try to revert wireguard peer
-			_ = manager.wireguard.UnsetPeer(*newPeer)
+			_ = manager.wireguard.UnsetPeer(newPeer)
 			_ = manager.wireguard.SetPeer(oldPeer)
 		}
 
@@ -250,9 +250,9 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 	return nil
 }
 
-func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers) (types.PeerInfo, error) {
+func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers) (*types.PeerInfo, error) {
 	if identifiers == nil {
-		return types.PeerInfo{}, xerror.EInvalidArgument("no identifiers", nil)
+		return nil, xerror.EInvalidArgument("no identifiers", nil)
 	}
 
 	peerQuery := types.PeerInfo{
@@ -261,15 +261,15 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 
 	peers, err := manager.storage.SearchPeers(&peerQuery)
 	if err != nil {
-		return types.PeerInfo{}, err
+		return nil, err
 	}
 
 	if len(peers) == 0 {
-		return types.PeerInfo{}, xerror.EEntryNotFound("peer not found", nil)
+		return nil, xerror.EEntryNotFound("peer not found", nil)
 	}
 
 	if len(peers) > 1 {
-		return types.PeerInfo{}, xerror.EInvalidArgument("not enough identifiers to update peer", nil)
+		return nil, xerror.EInvalidArgument("not enough identifiers to update peer", nil)
 	}
 
 	return peers[0], nil
@@ -298,7 +298,7 @@ func (manager *Manager) syncPeerStats() {
 	// Save stats of the updated peers
 	for _, peer := range results.UpdatedPeers {
 		// Store updated peers
-		_, err = manager.storage.UpdatePeer(*peer)
+		_, err = manager.storage.UpdatePeer(peer)
 		if err != nil {
 			zap.L().Error("failed to update peer stats", zap.Error(err))
 			continue
@@ -319,7 +319,7 @@ func (manager *Manager) syncPeerStats() {
 
 	// Delete expired peers
 	for _, peer := range results.ExpiredPeers {
-		err = manager.unsetPeer(*peer)
+		err = manager.unsetPeer(peer)
 		if err != nil {
 			zap.L().Error("failed to unset expired peer", zap.Error(err))
 		}

@@ -104,7 +104,7 @@ func (wg *Wireguard) Running() bool {
 
 // SetPeer sets peer on wireguard interface
 // Note: it's caller responsibility to provide fully valid peer
-func (wg *Wireguard) SetPeer(info types.PeerInfo) error {
+func (wg *Wireguard) SetPeer(info *types.PeerInfo) error {
 	zap.L().Debug("set peer", zap.Any("peer", info))
 
 	config, err := wg.getPeerConfig(info, false)
@@ -122,7 +122,7 @@ func (wg *Wireguard) SetPeer(info types.PeerInfo) error {
 
 // UnsetPeer removes peer from wireguard interface
 // Note: it's caller responsibility to provide fully valid peer
-func (wg *Wireguard) UnsetPeer(info types.PeerInfo) error {
+func (wg *Wireguard) UnsetPeer(info *types.PeerInfo) error {
 	zap.L().Debug("unset peer", zap.Any("peer", info))
 
 	config, err := wg.getPeerConfig(info, true)

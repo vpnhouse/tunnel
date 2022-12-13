@@ -26,12 +26,12 @@ func (w *Wireguard) Shutdown() error {
 
 func (w *Wireguard) Running() bool { return w.running }
 
-func (*Wireguard) SetPeer(info types.PeerInfo) error {
+func (*Wireguard) SetPeer(info *types.PeerInfo) error {
 	zap.L().Debug("wg: set peer")
 	return nil
 }
 
-func (*Wireguard) UnsetPeer(info types.PeerInfo) error {
+func (*Wireguard) UnsetPeer(info *types.PeerInfo) error {
 	zap.L().Debug("wg: unset peer")
 	return nil
 }

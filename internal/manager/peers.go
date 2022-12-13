@@ -44,9 +44,9 @@ func (manager *Manager) UpdatePeer(info *types.PeerInfo) error {
 	return nil
 }
 
-func (manager *Manager) GetPeer(id int64) (types.PeerInfo, error) {
+func (manager *Manager) GetPeer(id int64) (*types.PeerInfo, error) {
 	if !manager.running.Load().(bool) {
-		return types.PeerInfo{}, xerror.EUnavailable("server is shutting down", nil)
+		return nil, xerror.EUnavailable("server is shutting down", nil)
 	}
 	manager.lock.Lock()
 	defer manager.lock.Unlock()
@@ -97,7 +97,7 @@ func (manager *Manager) UnsetPeerByIdentifiers(identifiers *types.PeerIdentifier
 	return nil
 }
 
-func (manager *Manager) ListPeers() ([]types.PeerInfo, error) {
+func (manager *Manager) ListPeers() ([]*types.PeerInfo, error) {
 	if !manager.running.Load().(bool) {
 		return nil, xerror.EUnavailable("server is shutting down", nil)
 	}
@@ -179,7 +179,7 @@ func (manager *Manager) UpdatePeerExpiration(identifiers *types.PeerIdentifiers,
 	}
 
 	peers[0].Expires = xtime.FromTimePtr(expires)
-	err = manager.updatePeer(&peers[0])
+	err = manager.updatePeer(peers[0])
 	if err != nil {
 		return err
 	}
