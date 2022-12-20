@@ -7,7 +7,7 @@ import { BYTES_MEASURE_LIMITS } from '@common/components/Menu/GlobalStatsBar/con
 
 import useStyles from './styles';
 
-const FETCH_STATS_INTERVAL = 15000;
+const FETCH_STATS_INTERVAL = 5000;
 
 const GlobalStatsBar = () => {
   const classes = useStyles();
@@ -34,7 +34,9 @@ const GlobalStatsBar = () => {
     setStats({
       ...data,
       traffic_up: convertBytes(data.traffic_up),
-      traffic_down: convertBytes(data.traffic_down)
+      traffic_down: convertBytes(data.traffic_down),
+      traffic_up_speed: convertBytes(data.traffic_up_speed) + `PS`,
+      traffic_down_speed: convertBytes(data.traffic_down_speed) + `PS`
     });
   }, [convertBytes]);
 
@@ -51,7 +53,7 @@ const GlobalStatsBar = () => {
     return null;
   }
 
-  const { peers_active_1h, peers_active_1d, peers_connected, peers_total, traffic_up, traffic_down } = stats;
+  const { peers_active_1h, peers_active_1d, peers_connected, peers_total, traffic_up, traffic_down, traffic_up_speed, traffic_down_speed} = stats;
 
   return (
     <div className={classes.root}>
@@ -92,6 +94,19 @@ const GlobalStatsBar = () => {
 
         <span>{traffic_down}</span>
       </div>
+
+      <div className={classes.row}>
+        <span>Upstream speed:</span>
+
+        <span>{traffic_up_speed}</span>
+      </div>
+
+      <div className={classes.row}>
+        <span>Downstream speed:</span>
+
+        <span>{traffic_down_speed}</span>
+      </div>
+
     </div>
   );
 };

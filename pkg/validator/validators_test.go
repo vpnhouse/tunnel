@@ -6,9 +6,11 @@ package validator
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/vpnhouse/tunnel/pkg/human"
 	"gopkg.in/hlandau/passlib.v1"
 )
 
@@ -33,6 +35,34 @@ func TestUrlList(t *testing.T) {
 	}
 
 	v := ts{List1: list, List2: list}
+	err := ValidateStruct(v)
+	require.NoError(t, err)
+}
+
+func TestIsInterval(t *testing.T) {
+	v := struct {
+		Interval1 human.Interval `valid:"interval"`
+		Interval2 string         `valid:"interval"`
+		Interval3 time.Duration  `valid:"interval"`
+	}{
+		Interval1: human.MustParseInterval("5h4m12s"),
+		Interval2: "1m0s",
+		Interval3: time.Minute,
+	}
+
+	err := ValidateStruct(v)
+	require.NoError(t, err)
+}
+
+func TestIsSize(t *testing.T) {
+	v := struct {
+		Size1 human.Size `valid:"size"`
+		Size2 uint64     `valid:"size"`
+	}{
+		Size1: human.MustParseSize("12.3Kb"),
+		Size2: 123456,
+	}
+
 	err := ValidateStruct(v)
 	require.NoError(t, err)
 }

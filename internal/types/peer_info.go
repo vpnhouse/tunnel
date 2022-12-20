@@ -44,6 +44,10 @@ type PeerInfo struct {
 
 	NetworkAccessPolicy *int `db:"net_access_policy"`
 	RateLimit           *int `db:"net_rate_limit"`
+
+	Upstream   *int64      `db:"upstream"`
+	Downstream *int64      `db:"downstream"`
+	Activity   *xtime.Time `db:"activity"`
 }
 
 func (peer *PeerInfo) GetNetworkPolicy() ipam.Policy {
@@ -86,6 +90,16 @@ func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
 	if peer.Expires != nil {
 		p.Expires = proto.TimestampFromTime(peer.Expires.Time)
 	}
+	if peer.Upstream != nil {
+		p.BytesRx = uint64(*peer.Upstream)
+	}
+	if peer.Downstream != nil {
+		p.BytesTx = uint64(*peer.Downstream)
+	}
+	if peer.Activity != nil {
+		p.Activity = proto.TimestampFromTime(peer.Activity.Time)
+	}
+
 	return p
 }
 

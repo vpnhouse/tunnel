@@ -7,6 +7,7 @@ package storage
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
@@ -15,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]types.PeerInfo, error) {
+func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]*types.PeerInfo, error) {
 	if filter == nil {
 		// tolerate nil
 		filter = &types.PeerInfo{}
@@ -34,7 +35,7 @@ func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]types.PeerInfo, e
 		return nil, xerror.EStorageError("can't lookup peers", err, zapFilter)
 	}
 
-	var peers []types.PeerInfo
+	var peers []*types.PeerInfo
 	for rows.Next() {
 		var p types.PeerInfo
 		err = rows.StructScan(&p)
@@ -49,7 +50,16 @@ func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]types.PeerInfo, e
 			continue
 		}
 
-		peers = append(peers, p)
+		zap.L().Debug(
+			"read peer",
+			zap.String("label", *p.Label),
+			zap.String("activity", p.Activity.Time.Format(time.RFC3339)),
+			zap.String("updated", p.Updated.Time.Format(time.RFC3339)),
+			zap.Int64("upstream", *p.Upstream),
+			zap.Int64("downstream", *p.Downstream),
+		)
+
+		peers = append(peers, &p)
 	}
 
 	return peers, nil
@@ -66,6 +76,14 @@ func (storage *Storage) CreatePeer(peer types.PeerInfo) (int64, error) {
 		now := xtime.Now()
 		peer.Created = &now
 		peer.Updated = &now
+	}
+
+	zeroVal := int64(0)
+	if peer.Upstream == nil {
+		peer.Upstream = &zeroVal
+	}
+	if peer.Downstream == nil {
+		peer.Downstream = &zeroVal
 	}
 
 	query, err := xstorage.GetInsertRequest("peers", peer)
@@ -88,7 +106,7 @@ func (storage *Storage) CreatePeer(peer types.PeerInfo) (int64, error) {
 	return id, nil
 }
 
-func (storage *Storage) UpdatePeer(peer types.PeerInfo) (int64, error) {
+func (storage *Storage) UpdatePeer(peer *types.PeerInfo) (int64, error) {
 	err := peer.Validate()
 	if err != nil {
 		return -1, err
@@ -112,23 +130,23 @@ func (storage *Storage) UpdatePeer(peer types.PeerInfo) (int64, error) {
 	return peer.ID, nil
 }
 
-func (storage *Storage) GetPeer(id int64) (types.PeerInfo, error) {
+func (storage *Storage) GetPeer(id int64) (*types.PeerInfo, error) {
 	row := storage.db.QueryRowx("select * from peers where id = $1", id)
 	if err := row.Err(); err != nil {
-		return types.PeerInfo{}, xerror.EStorageError("peer not found", err, zap.Int64("id", id))
+		return nil, xerror.EStorageError("peer not found", err, zap.Int64("id", id))
 	}
 
 	var peer types.PeerInfo
 	if err := row.StructScan(&peer); err != nil {
-		return types.PeerInfo{}, xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.Int64("id", id))
+		return nil, xerror.EStorageError("failed to scan into types.PeerInfo", err, zap.Int64("id", id))
 	}
 
 	if err := peer.Validate(); err != nil {
-		return types.PeerInfo{}, err
+		return nil, err
 	}
 
 	zap.L().Debug("get peer result", zap.Int64("id", id), zap.Any("peer", peer))
-	return peer, nil
+	return &peer, nil
 }
 
 func (storage *Storage) DeletePeer(id int64) error {

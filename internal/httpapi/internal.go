@@ -134,6 +134,63 @@ func (tun *TunnelAPI) federationAuthMiddleware(next http.HandlerFunc) http.Handl
 	}
 }
 
+func (tun *TunnelAPI) exportPeer(peer *types.PeerInfo) (adminAPI.Peer, error) {
+	// Validate peer
+	err := peer.Validate()
+	if err != nil {
+		return adminAPI.Peer{}, err
+	}
+
+	// Handle wireguard information
+	wg := &tunnelAPI.PeerWireguard{
+		PublicKey: peer.WireguardPublicKey,
+	}
+
+	// Handle ipv4 address
+	ip := peer.Ipv4.String()
+
+	upSpeed, downSpeed := tun.manager.GetPeerSpeeds(peer)
+
+	oPeer := adminAPI.Peer{
+		Label:            peer.Label,
+		Ipv4:             &ip,
+		InfoWireguard:    wg,
+		Created:          peer.Created.TimePtr(),
+		Updated:          peer.Updated.TimePtr(),
+		Expires:          peer.Expires.TimePtr(),
+		Claims:           peer.Claims,
+		Identifiers:      exportIdentifiers(&peer.PeerIdentifiers),
+		NetAccessPolicy:  (*adminAPI.PeerNetAccessPolicy)(peer.NetworkAccessPolicy),
+		RateLimit:        peer.RateLimit,
+		Activity:         peer.Activity.TimePtr(),
+		TrafficUp:        peer.Upstream,
+		TrafficDown:      peer.Downstream,
+		TrafficUpSpeed:   &upSpeed,
+		TrafficDownSpeed: &downSpeed,
+	}
+
+	return oPeer, nil
+}
+
+func (tun *TunnelAPI) getPeerForSerialization(id int64) (adminAPI.PeerRecord, error) {
+	insertedPeer, err := tun.storage.GetPeer(id)
+	if err != nil {
+		return adminAPI.PeerRecord{}, err
+	}
+
+	oPeer, err := tun.exportPeer(insertedPeer)
+	if err != nil {
+		return adminAPI.PeerRecord{}, err
+	}
+
+	record := adminAPI.PeerRecord{
+		Id:   id,
+		Peer: oPeer,
+	}
+
+	return record, nil
+}
+
 func importIdentifiers(oIdentifiers *commonAPI.ConnectionIdentifiers) (*types.PeerIdentifiers, error) {
 	if oIdentifiers == nil {
 		return &types.PeerIdentifiers{}, nil
@@ -242,37 +299,6 @@ func exportIdentifiers(identifiers *types.PeerIdentifiers) *commonAPI.Connection
 	}
 
 	return oIdentifiers
-}
-
-func exportPeer(peer types.PeerInfo) (adminAPI.Peer, error) {
-	// Validate peer
-	err := peer.Validate()
-	if err != nil {
-		return adminAPI.Peer{}, err
-	}
-
-	// Handle wireguard information
-	wg := &tunnelAPI.PeerWireguard{
-		PublicKey: peer.WireguardPublicKey,
-	}
-
-	// Handle ipv4 address
-	ip := peer.Ipv4.String()
-
-	oPeer := adminAPI.Peer{
-		Label:           peer.Label,
-		Ipv4:            &ip,
-		InfoWireguard:   wg,
-		Created:         peer.Created.TimePtr(),
-		Updated:         peer.Updated.TimePtr(),
-		Expires:         peer.Expires.TimePtr(),
-		Claims:          peer.Claims,
-		Identifiers:     exportIdentifiers(&peer.PeerIdentifiers),
-		NetAccessPolicy: (*adminAPI.PeerNetAccessPolicy)(peer.NetworkAccessPolicy),
-		RateLimit:       peer.RateLimit,
-	}
-
-	return oPeer, nil
 }
 
 func parseIdentifierUUID(v *string) (*uuid.UUID, error) {

@@ -14,6 +14,7 @@ enum EventType {
   PeerUpdate = 3;
   // PeerTraffic is for the periodic traffic updates
   PeerTraffic = 4;
+  PeerFirstConnect = 5;
 }
 
 // PeerInfo describes the peer interacting with the tunnel node
@@ -26,5 +27,5 @@ message PeerInfo {
   Timestamp expires = 7;
   uint64 bytesTx = 8;
   uint64 bytesRx = 9;
+  Timestamp activity = 10;
 }
-

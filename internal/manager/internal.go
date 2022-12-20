@@ -13,11 +13,11 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"github.com/vpnhouse/tunnel/proto"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-func (manager *Manager) peers() ([]types.PeerInfo, error) {
+func (manager *Manager) peers() ([]*types.PeerInfo, error) {
 	return manager.storage.SearchPeers(nil)
 }
 
@@ -55,32 +55,32 @@ func (manager *Manager) restorePeers() {
 
 		_ = manager.wireguard.SetPeer(peer)
 		allPeersGauge.Inc()
+		manager.peerTrafficSender.Add(peer)
 	}
 }
 
-func (manager *Manager) unsetPeer(peer types.PeerInfo) error {
-	errManager := manager.storage.DeletePeer(peer.ID)
-	errWireguard := manager.wireguard.UnsetPeer(peer)
-	errPool := manager.ip4am.Unset(*peer.Ipv4)
+func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
+	err := manager.storage.DeletePeer(peer.ID)
+	errs := multierr.Append(nil, err)
 
-	// TODO(nikonov): report an actual traffic on remove
+	err = manager.wireguard.UnsetPeer(peer)
+	errs = multierr.Append(errs, err)
+
+	err = manager.ip4am.Unset(*peer.Ipv4)
+	errs = multierr.Append(errs, err)
+
 	allPeersGauge.Dec()
 	if err := manager.eventLog.Push(uint32(proto.EventType_PeerRemove), time.Now().Unix(), peer.IntoProto()); err != nil {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
 	}
 
-	return func(errors ...error) error {
-		for _, e := range errors {
-			if e != nil {
-				return e
-			}
-		}
-		return nil
-	}(errManager, errPool, errWireguard)
+	manager.peerTrafficSender.Remove(peer)
+
+	return errs
 }
 
-// setPeer mutates the given PeerInfo,
+// setPeer changes the given PeerInfo,
 // fields: ID, IPv4
 func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 	err := func() error {
@@ -104,6 +104,16 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 			}
 		}
 
+		// Set counters to zeros to prevent any fails on update stats operation
+		if peer.Upstream == nil {
+			var zeroVal int64
+			peer.Upstream = &zeroVal
+		}
+		if peer.Downstream == nil {
+			var zeroVal int64
+			peer.Downstream = &zeroVal
+		}
+
 		// Create peer in storage
 		id, err := manager.storage.CreatePeer(*peer)
 		if err != nil {
@@ -112,7 +122,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 		peer.ID = id
 
 		// Set peer in wireguard
-		if err := manager.wireguard.SetPeer(*peer); err != nil {
+		if err := manager.wireguard.SetPeer(peer); err != nil {
 			return err
 		}
 
@@ -137,14 +147,16 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerAdd)))
 	}
+	manager.peerTrafficSender.Add(peer)
+
 	return nil
 }
 
-// updatePeer mutates given newPeer,
+// updatePeer changes given newPeer,
 // fields: ID, IPv4
 func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 	if newPeer.Expired() {
-		return manager.unsetPeer(*newPeer)
+		return manager.unsetPeer(newPeer)
 	}
 
 	// Find old peer to remove it from wireguard interface
@@ -182,7 +194,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		// Update database
 		now := xtime.Now()
 		newPeer.Updated = &now
-		id, err := manager.storage.UpdatePeer(*newPeer)
+		id, err := manager.storage.UpdatePeer(newPeer)
 		if err != nil {
 			return ipOK, dbOK, wgOK, err
 		}
@@ -198,7 +210,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 			}
 		}
 
-		if err := manager.wireguard.SetPeer(*newPeer); err != nil {
+		if err := manager.wireguard.SetPeer(newPeer); err != nil {
 			zap.L().Error("failed to set new peer, trying to revert old", zap.Error(err))
 			err = manager.wireguard.SetPeer(oldPeer)
 			return ipOK, dbOK, wgOK, err
@@ -222,7 +234,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 
 		if wgOK {
 			// Try to revert wireguard peer
-			_ = manager.wireguard.UnsetPeer(*newPeer)
+			_ = manager.wireguard.UnsetPeer(newPeer)
 			_ = manager.wireguard.SetPeer(oldPeer)
 		}
 
@@ -234,12 +246,13 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerUpdate)))
 	}
+
 	return nil
 }
 
-func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers) (types.PeerInfo, error) {
+func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers) (*types.PeerInfo, error) {
 	if identifiers == nil {
-		return types.PeerInfo{}, xerror.EInvalidArgument("no identifiers", nil)
+		return nil, xerror.EInvalidArgument("no identifiers", nil)
 	}
 
 	peerQuery := types.PeerInfo{
@@ -248,40 +261,21 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 
 	peers, err := manager.storage.SearchPeers(&peerQuery)
 	if err != nil {
-		return types.PeerInfo{}, err
+		return nil, err
 	}
 
 	if len(peers) == 0 {
-		return types.PeerInfo{}, xerror.EEntryNotFound("peer not found", nil)
+		return nil, xerror.EEntryNotFound("peer not found", nil)
 	}
 
 	if len(peers) > 1 {
-		return types.PeerInfo{}, xerror.EInvalidArgument("not enough identifiers to update peer", nil)
+		return nil, xerror.EInvalidArgument("not enough identifiers to update peer", nil)
 	}
 
 	return peers[0], nil
 }
 
-func (manager *Manager) lock() error {
-	manager.mutex.Lock()
-	if !manager.running {
-		manager.mutex.Unlock()
-		return xerror.EUnavailable("server is shutting down", nil)
-	}
-
-	return nil
-}
-
-func (manager *Manager) unlock() {
-	manager.mutex.Unlock()
-}
-
-func (manager *Manager) backgroundOnce() {
-	if err := manager.lock(); err != nil {
-		return
-	}
-	defer manager.unlock()
-
+func (manager *Manager) syncPeerStats() {
 	linkStats, err := manager.wireguard.GetLinkStatistic()
 	if err == nil {
 		// non-nil error will be logged
@@ -292,138 +286,106 @@ func (manager *Manager) backgroundOnce() {
 	// ignore error because it logged by the common.Error wrapper.
 	// it is safe to call reportTrafficByPeer with nil map.
 	wireguardPeers, _ := manager.wireguard.GetPeers()
-	peersTotal := 0
-	withHandshakes := 0
-	newerHour := 0
-	newerDay := 0
 
 	peers, err := manager.peers()
 	if err != nil {
 		return
 	}
 
-	for _, peer := range peers {
-		if peer.Expired() {
-			_ = manager.unsetPeer(peer)
+	// Update peer stats according to current metrics in wireguard peers
+	results := manager.statsService.UpdatePeersStats(peers, wireguardPeers)
+
+	// Save stats of the updated peers
+	for _, peer := range results.UpdatedPeers {
+		// Store updated peers
+		_, err = manager.storage.UpdatePeer(peer)
+		if err != nil {
+			zap.L().Error("failed to update peer stats", zap.Error(err))
 			continue
 		}
+	}
 
-		peersTotal++
-		wgPeer, ok := findWgPeerByPublicKey(peer, wireguardPeers)
-		if ok {
-			// no handshake - no traffic, avoid spamming empty events to the log
-			if !wgPeer.LastHandshakeTime.IsZero() {
-				manager.reportPeerTraffic(peer, wgPeer)
-				withHandshakes++
-				if time.Now().Sub(wgPeer.LastHandshakeTime).Hours() < 1 {
-					newerHour++
-				}
-				if time.Now().Sub(wgPeer.LastHandshakeTime).Hours() < 24 {
-					newerDay++
-				}
-			}
+	// Send notifications about peers with first connection
+	for _, peer := range results.FirstConnectedPeers {
+		// Send event containing updated peer
+		err := manager.eventLog.Push(uint32(proto.EventType_PeerFirstConnect), time.Now().Unix(), peer.IntoProto())
+		if err != nil {
+			zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerFirstConnect)))
 		}
 	}
+
+	// Notify with the peers with traffic updates
+	manager.peerTrafficSender.Send(results.TrafficUpdatedPeers)
+
+	// Delete expired peers
+	for _, peer := range results.ExpiredPeers {
+		err = manager.unsetPeer(peer)
+		if err != nil {
+			zap.L().Error("failed to unset expired peer", zap.Error(err))
+		}
+	}
+
+	oldStats := manager.GetCachedStatistics()
 
 	diffUpstream := linkStats.RxBytes
 	diffDownstream := linkStats.TxBytes
-	if manager.statistic.LinkStat != nil {
-		diffUpstream -= manager.statistic.LinkStat.RxBytes
-		diffDownstream -= manager.statistic.LinkStat.TxBytes
+	if oldStats.LinkStat != nil {
+		diffUpstream -= oldStats.LinkStat.RxBytes
+		diffDownstream -= oldStats.LinkStat.TxBytes
 	}
 
-	manager.statistic = CachedStatistics{
-		PeersTotal:          peersTotal,
-		PeersWithTraffic:    withHandshakes,
-		PeersActiveLastHour: newerHour,
-		PeersActiveLastDay:  newerDay,
+	newStats := &CachedStatistics{
+		PeersTotal:          results.NumPeers,
+		PeersWithTraffic:    results.NumPeersWithHadshakes,
+		PeersActiveLastHour: results.NumPeersActiveLastHour,
+		PeersActiveLastDay:  results.NumPeersActiveLastDay,
 		LinkStat:            linkStats,
-		Upstream:            manager.statistic.Upstream + int64(diffUpstream),
-		Downstream:          manager.statistic.Downstream + int64(diffDownstream),
+		Upstream:            oldStats.Upstream + int64(diffUpstream),
+		Downstream:          oldStats.Downstream + int64(diffDownstream),
+		Collected:           time.Now().Unix(),
 	}
+
+	newStats.UpdateSpeeds(oldStats)
 
 	zap.L().Info("STATS",
-		zap.Int("total", peersTotal),
-		zap.Int("connected", withHandshakes),
-		zap.Int("active_1h", newerHour),
-		zap.Int("active_1d", newerDay),
+		zap.Int("total", results.NumPeers),
+		zap.Int("connected", results.NumPeersWithHadshakes),
+		zap.Int("active_1h", results.NumPeersActiveLastHour),
+		zap.Int("active_1d", results.NumPeersActiveLastDay),
 		zap.Int("rx_bytes", int(linkStats.RxBytes)),
 		zap.Int("rx_packets", int(linkStats.RxPackets)),
 		zap.Int("tx_bytes", int(linkStats.TxBytes)),
 		zap.Int("tx_packets", int(linkStats.TxPackets)))
 
-	peersWithHandshakesGauge.Set(float64(withHandshakes))
-	manager.storage.SetUpstreamMetric(manager.statistic.Upstream)
-	manager.storage.SetDownstreamMetric(manager.statistic.Downstream)
+	peersWithHandshakesGauge.Set(float64(results.NumPeersWithHadshakes))
+	manager.storage.SetUpstreamMetric(newStats.Upstream)
+	manager.storage.SetDownstreamMetric(newStats.Downstream)
+
+	manager.statistic.Store(newStats)
 }
 
 func (manager *Manager) background() {
-	defer manager.bgWaitGroup.Done()
+	syncPeerTicker := time.NewTicker(manager.runtime.Settings.GetUpdateStatisticsInterval().Value())
+	zap.L().Debug("Start update peer stats", zap.Stringer("interval", manager.runtime.Settings.GetUpdateStatisticsInterval()))
 
-	// TODO (Sergey Kovalev): Move interval to settings
-	expirationTicker := time.NewTicker(time.Second * 60)
-	defer expirationTicker.Stop()
+	defer func() {
+		syncPeerTicker.Stop()
+		close(manager.done)
+	}()
 
-	ready := false
-	background := func() {
-		zap.L().Debug("Running background processing round")
-		manager.backgroundOnce()
-	}
+	manager.lock.Lock()
+	manager.syncPeerStats()
+	manager.lock.Unlock()
 
 	for {
 		select {
-		case <-manager.bgStopChannel:
+		case <-manager.stop:
 			zap.L().Info("Shutting down manager background process")
 			return
-		case <-manager.readyChannel:
-			ready = true
-			background()
-		case <-expirationTicker.C:
-			if ready {
-				background()
-			}
+		case <-syncPeerTicker.C:
+			manager.lock.Lock()
+			manager.syncPeerStats()
+			manager.lock.Unlock()
 		}
-	}
-}
-
-// findWgPeerByPublicKey returns wireguard peer for matching peer public key, if any.
-func findWgPeerByPublicKey(peer types.PeerInfo, wgPeers map[string]wgtypes.Peer) (wgtypes.Peer, bool) {
-	// make it safe to call with empty or nil map
-	if len(wgPeers) == 0 {
-		return wgtypes.Peer{}, false
-	}
-
-	if peer.WireguardPublicKey == nil {
-		// should this ever happen?
-		// why we even have this as string *pointer*?
-		zap.L().Error("got a peer without the public key",
-			zap.Any("id", peer.ID),
-			zap.Any("user_id", peer.UserId),
-			zap.Any("install_id", peer.InstallationId))
-		return wgtypes.Peer{}, false
-	}
-
-	key := *peer.WireguardPublicKey
-	wgPeer, ok := wgPeers[key]
-	if !ok {
-		zap.L().Error("peer is presented in the manager's storage but not configured on the interface",
-			zap.String("pub_key", *peer.WireguardPublicKey),
-			zap.Any("id", peer.ID),
-			zap.Any("user_id", peer.UserId),
-			zap.Any("install_id", peer.InstallationId))
-		return wgtypes.Peer{}, false
-	}
-
-	return wgPeer, true
-}
-
-// reportPeerTraffic reports peer's rx/tx traffic to the eventlog.
-func (manager *Manager) reportPeerTraffic(peer types.PeerInfo, wgPeer wgtypes.Peer) {
-	info := peer.IntoProto()
-	info.BytesTx = uint64(wgPeer.TransmitBytes)
-	info.BytesRx = uint64(wgPeer.ReceiveBytes)
-
-	if err := manager.eventLog.Push(uint32(proto.EventType_PeerTraffic), time.Now().Unix(), &info); err != nil {
-		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
 	}
 }

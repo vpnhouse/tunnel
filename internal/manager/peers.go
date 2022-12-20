@@ -5,6 +5,8 @@
 package manager
 
 import (
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
@@ -13,74 +15,104 @@ import (
 )
 
 func (manager *Manager) SetPeer(info *types.PeerInfo) error {
-	if err := manager.lock(); err != nil {
+	if !manager.running.Load().(bool) {
+		return xerror.EUnavailable("server is shutting down", nil)
+	}
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
+
+	// note: manager.setPeer changes given struct
+	err := manager.setPeer(info)
+	if err != nil {
 		return err
 	}
-	defer manager.unlock()
-
-	// note: manager.setPeer mutates given struct
-	return manager.setPeer(info)
+	manager.syncPeerStats()
+	return nil
 }
 
 func (manager *Manager) UpdatePeer(info *types.PeerInfo) error {
-	if err := manager.lock(); err != nil {
+	if !manager.running.Load().(bool) {
+		return xerror.EUnavailable("server is shutting down", nil)
+	}
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
+	err := manager.updatePeer(info)
+	if err != nil {
 		return err
 	}
-	defer manager.unlock()
-	return manager.updatePeer(info)
+	manager.syncPeerStats()
+	return nil
 }
 
-func (manager *Manager) GetPeer(id int64) (types.PeerInfo, error) {
-	if err := manager.lock(); err != nil {
-		return types.PeerInfo{}, err
+func (manager *Manager) GetPeer(id int64) (*types.PeerInfo, error) {
+	if !manager.running.Load().(bool) {
+		return nil, xerror.EUnavailable("server is shutting down", nil)
 	}
-	defer manager.unlock()
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
 
 	return manager.storage.GetPeer(id)
 }
 
 func (manager *Manager) UnsetPeer(id int64) error {
-	if err := manager.lock(); err != nil {
-		return err
+	if !manager.running.Load().(bool) {
+		return xerror.EUnavailable("server is shutting down", nil)
 	}
-	defer manager.unlock()
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
 
 	info, err := manager.storage.GetPeer(id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
 		return err
 	}
 
-	return manager.unsetPeer(info)
+	err = manager.unsetPeer(info)
+	if err != nil {
+		return err
+	}
+	manager.syncPeerStats()
+	return nil
 }
 
 func (manager *Manager) UnsetPeerByIdentifiers(identifiers *types.PeerIdentifiers) error {
-	if err := manager.lock(); err != nil {
-		return err
+	if !manager.running.Load().(bool) {
+		return xerror.EUnavailable("server is shutting down", nil)
 	}
-	defer manager.unlock()
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
 
 	info, err := manager.findPeerByIdentifiers(identifiers)
 	if err != nil {
 		return err
 	}
 
-	return manager.unsetPeer(info)
+	err = manager.unsetPeer(info)
+	if err != nil {
+		return err
+	}
+	manager.syncPeerStats()
+	return nil
 }
 
-func (manager *Manager) ListPeers() ([]types.PeerInfo, error) {
-	if err := manager.lock(); err != nil {
-		return nil, err
+func (manager *Manager) ListPeers() ([]*types.PeerInfo, error) {
+	if !manager.running.Load().(bool) {
+		return nil, xerror.EUnavailable("server is shutting down", nil)
 	}
-	defer manager.unlock()
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
 
 	return manager.storage.SearchPeers(nil)
 }
 
 func (manager *Manager) ConnectPeer(info *types.PeerInfo) error {
-	if err := manager.lock(); err != nil {
-		return err
+	if !manager.running.Load().(bool) {
+		return xerror.EUnavailable("server is shutting down", nil)
 	}
-	defer manager.unlock()
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
 
 	oldPeerShadow := types.PeerInfo{
 		PeerIdentifiers: types.PeerIdentifiers{
@@ -95,8 +127,12 @@ func (manager *Manager) ConnectPeer(info *types.PeerInfo) error {
 	}
 
 	if len(oldPeers) == 0 {
-		return manager.setPeer(info)
-
+		err = manager.setPeer(info)
+		if err != nil {
+			return err
+		}
+		manager.syncPeerStats()
+		return nil
 	}
 
 	if len(oldPeers) > 1 {
@@ -105,7 +141,13 @@ func (manager *Manager) ConnectPeer(info *types.PeerInfo) error {
 
 	info.ID = oldPeers[0].ID
 	info.Ipv4 = oldPeers[0].Ipv4
-	return manager.updatePeer(info)
+
+	err = manager.updatePeer(info)
+	if err != nil {
+		return err
+	}
+	manager.syncPeerStats()
+	return nil
 }
 
 func (manager *Manager) UpdatePeerExpiration(identifiers *types.PeerIdentifiers, expires *time.Time) error {
@@ -113,10 +155,11 @@ func (manager *Manager) UpdatePeerExpiration(identifiers *types.PeerIdentifiers,
 		return xerror.EInvalidArgument("no identifiers", nil)
 	}
 
-	if err := manager.lock(); err != nil {
-		return err
+	if !manager.running.Load().(bool) {
+		return xerror.EUnavailable("server is shutting down", nil)
 	}
-	defer manager.unlock()
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
 
 	peerQuery := types.PeerInfo{
 		PeerIdentifiers: *identifiers,
@@ -136,5 +179,10 @@ func (manager *Manager) UpdatePeerExpiration(identifiers *types.PeerIdentifiers,
 	}
 
 	peers[0].Expires = xtime.FromTimePtr(expires)
-	return manager.updatePeer(&peers[0])
+	err = manager.updatePeer(peers[0])
+	if err != nil {
+		return err
+	}
+	manager.syncPeerStats()
+	return nil
 }

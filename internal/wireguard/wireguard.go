@@ -85,7 +85,7 @@ func DefaultConfig() Config {
 
 // getPeerConfig generates wireguard configuration for a peer.
 // Note: it's caller responsibility to provide fully valid peer
-func (wg *Wireguard) getPeerConfig(info types.PeerInfo, remove bool) (*wgtypes.Config, error) {
+func (wg *Wireguard) getPeerConfig(info *types.PeerInfo, remove bool) (*wgtypes.Config, error) {
 	key, err := wgtypes.ParseKey(*info.WireguardPublicKey)
 	if err != nil {
 		return nil, xerror.EInvalidArgument("can't parse client public key", err, zap.String("key", *info.WireguardPublicKey))

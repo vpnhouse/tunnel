@@ -6,12 +6,16 @@ package manager
 
 import (
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/vishvananda/netlink"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
+	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"go.uber.org/zap"
 )
@@ -33,79 +37,114 @@ type CachedStatistics struct {
 	LinkStat *netlink.LinkStatistics
 	// Upstream traffic totally
 	Upstream int64
+	// Upstream traffic speed
+	upstreamSpeed int64
 	// Downstream traffic totally
 	Downstream int64
+	// Downstream traffic speed
+	downstreamSpeed int64
+
+	// The time in seconds then statistics was collected
+	Collected int64
+}
+
+func (s *CachedStatistics) UpdateSpeeds(prevStats *CachedStatistics) {
+	if s.Collected == 0 || prevStats.Collected >= s.Collected || prevStats == nil {
+		return
+	}
+
+	seconds := s.Collected - prevStats.Collected
+
+	if seconds == 0 {
+		return
+	}
+
+	if s.Upstream >= prevStats.Upstream {
+		s.upstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
+	}
+
+	if s.Downstream >= prevStats.Downstream {
+		s.downstreamSpeed = (s.Downstream - prevStats.Downstream) / seconds
+	}
+}
+
+func (s *CachedStatistics) LastSpeeds(updateInterval human.Interval) (int64, int64) {
+	// Return speed only if stats was initialized and update time is not out as twice as more than given interval
+	if s.Collected == 0 || s.Collected+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
+		return 0, 0
+	}
+	return s.upstreamSpeed, s.downstreamSpeed
 }
 
 type Manager struct {
-	readyChannel  chan int
-	runtime       *runtime.TunnelRuntime
-	mutex         sync.RWMutex
-	storage       *storage.Storage
-	wireguard     *wireguard.Wireguard
-	ip4am         *ipam.IPAM
-	eventLog      eventlog.EventManager
-	running       bool
-	bgStopChannel chan bool
-	bgWaitGroup   sync.WaitGroup
+	runtime           *runtime.TunnelRuntime
+	lock              sync.RWMutex
+	storage           *storage.Storage
+	wireguard         *wireguard.Wireguard
+	ip4am             *ipam.IPAM
+	eventLog          eventlog.EventManager
+	statsService      peerStatsService
+	peerTrafficSender *peerTrafficUpdateEventSender
+	running           atomic.Value
+	stop              chan struct{}
+	done              chan struct{}
 
-	// statistic guarded by mutex and
-	// updated by the backgroundOnce routine.
-	statistic CachedStatistics
+	statistic atomic.Value // *CachedStatistics
 }
 
 func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
+	peerTrafficSender := NewPeerTrafficUpdateEventSender(runtime, eventLog, nil)
+
 	manager := &Manager{
-		readyChannel:  make(chan int),
-		runtime:       runtime,
-		storage:       storage,
-		wireguard:     wireguard,
-		ip4am:         ip4am,
-		eventLog:      eventLog,
-		running:       true,
-		bgStopChannel: make(chan bool),
-		statistic: CachedStatistics{
-			Upstream:   storage.GetUpstreamMetric(),
-			Downstream: storage.GetDownstreamMetric(),
-		},
+		runtime:           runtime,
+		storage:           storage,
+		wireguard:         wireguard,
+		ip4am:             ip4am,
+		eventLog:          eventLog,
+		peerTrafficSender: peerTrafficSender,
+		stop:              make(chan struct{}),
+		done:              make(chan struct{}),
 	}
 
+	manager.restorePeers()
+	manager.running.Store(true)
+	manager.statistic.Store(&CachedStatistics{
+		Upstream:   storage.GetUpstreamMetric(),
+		Downstream: storage.GetDownstreamMetric(),
+		Collected:  time.Now().Unix(),
+	})
+
 	// Run background goroutine
-	manager.bgWaitGroup.Add(1)
 	go manager.background()
 
-	manager.restorePeers()
-
-	manager.readyChannel <- 1
 	return manager, nil
 }
 
 func (manager *Manager) Shutdown() error {
+	zap.L().Debug("Marking manager as not accepting any requests anymore")
+	manager.running.Store(false)
+
 	// Shutdown background goroutine
 	zap.L().Debug("Sending stop signal to manager background goroutine")
-	manager.bgStopChannel <- true
+	close(manager.stop)
 
 	zap.L().Debug("Waiting for shutting down background goroutine")
-	manager.bgWaitGroup.Wait()
+	<-manager.done
 
-	// Get lock and forbid all further operations
-	zap.L().Debug("Acquiring main manager lock")
-	manager.mutex.Lock()
-	defer manager.mutex.Unlock()
-
-	zap.L().Debug("Marking manager as not accepting any requests anymore")
-	manager.running = false
+	// Stop sending all events
+	manager.peerTrafficSender.Stop()
 
 	return nil
 }
 
 func (manager *Manager) Running() bool {
-	return manager.running
+	return manager.running.Load().(bool)
 }
 
-func (manager *Manager) GetCachedStatistics() CachedStatistics {
-	manager.mutex.RLock()
-	defer manager.mutex.RUnlock()
+func (manager *Manager) GetCachedStatistics() *CachedStatistics {
+	return manager.statistic.Load().(*CachedStatistics)
+}
 
-	return manager.statistic
+func (manager *Manager) GetPeerSpeeds(peer *types.PeerInfo) (int64, int64) {
+	return manager.statsService.GetPeerSpeeds(manager.runtime.Settings.GetUpdateStatisticsInterval(), peer)
 }

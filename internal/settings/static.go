@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
@@ -18,6 +19,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/grpc"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
+	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/sentry"
 	"github.com/vpnhouse/tunnel/pkg/validator"
@@ -64,6 +66,7 @@ type Config struct {
 	ManagementKeystore string                      `yaml:"management_keystore,omitempty" valid:"path"`
 	DNSFilter          *xdns.Config                `yaml:"dns_filter"`
 	PortRestrictions   *ipam.PortRestrictionConfig `yaml:"ports,omitempty"`
+	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
@@ -126,6 +129,13 @@ func (s *Config) GetPublicAPIConfig() *PublicAPIConfig {
 	return defaultPublicAPIConfig()
 }
 
+func (s *Config) GetUpdateStatisticsInterval() human.Interval {
+	if s == nil || s.PeerStatistics == nil {
+		return human.MustParseInterval(DefaultUpdateStatisticsInterval)
+	}
+	return s.PeerStatistics.UpdateStatisticsInterval
+}
+
 type HttpConfig struct {
 	// ListenAddr for HTTP server, default: ":80"
 	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`
@@ -156,6 +166,49 @@ func defaultPublicAPIConfig() *PublicAPIConfig {
 	return &PublicAPIConfig{
 		PingInterval: 600,  // 10min
 		PeerTTL:      3600, // 1h
+	}
+}
+
+type PeerStatisticConfig struct {
+	// Interval to update tunnel (all peers) statistics
+	// Min valid value = 1m
+	UpdateStatisticsInterval human.Interval `yaml:"update_statistics_interval" valid:"interval"`
+	// Min interval to sent updated peers with new traffic counters
+	// Interval must be defined in duration format.
+	// Valid time units: "ns", "us", "ms", "s", "m", "h".
+	// https://pkg.go.dev/time#ParseDuration
+	// or
+	// be defined as integer in seconds
+	// Note: it must be >= UpdateStatisticsInterval
+	// = UpdateStatisticsInterval if < UpdateStatisticsInterval
+	TrafficChangeSendEventInterval human.Interval `yaml:"traffic_change_send_event_interval" valid:"interval"`
+	// Min pace to sent updated peers with new traffic counters
+	// Interval must be defined in duration format.
+	// Valid size units in human readable format "b", "kb", "mb", "gb"
+	// https://pkg.go.dev/time#ParseDuration
+	// or
+	// be defined as integer in bytes
+	// "" or 0 means it's disabled
+	MaxUpstreamTrafficChange   human.Size `yaml:"max_upstream_traffic_change" valid:"size"`
+	MaxDownstreamTrafficChange human.Size `yaml:"max_downstream_traffic_change" valid:"size"`
+}
+
+func defaultPeerStatisticConfig() *PeerStatisticConfig {
+	return &PeerStatisticConfig{
+		UpdateStatisticsInterval:       human.MustParseInterval(DefaultUpdateStatisticsInterval),
+		TrafficChangeSendEventInterval: human.MustParseInterval(DefaultTrafficChangeSendEventInterval),
+		MaxUpstreamTrafficChange:       human.MustParseSize(DefaultMaxUpstreamTrafficChange),
+		MaxDownstreamTrafficChange:     human.MustParseSize(DefaultMaxDownstreamTrafficChange),
+	}
+}
+
+func (s *PeerStatisticConfig) validate() {
+	if s.UpdateStatisticsInterval.Value() < time.Second {
+		s.UpdateStatisticsInterval = human.MustParseInterval(DefaultUpdateStatisticsInterval)
+	}
+
+	if s.UpdateStatisticsInterval.Value() > s.TrafficChangeSendEventInterval.Value() {
+		s.TrafficChangeSendEventInterval = s.UpdateStatisticsInterval
 	}
 }
 
@@ -261,6 +314,10 @@ func (s *Config) validate() error {
 		}
 	}
 
+	if s.PeerStatistics != nil {
+		s.PeerStatistics.validate()
+	}
+
 	return nil
 }
 
@@ -286,6 +343,7 @@ func safeDefaults(rootDir string) *Config {
 		AdminAPI:           adminAPIConfig,
 		ManagementKeystore: keystorePath,
 		PortRestrictions:   ipam.DefaultPortRestrictions(),
+		PeerStatistics:     defaultPeerStatisticConfig(),
 	}
 }
 
