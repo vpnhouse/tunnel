@@ -61,6 +61,13 @@ const PeerCard: FC<PropsType> = ({
     }));
   }, [peerInfo]);
 
+  useEffect(() => {
+    if (!open && isModal) {
+      setValidationError(serverError);
+      setPeer(peerInfo);
+    }
+  }, [open, isModal, serverError, peerInfo]);
+
   const deletePeerAction = useCallback(() => {
     deletePeerFx(peer);
   }, [peer]);
