@@ -7,7 +7,6 @@ package storage
 import (
 	"database/sql"
 	"errors"
-	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
@@ -49,15 +48,6 @@ func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]*types.PeerInfo, 
 			zap.L().Error("skipping invalid peer", zap.Error(err), zapFilter)
 			continue
 		}
-
-		zap.L().Debug(
-			"read peer",
-			zap.String("label", *p.Label),
-			zap.String("activity", p.Activity.Time.Format(time.RFC3339)),
-			zap.String("updated", p.Updated.Time.Format(time.RFC3339)),
-			zap.Int64("upstream", *p.Upstream),
-			zap.Int64("downstream", *p.Downstream),
-		)
 
 		peers = append(peers, &p)
 	}
