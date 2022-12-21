@@ -35,8 +35,8 @@ const GlobalStatsBar = () => {
       ...data,
       traffic_up: convertBytes(data.traffic_up),
       traffic_down: convertBytes(data.traffic_down),
-      traffic_up_speed: convertBytes(data.traffic_up_speed) + `PS`,
-      traffic_down_speed: convertBytes(data.traffic_down_speed) + `PS`
+      traffic_up_speed: convertBytes(data.traffic_up_speed) + `ps`,
+      traffic_down_speed: convertBytes(data.traffic_down_speed) + `ps`
     });
   }, [convertBytes]);
 
