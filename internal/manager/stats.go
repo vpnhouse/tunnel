@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -34,17 +33,15 @@ func (s *peerChangeSummary) Set(t peerChangeType) {
 }
 
 // Keeps accumulated peer counters updated for certian wireguard peer
-type wireguardStats struct {
-	Updated    int64 // timestamp in seconds
-	Upstream   int64 // bytes
-	Downstream int64 // bytes
-
-	// Recalculated on update
-	upstreamSpeed   int64 // bytes per second
-	downstreamSpeed int64 // bytes per second
+type runtimePeerStat struct {
+	Updated         int64 // timestamp in seconds
+	Upstream        int64 // bytes
+	UpstreamSpeed   int64 // bytes per second
+	Downstream      int64 // bytes
+	DownstreamSpeed int64 // bytes per second
 }
 
-func (s *wireguardStats) Update(now time.Time, upstream int64, downstream int64) {
+func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64) {
 	ts := now.Unix()
 	defer func() {
 		s.Upstream = upstream
@@ -62,20 +59,12 @@ func (s *wireguardStats) Update(now time.Time, upstream int64, downstream int64)
 	}
 
 	if upstream >= s.Upstream {
-		s.upstreamSpeed = (upstream - s.Upstream) / seconds
+		s.UpstreamSpeed = ((upstream - s.Upstream) / seconds)
 	}
 
 	if downstream >= s.Downstream {
-		s.downstreamSpeed = (downstream - s.Downstream) / seconds
+		s.DownstreamSpeed = (downstream - s.Downstream) / seconds
 	}
-}
-
-func (s *wireguardStats) LastSpeeds(updateInterval human.Interval) (int64, int64) {
-	// Return speed only if stats was initialized and update time is not out as twice as more than given interval
-	if s.Updated == 0 || s.Updated+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
-		return 0, 0
-	}
-	return s.upstreamSpeed, s.downstreamSpeed
 }
 
 type updatePeerStatsResults struct {
@@ -89,28 +78,28 @@ type updatePeerStatsResults struct {
 	NumPeers               int
 }
 
-type peerStatsService struct {
+type runtimePeerStatsService struct {
 	lock sync.Mutex
 	// {peer public key} -> peerStats
-	stats map[string]*wireguardStats
+	stats map[string]*runtimePeerStat
 	once  sync.Once
 }
 
-func (s *peerStatsService) init() {
-	s.stats = make(map[string]*wireguardStats, 1000)
+func (s *runtimePeerStatsService) init() {
+	s.stats = make(map[string]*runtimePeerStat, 1000)
 }
 
-func (s *peerStatsService) GetPeerSpeeds(updateInterval human.Interval, peer *types.PeerInfo) (int64, int64) {
+func (s *runtimePeerStatsService) GetRuntimePeerStat(peer *types.PeerInfo) runtimePeerStat {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	peerStats, ok := s.stats[*peer.WireguardPublicKey]
-	if !ok {
-		return 0, 0
+	stat, ok := s.stats[*peer.WireguardPublicKey]
+	if !ok || stat == nil {
+		return runtimePeerStat{}
 	}
-	return peerStats.LastSpeeds(updateInterval)
+	return *stat
 }
 
-func (s *peerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
+func (s *runtimePeerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
 	s.once.Do(s.init)
 
 	s.lock.Lock()
@@ -153,7 +142,7 @@ func (s *peerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wireguardPe
 		}
 
 		// Update peer stats and add peer to the update peers list for futher processing
-		changes := s.updatePeerStatsFromWgPeer(now, wgPeer, peer)
+		changes := s.updateRuntimePeerStatFromWireguardPeer(now, wgPeer, peer)
 		if changes.HasAnyChanges() {
 			results.UpdatedPeers = append(results.UpdatedPeers, peer)
 		}
@@ -196,7 +185,7 @@ func (s *peerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wireguardPe
 	return results
 }
 
-func (s *peerStatsService) updatePeerStatsFromWgPeer(now time.Time, wgPeer wgtypes.Peer, peer *types.PeerInfo) peerChangeSummary {
+func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now time.Time, wgPeer wgtypes.Peer, peer *types.PeerInfo) peerChangeSummary {
 	var changeSum peerChangeSummary
 
 	if peer.WireguardPublicKey == nil {
@@ -213,21 +202,21 @@ func (s *peerStatsService) updatePeerStatsFromWgPeer(now time.Time, wgPeer wgtyp
 		}
 	}
 
-	stats, ok := s.stats[*peer.WireguardPublicKey]
+	stat, ok := s.stats[*peer.WireguardPublicKey]
 	if !ok {
-		stats = &wireguardStats{}
-		s.stats[*peer.WireguardPublicKey] = stats
+		stat = &runtimePeerStat{}
+		s.stats[*peer.WireguardPublicKey] = stat
 	}
 
-	if wgPeer.ReceiveBytes > stats.Upstream {
+	if wgPeer.ReceiveBytes > stat.Upstream {
 		// Upstream never be nil
-		*peer.Upstream += wgPeer.ReceiveBytes - stats.Upstream
+		*peer.Upstream += wgPeer.ReceiveBytes - stat.Upstream
 		changeSum.Set(peerChangeTraffic)
 	}
 
-	if wgPeer.TransmitBytes > stats.Downstream {
+	if wgPeer.TransmitBytes > stat.Downstream {
 		// Downstream never be nil
-		*peer.Downstream += wgPeer.TransmitBytes - stats.Downstream
+		*peer.Downstream += wgPeer.TransmitBytes - stat.Downstream
 		changeSum.Set(peerChangeTraffic)
 	}
 
@@ -235,16 +224,16 @@ func (s *peerStatsService) updatePeerStatsFromWgPeer(now time.Time, wgPeer wgtyp
 		"update",
 		zap.String("label", *peer.Label),
 		zap.Int64("wg_upstream", wgPeer.ReceiveBytes),
-		zap.Int64("stats_upstream", stats.Upstream),
+		zap.Int64("stats_upstream", stat.Upstream),
 		zap.Int64("peer_upstream", *peer.Upstream),
-		zap.Int64("change_upstream", wgPeer.ReceiveBytes-stats.Upstream),
+		zap.Int64("change_upstream", wgPeer.ReceiveBytes-stat.Upstream),
 		zap.Int64("wg_downstream", wgPeer.TransmitBytes),
-		zap.Int64("stats_downstream", stats.Downstream),
+		zap.Int64("stats_downstream", stat.Downstream),
 		zap.Int64("peer_downstream", *peer.Downstream),
-		zap.Int64("change_downstream", wgPeer.TransmitBytes-stats.Downstream),
+		zap.Int64("change_downstream", wgPeer.TransmitBytes-stat.Downstream),
 	)
 
-	stats.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes)
+	stat.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes)
 
 	return changeSum
 }

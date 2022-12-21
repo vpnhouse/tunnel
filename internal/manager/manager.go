@@ -15,7 +15,6 @@ import (
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
-	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"go.uber.org/zap"
 )
@@ -38,11 +37,11 @@ type CachedStatistics struct {
 	// Upstream traffic totally
 	Upstream int64
 	// Upstream traffic speed
-	upstreamSpeed int64
+	UpstreamSpeed int64
 	// Downstream traffic totally
 	Downstream int64
 	// Downstream traffic speed
-	downstreamSpeed int64
+	DownstreamSpeed int64
 
 	// The time in seconds then statistics was collected
 	Collected int64
@@ -60,20 +59,12 @@ func (s *CachedStatistics) UpdateSpeeds(prevStats *CachedStatistics) {
 	}
 
 	if s.Upstream >= prevStats.Upstream {
-		s.upstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
+		s.UpstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
 	}
 
 	if s.Downstream >= prevStats.Downstream {
-		s.downstreamSpeed = (s.Downstream - prevStats.Downstream) / seconds
+		s.DownstreamSpeed = (s.Downstream - prevStats.Downstream) / seconds
 	}
-}
-
-func (s *CachedStatistics) LastSpeeds(updateInterval human.Interval) (int64, int64) {
-	// Return speed only if stats was initialized and update time is not out as twice as more than given interval
-	if s.Collected == 0 || s.Collected+int64(updateInterval.Value().Seconds())*2 < time.Now().Unix() {
-		return 0, 0
-	}
-	return s.upstreamSpeed, s.downstreamSpeed
 }
 
 type Manager struct {
@@ -83,7 +74,7 @@ type Manager struct {
 	wireguard         *wireguard.Wireguard
 	ip4am             *ipam.IPAM
 	eventLog          eventlog.EventManager
-	statsService      peerStatsService
+	statsService      runtimePeerStatsService
 	peerTrafficSender *peerTrafficUpdateEventSender
 	running           atomic.Value
 	stop              chan struct{}
@@ -145,6 +136,6 @@ func (manager *Manager) GetCachedStatistics() *CachedStatistics {
 	return manager.statistic.Load().(*CachedStatistics)
 }
 
-func (manager *Manager) GetPeerSpeeds(peer *types.PeerInfo) (int64, int64) {
-	return manager.statsService.GetPeerSpeeds(manager.runtime.Settings.GetUpdateStatisticsInterval(), peer)
+func (manager *Manager) GetRuntimePeerStat(peer *types.PeerInfo) runtimePeerStat {
+	return manager.statsService.GetRuntimePeerStat(peer)
 }
