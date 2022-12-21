@@ -345,7 +345,11 @@ func (manager *Manager) syncPeerStats() {
 		Collected:           time.Now().Unix(),
 	}
 
-	newStats.UpdateSpeeds(oldStats)
+	speed := newStats.CalcSpeed(oldStats)
+	if speed != nil {
+		newStats.UpstreamSpeed = manager.upstreamSpeedAvg.Push(speed.Upstream)
+		newStats.DownstreamSpeed = manager.downstreamSpeedAvg.Push(speed.Downstream)
+	}
 
 	zap.L().Info("STATS",
 		zap.Int("total", results.NumPeers),

@@ -16,6 +16,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
+	"github.com/vpnhouse/tunnel/pkg/statutils"
 	"go.uber.org/zap"
 )
 
@@ -34,36 +35,42 @@ type CachedStatistics struct {
 	PeersActiveLastDay int
 	// Wireguard link statistic, may be nil
 	LinkStat *netlink.LinkStatistics
-	// Upstream traffic totally
+	// Upstream traffic totally  (bytes)
 	Upstream int64
-	// Upstream traffic speed
+	// Upstream speed totally (bytes per second)
 	UpstreamSpeed int64
-	// Downstream traffic totally
+	// Downstream traffic totally (bytes)
 	Downstream int64
-	// Downstream traffic speed
+	// Downstream speed totally (bytes per second)
 	DownstreamSpeed int64
 
 	// The time in seconds then statistics was collected
 	Collected int64
 }
 
-func (s *CachedStatistics) UpdateSpeeds(prevStats *CachedStatistics) {
+func (s *CachedStatistics) CalcSpeed(prevStats *CachedStatistics) *speedValue {
 	if s.Collected == 0 || prevStats.Collected >= s.Collected || prevStats == nil {
-		return
+		return nil
 	}
 
 	seconds := s.Collected - prevStats.Collected
 
 	if seconds == 0 {
-		return
+		return nil
 	}
 
+	var upstreamSpeed int64
 	if s.Upstream >= prevStats.Upstream {
-		s.UpstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
+		upstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
 	}
 
+	var downstreamSpeed int64
 	if s.Downstream >= prevStats.Downstream {
-		s.DownstreamSpeed = (s.Downstream - prevStats.Downstream) / seconds
+		downstreamSpeed = (s.Downstream - prevStats.Downstream) / seconds
+	}
+	return &speedValue{
+		Upstream:   upstreamSpeed,
+		Downstream: downstreamSpeed,
 	}
 }
 
@@ -80,6 +87,9 @@ type Manager struct {
 	stop              chan struct{}
 	done              chan struct{}
 
+	upstreamSpeedAvg   *statutils.AvgValue
+	downstreamSpeedAvg *statutils.AvgValue
+
 	statistic atomic.Value // *CachedStatistics
 }
 
@@ -87,14 +97,16 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 	peerTrafficSender := NewPeerTrafficUpdateEventSender(runtime, eventLog, nil)
 
 	manager := &Manager{
-		runtime:           runtime,
-		storage:           storage,
-		wireguard:         wireguard,
-		ip4am:             ip4am,
-		eventLog:          eventLog,
-		peerTrafficSender: peerTrafficSender,
-		stop:              make(chan struct{}),
-		done:              make(chan struct{}),
+		runtime:            runtime,
+		storage:            storage,
+		wireguard:          wireguard,
+		ip4am:              ip4am,
+		eventLog:           eventLog,
+		peerTrafficSender:  peerTrafficSender,
+		stop:               make(chan struct{}),
+		done:               make(chan struct{}),
+		upstreamSpeedAvg:   statutils.NewAvgValue(10),
+		downstreamSpeedAvg: statutils.NewAvgValue(10),
 	}
 
 	manager.restorePeers()

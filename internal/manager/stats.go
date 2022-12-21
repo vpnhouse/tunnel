@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
+	"github.com/vpnhouse/tunnel/pkg/statutils"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -12,6 +13,11 @@ import (
 
 type peerChangeType int
 type peerChangeSummary int
+
+type speedValue struct {
+	Upstream   int64
+	Downstream int64
+}
 
 const (
 	peerChangeNone          peerChangeType = 0
@@ -39,6 +45,16 @@ type runtimePeerStat struct {
 	UpstreamSpeed   int64 // bytes per second
 	Downstream      int64 // bytes
 	DownstreamSpeed int64 // bytes per second
+
+	upstreamSpeedAvg   *statutils.AvgValue
+	downstreamSpeedAvg *statutils.AvgValue
+}
+
+func newRuntimePeerStat() *runtimePeerStat {
+	return &runtimePeerStat{
+		upstreamSpeedAvg:   statutils.NewAvgValue(10),
+		downstreamSpeedAvg: statutils.NewAvgValue(10),
+	}
 }
 
 func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64) {
@@ -59,11 +75,11 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 	}
 
 	if upstream >= s.Upstream {
-		s.UpstreamSpeed = ((upstream - s.Upstream) / seconds)
+		s.UpstreamSpeed = s.upstreamSpeedAvg.Push(((upstream - s.Upstream) / seconds))
 	}
 
 	if downstream >= s.Downstream {
-		s.DownstreamSpeed = (downstream - s.Downstream) / seconds
+		s.DownstreamSpeed = s.downstreamSpeedAvg.Push((downstream - s.Downstream) / seconds)
 	}
 }
 
@@ -204,7 +220,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 
 	stat, ok := s.stats[*peer.WireguardPublicKey]
 	if !ok {
-		stat = &runtimePeerStat{}
+		stat = newRuntimePeerStat()
 		s.stats[*peer.WireguardPublicKey] = stat
 	}
 
