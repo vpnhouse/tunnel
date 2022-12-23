@@ -1,4 +1,5 @@
 import React, { FC, useCallback, useState, MouseEvent } from 'react';
+import { v4 as uuid } from 'uuid';
 
 import { TextField } from '@common/ui-kit/components';
 
@@ -23,7 +24,7 @@ const DnsSettings: FC<PropsType> = ({ dns = [], changeDnsHandler }) => {
     changeDnsHandler([
       ...dns,
       {
-        id: Date.now().toString(),
+        id: uuid(),
         dns: '',
         error: ''
       }
