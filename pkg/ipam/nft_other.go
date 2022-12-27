@@ -42,3 +42,8 @@ func (noopNetfilter) findAndRemoveRule(id []byte) error {
 	zap.L().Debug("remove rule", zap.String("id", s))
 	return nil
 }
+
+func (noopNetfilter) fillPortRestrictionRules(ports *PortRestrictionConfig) error {
+	zap.L().Debug("fill port restriction rules", zap.Any("ports", ports))
+	return nil
+}

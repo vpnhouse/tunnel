@@ -77,7 +77,7 @@ type Config struct {
 }
 
 func (s *Config) GetNetworkAccessPolicy() NetworkAccessPolicy {
-	if s.NetworkPolicy == nil {
+	if s.NetworkPolicy == nil || s.NetworkPolicy.Access.DefaultPolicy.Int() == ipam.AccessPolicyDefault {
 		return NetworkAccessPolicy{
 			Access: ipam.NetworkAccess{DefaultPolicy: ipam.AliasInternetOnly()},
 		}
