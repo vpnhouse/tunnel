@@ -320,6 +320,7 @@ const Settings: FC = () => {
               error={!!validationError?.admin_password}
               helperText={validationError?.admin_password || ''}
               onChange={changeSettingsHandler}
+              autoComplete="off"
               endAdornment={(
                 <VisibilityAdornment
                   tabIndex="-1"
@@ -338,6 +339,7 @@ const Settings: FC = () => {
               error={!!validationError?.confirm_password}
               helperText={validationError?.confirm_password || ''}
               onChange={changeSettingsHandler}
+              autoComplete="off"
               endAdornment={(
                 <VisibilityAdornment
                   tabIndex="-1"
