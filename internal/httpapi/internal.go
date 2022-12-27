@@ -149,7 +149,7 @@ func (tun *TunnelAPI) exportPeer(peer *types.PeerInfo) (adminAPI.Peer, error) {
 	// Handle ipv4 address
 	ip := peer.Ipv4.String()
 
-	upSpeed, downSpeed := tun.manager.GetPeerSpeeds(peer)
+	runtimePeerStat := tun.manager.GetRuntimePeerStat(peer)
 
 	oPeer := adminAPI.Peer{
 		Label:            peer.Label,
@@ -165,8 +165,8 @@ func (tun *TunnelAPI) exportPeer(peer *types.PeerInfo) (adminAPI.Peer, error) {
 		Activity:         peer.Activity.TimePtr(),
 		TrafficUp:        peer.Upstream,
 		TrafficDown:      peer.Downstream,
-		TrafficUpSpeed:   &upSpeed,
-		TrafficDownSpeed: &downSpeed,
+		TrafficUpSpeed:   &runtimePeerStat.UpstreamSpeed,
+		TrafficDownSpeed: &runtimePeerStat.DownstreamSpeed,
 	}
 
 	return oPeer, nil
