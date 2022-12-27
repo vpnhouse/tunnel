@@ -1,10 +1,12 @@
+import { v4 as uuid } from 'uuid';
+
 import { ip4ToInt, isSubnetPrivate, maskFromBits } from '@root/common/utils/ipv4';
 
 import { PATTERN_ERRORS, PATTERNS } from './index.constants';
 
 export const addIdtoDns = (dns: string[]) =>
   dns.map((item) => ({
-    id: item,
+    id: uuid(),
     dns: item,
     error: ''
   }));
