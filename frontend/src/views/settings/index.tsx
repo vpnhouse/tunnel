@@ -308,7 +308,7 @@ const Settings: FC = () => {
           </Paper>
 
         </Backdrop>
-        <form onSubmit={saveChangesHandler}>
+        <form onSubmit={saveChangesHandler} autoComplete="nofill">
           <div className={classes.settingsBlock}>
             <Typography variant="h4">Create new password</Typography>
 
@@ -322,7 +322,7 @@ const Settings: FC = () => {
               error={!!validationError?.admin_password}
               helperText={validationError?.admin_password || ''}
               onChange={changeSettingsHandler}
-              autoComplete="off"
+              autoComplete="false"
               endAdornment={(
                 <VisibilityAdornment
                   tabIndex="-1"
