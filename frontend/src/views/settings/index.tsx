@@ -308,6 +308,8 @@ const Settings: FC = () => {
           </Paper>
 
         </Backdrop>
+        {/* The custom value of the autoComplete prop is based on Chrome behavior */}
+        {/* More here: https://stackoverflow.com/questions/30053167 */}
         <form onSubmit={saveChangesHandler} autoComplete="nofill">
           <div className={classes.settingsBlock}>
             <Typography variant="h4">Create new password</Typography>
