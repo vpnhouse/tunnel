@@ -17,3 +17,7 @@ export type SettingsType = Omit<SettingsResponseType, 'domain'> & {
   confirm_password?: string;
   admin_password?: string;
 }
+
+export type SettingsRequest = SettingsResponseType & {
+  admin_password?: string;
+}
