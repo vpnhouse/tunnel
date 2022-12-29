@@ -176,7 +176,7 @@ func (s *runtimePeerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wire
 			lastActiveDeltaHours := now.Sub(peer.Activity.Time).Hours()
 			zap.L().Debug(
 				"peer data",
-				zap.String("label", *peer.Label),
+				zap.Stringp("label", peer.Label),
 				zap.String("activity", peer.Activity.Time.Format(time.RFC3339)),
 				zap.Bool("is_active_last_hour", lastActiveDeltaHours < 1),
 				zap.Bool("is_active_last_day", lastActiveDeltaHours < 24),
@@ -238,7 +238,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 
 	zap.L().Debug(
 		"update",
-		zap.String("label", *peer.Label),
+		zap.Stringp("label", peer.Label),
 		zap.Int64("wg_upstream", wgPeer.ReceiveBytes),
 		zap.Int64("stats_upstream", stat.Upstream),
 		zap.Int64("peer_upstream", *peer.Upstream),
