@@ -7,7 +7,7 @@ import { $settingsStore, getSettingsFx, changeSettingsFx } from '@root/store/set
 import { $loadingStore, $statusStore } from '@root/store/status';
 import { Button, TextField } from '@common/ui-kit/components';
 import { VisibilityAdornment } from '@common/components';
-import { SettingsResponseType, SettingsType } from '@root/store/settings/types';
+import { SettingsRequest, SettingsResponseType, SettingsType } from '@root/store/settings/types';
 import DomainConfiguration from '@common/components/DomainConfiguration';
 import { DomainConfig, DomainEventTargetType, Mode } from '@common/components/DomainConfiguration/types';
 import { DEFAULT_DOMAIN_CONFIG } from '@common/components/DomainConfiguration/constant';
@@ -104,7 +104,7 @@ const Settings: FC = () => {
   const settingsChanged: SettingsChangedType | null = useMemo(() => {
     if (!settings) return null;
 
-    const { dns, ...rest } = settings;
+    const { dns, admin_password: password, confirm_password: cPassword, ...rest } = settings;
     const { domain } = savedSettings as SettingsResponseType;
     const dnsChanged = JSON.stringify(dns) !== JSON.stringify(savedSettings?.dns);
 
@@ -128,7 +128,8 @@ const Settings: FC = () => {
     return {
       ...restFieldsChanged,
       dns: dnsChanged,
-      domain: domainChanged
+      domain: domainChanged,
+      admin_password: password !== ''
     };
   }, [settings, savedSettings, domainConfig, withDomain]);
 
@@ -204,10 +205,11 @@ const Settings: FC = () => {
 
     if (!validate()) return;
 
-    const { confirm_password, ...rest } = settings as SettingsType;
+    const { confirm_password, admin_password, ...rest } = settings as SettingsType;
 
-    const body: SettingsResponseType = {
+    const body: SettingsRequest = {
       ...rest,
+      admin_password: admin_password || undefined,
       domain: null
     };
 
@@ -306,7 +308,9 @@ const Settings: FC = () => {
           </Paper>
 
         </Backdrop>
-        <form onSubmit={saveChangesHandler}>
+        {/* The custom value of the autoComplete prop is based on Chrome behavior */}
+        {/* More here: https://stackoverflow.com/questions/30053167 */}
+        <form onSubmit={saveChangesHandler} autoComplete="nofill">
           <div className={classes.settingsBlock}>
             <Typography variant="h4">Create new password</Typography>
 
@@ -320,7 +324,7 @@ const Settings: FC = () => {
               error={!!validationError?.admin_password}
               helperText={validationError?.admin_password || ''}
               onChange={changeSettingsHandler}
-              autoComplete="off"
+              autoComplete="false"
               endAdornment={(
                 <VisibilityAdornment
                   tabIndex="-1"
