@@ -14,6 +14,12 @@ const useStyles = makeStyles(({ palette, typography }) =>
       color: isEmpty ? palette.text.hint : palette.text.primary
     }),
     inputLabelFilled: {
+      '@media(max-width: 480px)': {
+        maxWidth: 80,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      },
       '&.MuiInputLabel-marginDense': {
         transform: 'translate(14px, 18px) scale(1)'
       },
