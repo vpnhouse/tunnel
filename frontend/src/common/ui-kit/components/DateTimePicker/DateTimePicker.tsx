@@ -2,6 +2,7 @@ import React, { FC, useCallback, useState } from 'react';
 import { MuiPickersUtilsProvider } from '@material-ui/pickers';
 import DateFnsUtils from '@date-io/date-fns';
 import { Typography } from '@material-ui/core';
+import clsx from 'clsx';
 
 import { DatePicker, TimePicker } from '@common/ui-kit/components';
 
@@ -18,7 +19,8 @@ const DateTimePicker: FC<PropsType> = ({
   validationError,
   onChangeHandler,
   datePickerProps,
-  timePickerProps
+  timePickerProps,
+  classNames
 }) => {
   const classes = useStyles();
   const [date, setDate] = useState<string | null>(value);
@@ -43,8 +45,8 @@ const DateTimePicker: FC<PropsType> = ({
   }, [date, onChangeHandler]);
 
   return (
-    <div className={classes.root}>
-      <div className={classes.pickers}>
+    <div className={clsx(classes.root, classNames?.root)}>
+      <div className={clsx(classes.pickers, classNames?.pickers)}>
         <MuiPickersUtilsProvider utils={DateFnsUtils}>
           <DatePicker
             {...datePickerProps}

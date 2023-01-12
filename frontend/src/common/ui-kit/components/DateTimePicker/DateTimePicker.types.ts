@@ -10,4 +10,8 @@ export type PropsType = {
   onChangeHandler: (date: Date | null, time: Date | null) => void;
   datePickerProps?: Partial<KeyboardDatePickerProps>;
   timePickerProps?: Partial<KeyboardTimePickerProps>;
+  classNames?: {
+    root?: string;
+    pickers?: string;
+  };
 }
