@@ -26,6 +26,9 @@ const useStyles = makeStyles(({ palette }) =>
       marginLeft: 14,
       '&>label': {
         marginRight: 0
+      },
+      '@media(max-width: 480px)': {
+        marginLeft: 0
       }
     },
     field__withControl: {
@@ -33,7 +36,11 @@ const useStyles = makeStyles(({ palette }) =>
       alignItems: 'center',
       width: '100%',
       marginTop: 8,
-      marginBottom: 4
+      marginBottom: 4,
+      '@media(max-width: 480px)': {
+        flexDirection: 'column',
+        alignItems: 'flex-start'
+      }
     },
     caption: ({ tableView }: StylesPropsTipe) => ({
       display: 'flex',
@@ -52,6 +59,15 @@ const useStyles = makeStyles(({ palette }) =>
     error: {
       color: palette.error.main,
       paddingTop: '5px'
+    },
+    dateTimePicker: {
+      '@media(max-width: 480px)': {
+        display: 'flex',
+        flexDirection: 'column',
+        '& > *': {
+          width: '100% !important'
+        }
+      }
     }
   }));
 

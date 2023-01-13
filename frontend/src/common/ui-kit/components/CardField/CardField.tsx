@@ -81,6 +81,7 @@ const CardField: FC<PropsType> = ({
               <DateTimePicker
                 {...options}
                 value={value}
+                classNames={{ pickers: classes.dateTimePicker }}
                 validationError={validationError}
               />
             )}
