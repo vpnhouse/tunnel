@@ -121,8 +121,9 @@ func (w *Server) Run(addr string) error {
 
 // Router exposes chi.Router for the external registration of handlers.
 // usage:
-// 		h.Router().Get("/apt/path", myHandler)
-// 		h.Router().Post("/apt/verb", myOtherHandler)
+//
+//	h.Router().Get("/apt/path", myHandler)
+//	h.Router().Post("/apt/verb", myOtherHandler)
 func (w *Server) Router() chi.Router {
 	return w.router
 }

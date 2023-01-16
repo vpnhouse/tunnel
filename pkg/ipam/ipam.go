@@ -21,9 +21,9 @@ type Policy struct {
 }
 
 // IPAM implements IP Address Manager and provides the following features:
-//  * assigns IP addresses for peers;
-//  * implements network policies using netfilter rules;
-//  * limits the available bandwidth using traffic control rules;
+//   - assigns IP addresses for peers;
+//   - implements network policies using netfilter rules;
+//   - limits the available bandwidth using traffic control rules;
 type IPAM struct {
 	defaultPol int
 	nf         netFilter
