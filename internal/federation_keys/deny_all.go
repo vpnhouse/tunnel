@@ -9,3 +9,7 @@ type DenyAllKeystore struct{}
 func (DenyAllKeystore) Authorize(key string) (string, bool) {
 	return "", false
 }
+
+func (DenyAllKeystore) LookupKeyByName(name string) (string, bool) {
+	return "", false
+}

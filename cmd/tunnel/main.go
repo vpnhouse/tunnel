@@ -201,10 +201,11 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
-			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog)
+			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog, keystore)
 			if err != nil {
 				return err
 			}
+			grpcServices.RegisterHandlers(xHttpServer.Router())
 			runtime.Services.RegisterService("grpcServices", grpcServices)
 		} else {
 			zap.L().Info("initServices: skipping gRPC init - no configuration given")
