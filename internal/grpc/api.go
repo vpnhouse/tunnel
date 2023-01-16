@@ -21,14 +21,12 @@ func (g *grpcServer) RegisterHandlers(r chi.Router) {
 			return
 		}
 
-		tunnelKey, _ := g.keystore.LookupKeyByName("tunnel")
-
 		var caList []string
 		if g.ca != "" {
 			caList = append(caList, g.ca)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set(tunnelAuthHeader, tunnelKey)
+		w.Header().Set(tunnelAuthHeader, g.tunnelKey)
 		e := json.NewEncoder(w)
 		e.SetIndent("", "  ")
 		e.Encode(map[string]interface{}{

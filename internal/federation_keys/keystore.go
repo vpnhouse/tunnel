@@ -20,7 +20,6 @@ type Keystore interface {
 	// Authorize checks that the caller's key
 	// matching the stored one(s).
 	Authorize(key string) (who string, ok bool)
-	LookupKeyByName(name string) (key string, ok bool)
 }
 
 type fsStore struct {
@@ -138,20 +137,4 @@ func loadKeys(root string) (map[string]string, error) {
 	}
 
 	return keys, nil
-}
-
-func (fss *fsStore) LookupKeyByName(name string) (key string, ok bool) {
-	fss.mu.Lock()
-	defer fss.mu.Unlock()
-
-	// Ineffectual lookup
-	// Currently there will be several keys that wont affect performance on look up
-	for k, n := range fss.keys {
-		if n == name {
-			key = k
-			ok = true
-			return
-		}
-	}
-	return
 }

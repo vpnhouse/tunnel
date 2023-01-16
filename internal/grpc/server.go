@@ -49,9 +49,10 @@ type TlsSelfSignConfig struct {
 type grpcServer struct {
 	running atomic.Value
 
-	server   *grpc.Server
-	ca       string
-	keystore federation_keys.Keystore
+	server    *grpc.Server
+	ca        string
+	keystore  federation_keys.Keystore
+	tunnelKey string
 }
 
 func (g *grpcServer) CA() string {
@@ -74,11 +75,13 @@ func New(config Config, eventLog eventlog.EventManager, keystore federation_keys
 	var withTls grpc.ServerOption
 	var ca string
 	var err error
+	var tunnelKey string
 	switch {
 	case config.Tls != nil:
 		withTls, ca, err = tlsCredentialsAndCA(config.Tls)
 	case config.TlsSelfSign != nil:
-		withTls, ca, err = tlsSelfSignCredentialsAndCA()
+		withTls, ca, err = tlsSelfSignCredentialsAndCA(config.TlsSelfSign)
+		tunnelKey = config.TlsSelfSign.TunnelKey
 	default:
 		return nil, errors.New("tls config is not defined")
 	}
@@ -99,9 +102,10 @@ func New(config Config, eventLog eventlog.EventManager, keystore federation_keys
 	}
 
 	wrapper := &grpcServer{
-		server:   srv,
-		ca:       ca,
-		keystore: keystore,
+		server:    srv,
+		ca:        ca,
+		keystore:  keystore,
+		tunnelKey: tunnelKey,
 	}
 	wrapper.running.Store(true)
 
@@ -142,7 +146,10 @@ func tlsCredentialsAndCA(tlsConfig *TlsConfig) (grpc.ServerOption, string, error
 	return grpc.Creds(tlsCreds), "", nil
 }
 
-func tlsSelfSignCredentialsAndCA() (grpc.ServerOption, string, error) {
+func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *TlsSelfSignConfig) (grpc.ServerOption, string, error) {
+	if tlsSelfSignConfig.TunnelKey == "" {
+		return nil, "", fmt.Errorf("tunnel key is not specified for self sign tls config")
+	}
 	externalIp, err := xnet.GetExternalIPv4Addr()
 	if err != nil {
 		return nil, "", err
