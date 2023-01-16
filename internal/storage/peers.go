@@ -106,7 +106,7 @@ func (storage *Storage) UpdatePeer(peer *types.PeerInfo) (int64, error) {
 	now := xtime.Now()
 	peer.Updated = &now
 
-	query, err := xstorage.GetUpdateRequest("peers", "id", peer, []string{"created"})
+	query, err := xstorage.GetUpdateRequest("peers", "id", peer, []string{"created", "activity", "upstream", "downstream"})
 	zap.L().Debug("Update peer", zap.Any("peer", peer), zap.String("query", query))
 
 	if err != nil {
