@@ -41,7 +41,7 @@ func getExternalAddr(family int) (net.IP, error) {
 	default:
 		return nil, fmt.Errorf("unknown network family: %d", family)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get default route: %w", err)
 	}
