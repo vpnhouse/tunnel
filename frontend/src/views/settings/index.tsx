@@ -308,9 +308,7 @@ const Settings: FC = () => {
           </Paper>
 
         </Backdrop>
-        {/* The custom value of the autoComplete prop is based on Chrome behavior */}
-        {/* More here: https://stackoverflow.com/questions/30053167 */}
-        <form onSubmit={saveChangesHandler} autoComplete="nofill">
+        <form onSubmit={saveChangesHandler} autoComplete="off">
           <div className={classes.settingsBlock}>
             <Typography variant="h4">Create new password</Typography>
 
@@ -324,7 +322,7 @@ const Settings: FC = () => {
               error={!!validationError?.admin_password}
               helperText={validationError?.admin_password || ''}
               onChange={changeSettingsHandler}
-              autoComplete="false"
+              autoComplete="off"
               endAdornment={(
                 <VisibilityAdornment
                   tabIndex="-1"
