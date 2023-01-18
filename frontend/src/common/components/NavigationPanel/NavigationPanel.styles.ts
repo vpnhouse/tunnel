@@ -12,6 +12,9 @@ const useStyles = makeStyles(({ palette }) =>
       alignItems: 'center',
       marginRight: 64,
       padding: '64px 32px 64px',
+      '@media(max-height: 640px)': {
+        overflowY: 'auto'
+      },
       '@media(max-width: 1359px)': {
         marginRight: 32
       },
