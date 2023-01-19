@@ -96,6 +96,18 @@ func (storage *Storage) CreatePeer(peer types.PeerInfo) (int64, error) {
 	return id, nil
 }
 
+// Update only statistics related peer details
+func (storage *Storage) UpdatePeerStats(peer *types.PeerInfo) error {
+	now := xtime.Now()
+	peer.Updated = &now
+	query := "UPDATE peers SET updated=:updated, activity=:activity, upstream=:upstream, downstream=:downstream WHERE id=:id"
+	_, err := storage.db.NamedExec(query, peer)
+	if err != nil {
+		return xerror.EStorageError("can't update peer stats", err, zap.Any("peer", peer))
+	}
+	return nil
+}
+
 func (storage *Storage) UpdatePeer(peer *types.PeerInfo) (int64, error) {
 	err := peer.Validate()
 	if err != nil {
