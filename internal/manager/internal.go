@@ -298,7 +298,7 @@ func (manager *Manager) syncPeerStats() {
 	// Save stats of the updated peers
 	for _, peer := range results.UpdatedPeers {
 		// Store updated peers
-		_, err = manager.storage.UpdatePeer(peer)
+		err = manager.storage.UpdatePeerStats(peer)
 		if err != nil {
 			zap.L().Error("failed to update peer stats", zap.Error(err))
 			continue
