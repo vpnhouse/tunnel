@@ -191,10 +191,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if err := xHttpServer.Run(xHttpAddr); err != nil {
 		return err
 	}
-	runtime.Services.RegisterService("httpServer", xHttpServer)
-	if runtime.HttpRouter == nil {
-		runtime.HttpRouter = xHttpServer.Router()
-	}
 
 	runtime.ExternalStats.Run()
 	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
@@ -207,9 +203,15 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			}
 			grpcServices.RegisterHandlers(xHttpServer.Router())
 			runtime.Services.RegisterService("grpcServices", grpcServices)
+			zap.L().Info("gRPC is up and running", zap.String("addr", runtime.Settings.GRPC.Addr))
 		} else {
-			zap.L().Info("initServices: skipping gRPC init - no configuration given")
+			zap.L().Info("skipping gRPC init - no configuration given")
 		}
+	}
+
+	runtime.Services.RegisterService("httpServer", xHttpServer)
+	if runtime.HttpRouter == nil {
+		runtime.HttpRouter = xHttpServer.Router()
 	}
 
 	// note: during the test we DO NOT override the DNS settings for peers.
