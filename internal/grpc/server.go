@@ -7,7 +7,6 @@ package grpc
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -26,23 +25,23 @@ import (
 
 type Config struct {
 	// Addr to listen for gRPC connections
-	Addr        string             `json:"addr"`
-	Tls         *TlsConfig         `json:"tls,omitempty"`
-	TlsSelfSign *TlsSelfSignConfig `json:"tls_self_sign,omitempty"`
-	CA          string             `json:"ca,omitempty"`
+	Addr        string             `yaml:"addr"`
+	Tls         *TlsConfig         `yaml:"tls,omitempty"`
+	TlsSelfSign *TlsSelfSignConfig `yaml:"tls_self_sign,omitempty"`
+	CA          string             `yaml:"ca,omitempty"`
 }
 
 type TlsConfig struct {
 	// Cert is a server certificate path
-	Cert string `json:"cert"`
+	Cert string `yaml:"cert"`
 	// Key is a server certificate key
-	Key string `json:"key"`
+	Key string `yaml:"key"`
 	// ClientCA certificate path
-	ClientCA string `json:"client_ca"`
+	ClientCA string `yaml:"client_ca"`
 }
 
 type TlsSelfSignConfig struct {
-	TunnelKey string `json:"tunnel_key"`
+	TunnelKey string `yaml:"tunnel_key"`
 }
 
 // grpcServer wraps grpc.Server into the control.ServiceController interface
@@ -83,7 +82,7 @@ func New(config Config, eventLog eventlog.EventManager, keystore federation_keys
 		withTls, ca, err = tlsSelfSignCredentialsAndCA(config.TlsSelfSign)
 		tunnelKey = config.TlsSelfSign.TunnelKey
 	default:
-		return nil, errors.New("tls config is not defined")
+		return nil, fmt.Errorf("tls config is not defined: %v", config)
 	}
 	if err != nil {
 		return nil, err
