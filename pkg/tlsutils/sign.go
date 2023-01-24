@@ -26,39 +26,41 @@ type SignGenOptions struct {
 }
 
 type Sign struct {
-	cert              *x509.Certificate
-	certPem           []byte
-	certPrivateKey    crypto.PrivateKey
-	certPrivateKeyPem []byte
+	Cert          *x509.Certificate
+	CertPem       []byte
+	PrivateKey    crypto.PrivateKey
+	PrivateKeyPem []byte
 }
 
-func (s *Sign) GetCertPem() []byte {
-	return s.certPem
+func (s *Sign) String() string {
+	if s.Cert != nil {
+		return s.Cert.Subject.String()
+	}
+	return ""
 }
 
 func (s *Sign) GrpcServerCredentials() (credentials.TransportCredentials, error) {
-	if len(s.certPem) == 0 || len(s.certPrivateKeyPem) == 0 {
+	if len(s.CertPem) == 0 || len(s.PrivateKeyPem) == 0 {
 		return nil, errors.New("incomplete/uninitialized cert and private key")
 	}
 
-	certificate, err := tls.X509KeyPair(s.certPem, s.certPrivateKeyPem)
+	certificate, err := tls.X509KeyPair(s.CertPem, s.PrivateKeyPem)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load TLS key pair: %w", err)
 	}
 
 	return credentials.NewTLS(&tls.Config{
-		ClientAuth:   tls.NoClientCert,
 		Certificates: []tls.Certificate{certificate},
 	}), nil
 }
 
 func (s *Sign) GrpcClientCredentials() (credentials.TransportCredentials, error) {
-	if len(s.certPem) == 0 {
+	if len(s.CertPem) == 0 {
 		return nil, errors.New("incomplete/uninitialized cert")
 	}
 
 	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(s.certPem) {
+	if !certPool.AppendCertsFromPEM(s.CertPem) {
 		return nil, fmt.Errorf("failed to add server CA's certificate")
 	}
 
@@ -104,7 +106,7 @@ func WithRsaSigner(bits int) SignGenOption {
 
 func WithParentSign(sign *Sign) SignGenOption {
 	return func(opts *SignGenOptions) error {
-		if sign == nil || sign.cert == nil || sign.certPrivateKey == nil {
+		if sign == nil || sign.Cert == nil || sign.PrivateKey == nil {
 			return errors.New("parent sign is invalid")
 		}
 		opts.parentSign = sign
@@ -123,15 +125,11 @@ func GenerateSign(opts ...SignGenOption) (*Sign, error) {
 	var genOpts SignGenOptions
 
 	genOpts.templateCert = &x509.Certificate{
-		SerialNumber: serialNumber,
-		NotBefore:    time.Now().Add(-10 * time.Minute).UTC(),
-		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageKeyAgreement,
-		ExtKeyUsage: []x509.ExtKeyUsage{
-			x509.ExtKeyUsageServerAuth,
-			x509.ExtKeyUsageClientAuth,
-		},
-
-		UnknownExtKeyUsage:    nil,
+		SerialNumber:          serialNumber,
+		NotBefore:             time.Now().Add(-10 * time.Minute).UTC(),
+		NotAfter:              time.Now().AddDate(1, 0, 0),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
 
@@ -142,37 +140,34 @@ func GenerateSign(opts ...SignGenOption) (*Sign, error) {
 		}
 	}
 
-	if genOpts.templateCert.NotAfter.IsZero() {
-		// 1 year
-		genOpts.templateCert.NotAfter = time.Now().AddDate(1, 0, 0)
-	}
-
 	if genOpts.signer == nil {
 		return nil, errors.New("signer is not set")
 	}
 
-	var targetPublicKey crypto.PublicKey
 	var signerCert *x509.Certificate
 	var privateKey crypto.PrivateKey
+	var publicKey crypto.PublicKey
 	if genOpts.templateCert.IsCA {
 		signerCert = genOpts.templateCert
 		privateKey = genOpts.signer
+		publicKey = genOpts.signer.Public()
 	} else if genOpts.parentSign != nil {
-		signerCert = genOpts.parentSign.cert
-		if genOpts.parentSign.cert.NotAfter.Before(genOpts.templateCert.NotAfter) {
-			genOpts.templateCert.NotAfter = genOpts.parentSign.cert.NotAfter
+		signerCert = genOpts.parentSign.Cert
+		privateKey = genOpts.parentSign.PrivateKey
+		publicKey, err = getPublicKey(genOpts.signer)
+		if err != nil {
+			return nil, err
 		}
-		privateKey = genOpts.parentSign.certPrivateKey
 	} else {
 		return nil, errors.New("incomplete sign options")
 	}
 
-	genOpts.templateCert.SubjectKeyId, err = generateSubjectKeyID(targetPublicKey)
+	genOpts.templateCert.SubjectKeyId, err = generateSubjectKeyID(publicKey)
 	if err != nil {
 		return nil, err
 	}
 
-	cert, err := x509.CreateCertificate(rand.Reader, genOpts.templateCert, signerCert, genOpts.signer.Public(), privateKey)
+	cert, err := x509.CreateCertificate(rand.Reader, genOpts.templateCert, signerCert, publicKey, privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -193,8 +188,10 @@ func GenerateSign(opts ...SignGenOption) (*Sign, error) {
 	}
 
 	return &Sign{
-		certPem:           certPem,
-		certPrivateKeyPem: certPrivateKeyPem,
+		Cert:          genOpts.templateCert,
+		CertPem:       certPem,
+		PrivateKey:    genOpts.signer,
+		PrivateKeyPem: certPrivateKeyPem,
 	}, nil
 }
 
@@ -237,4 +234,14 @@ func rsaPrivateKeyMarshal(privateKey *rsa.PrivateKey) ([]byte, error) {
 		return nil, err
 	}
 	return key, nil
+}
+
+func getPublicKey(pivateKey crypto.PrivateKey) (crypto.PublicKey, error) {
+	type privateToPublicKey interface {
+		Public() crypto.PublicKey
+	}
+	if p, ok := pivateKey.(privateToPublicKey); ok {
+		return p.Public(), nil
+	}
+	return nil, fmt.Errorf("unsupported type of private key: %v", pivateKey)
 }

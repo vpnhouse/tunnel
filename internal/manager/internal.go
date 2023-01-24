@@ -351,7 +351,7 @@ func (manager *Manager) syncPeerStats() {
 		newStats.DownstreamSpeed = manager.downstreamSpeedAvg.Push(speed.Downstream)
 	}
 
-	zap.L().Info("STATS",
+	zap.L().Debug("STATS",
 		zap.Int("total", results.NumPeers),
 		zap.Int("connected", results.NumPeersWithHadshakes),
 		zap.Int("active_1h", results.NumPeersActiveLastHour),

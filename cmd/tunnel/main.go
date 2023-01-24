@@ -7,6 +7,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -199,7 +200,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		if runtime.Settings.GRPC != nil {
 			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog, keystore)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to create grpc server: %w", err)
 			}
 			grpcServices.RegisterHandlers(xHttpServer.Router())
 			runtime.Services.RegisterService("grpcServices", grpcServices)

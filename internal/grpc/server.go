@@ -88,7 +88,8 @@ func New(config Config, eventLog eventlog.EventManager, keystore federation_keys
 		return nil, err
 	}
 
-	srv := grpc.NewServer(withTls,
+	srv := grpc.NewServer(
+		withTls,
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 	)
@@ -181,5 +182,7 @@ func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *TlsSelfSignConfig) (grpc.Ser
 		return nil, "", err
 	}
 
-	return grpc.Creds(creds), string(signCA.GetCertPem()), nil
+	zap.L().Info("setup self sign tls cert done", zap.Stringer("cert", sign))
+
+	return grpc.Creds(creds), string(signCA.CertPem), nil
 }
