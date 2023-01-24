@@ -41,7 +41,8 @@ type TlsConfig struct {
 }
 
 type TlsSelfSignConfig struct {
-	TunnelKey string `yaml:"tunnel_key"`
+	TunnelKey  string   `yaml:"tunnel_key"`
+	AllowedIPs []string `yaml:"allowed_ips,omitempty"`
 }
 
 // grpcServer wraps grpc.Server into the control.ServiceController interface
@@ -165,10 +166,19 @@ func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *TlsSelfSignConfig) (grpc.Ser
 		return nil, "", err
 	}
 
+	allowedIPs := make([]net.IP, 0, len(tlsSelfSignConfig.AllowedIPs)+1)
+	allowedIPs = append(allowedIPs, externalIp)
+	for _, ip := range tlsSelfSignConfig.AllowedIPs {
+		ipAddr := net.ParseIP(ip)
+		if ipAddr != nil {
+			allowedIPs = append(allowedIPs, ipAddr)
+		}
+	}
+
 	opts := []tlsutils.SignGenOption{
 		tlsutils.WithParentSign(signCA),
 		tlsutils.WithRsaSigner(4096),
-		tlsutils.WithIPAddresses(externalIp),
+		tlsutils.WithIPAddresses(allowedIPs...),
 		tlsutils.WithLocalIPAddresses(),
 	}
 
