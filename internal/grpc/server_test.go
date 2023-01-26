@@ -15,5 +15,5 @@ func TestSelfSignGrpcOptions(t *testing.T) {
 		t.Fatal("ca is empty")
 	}
 
-	t.Log("grpc options generated", options.)
+	t.Log("grpc options generated", options)
 }
