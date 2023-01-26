@@ -117,6 +117,7 @@ func main() {
 
 	go func() {
 		defer close(done)
+		zap.L().Info("start listening events")
 		for {
 			select {
 			case <-ctx.Done():
@@ -124,15 +125,18 @@ func main() {
 				return
 			default:
 				event, err := fetchEventsClient.Recv()
-				if errors.Is(err, io.EOF) {
-					err := fetchEventsClient.CloseSend()
-					if err != nil {
-						zap.L().Error("failed to send close event to server", zap.Error(err))
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						err := fetchEventsClient.CloseSend()
+						if err != nil {
+							zap.L().Error("failed to send close event to server", zap.Error(err))
+						}
+						return
 					}
-					return
+					zap.L().Error("failed to recieve events from server", zap.Error(err))
+					continue
 				}
 				zap.L().Info("received", zap.Stringer("event", event))
-
 			}
 		}
 	}()
