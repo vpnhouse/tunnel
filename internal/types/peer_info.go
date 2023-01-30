@@ -81,6 +81,9 @@ func (peer *PeerInfo) IntoProto() *proto.PeerInfo {
 	if peer.SessionId != nil {
 		p.SessionID = peer.SessionId.String()
 	}
+	if peer.Label != nil {
+		p.Label = *peer.Label
+	}
 	if peer.Created != nil {
 		p.Created = proto.TimestampFromTime(peer.Created.Time)
 	}

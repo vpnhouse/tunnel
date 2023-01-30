@@ -28,4 +28,5 @@ message PeerInfo {
   uint64 bytesTx = 8;
   uint64 bytesRx = 9;
   Timestamp activity = 10;
+  string label = 11;
 }
