@@ -94,7 +94,7 @@ func New(config Config, eventLog eventlog.EventManager, keystore federation_keys
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 	)
-	eventSrv := newEventServer(eventLog)
+	eventSrv := newEventServer(eventLog, keystore, tunnelKey)
 	proto.RegisterEventLogServiceServer(srv, eventSrv)
 
 	lis, err := net.Listen("tcp", config.Addr)

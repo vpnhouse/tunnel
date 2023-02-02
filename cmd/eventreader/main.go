@@ -3,22 +3,24 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"go.uber.org/zap"
 
+	"github.com/vpnhouse/tunnel/pkg/eventlog"
 	"github.com/vpnhouse/tunnel/pkg/tlsutils"
 	"github.com/vpnhouse/tunnel/pkg/xap"
 	"github.com/vpnhouse/tunnel/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const defaultServerPort = "8089"
@@ -47,6 +49,47 @@ func main() {
 		serverPort = defaultServerPort
 	}
 
+	run_client(serverHost, serverPort, authSecret)
+	time.Sleep(time.Second)
+}
+
+func run_client(serverHost string, serverPort string, authSecret string) {
+	client, err := eventlog.NewClient(
+		eventlog.WithSelfSignedTLS(),
+		eventlog.WithNoSSL(),
+		eventlog.WithHost(serverHost, serverPort),
+		eventlog.WithAuthSecret(authSecret),
+	)
+	if err != nil {
+		zap.L().Fatal("failed to create eventlog client", zap.Error(err))
+		return
+	}
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	defer client.Close()
+
+	for {
+		select {
+		case evt, ok := <-client.Read():
+			if !ok {
+				zap.L().Info("no events, exiting...")
+				return
+			}
+			if evt.Err != nil {
+				zap.L().Error("read event error", zap.Error(evt.Err))
+				return
+			}
+			zap.L().Info("event", zap.Any("event", *evt))
+		case <-ch:
+			zap.L().Info("interrupted")
+			return
+		}
+	}
+
+}
+
+func run(serverHost string, serverPort string, authSecret string) {
 	// Get ca certificate
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/grpc/ca", serverHost), nil)
 	if err != nil {
@@ -109,6 +152,7 @@ func main() {
 	fetchEventsClient, err := client.FetchEvents(ctx, &proto.FetchEventsRequest{})
 
 	if err != nil {
+		cancel()
 		zap.L().Fatal("failed to setup grps fetch events client ", zap.Error(err))
 		return
 	}
@@ -119,25 +163,16 @@ func main() {
 		defer close(done)
 		zap.L().Info("start listening events")
 		for {
-			select {
-			case <-ctx.Done():
-				zap.L().Info("listen events interrupted")
-				return
-			default:
-				event, err := fetchEventsClient.Recv()
-				if err != nil {
-					if errors.Is(err, io.EOF) {
-						err := fetchEventsClient.CloseSend()
-						if err != nil {
-							zap.L().Error("failed to send close event to server", zap.Error(err))
-						}
-						return
-					}
-					zap.L().Error("failed to recieve events from server", zap.Error(err))
-					continue
+			event, err := fetchEventsClient.Recv()
+			if err != nil {
+				if status, ok := status.FromError(err); ok && status.Code() == codes.Canceled {
+					zap.L().Info("listen events interrupted")
+				} else {
+					zap.L().Error(fmt.Sprintf("failed to recieve events from server: %T", err), zap.Error(err))
 				}
-				zap.L().Info("received", zap.Stringer("event", event))
+				return
 			}
+			zap.L().Info("received", zap.Stringer("event", event))
 		}
 	}()
 

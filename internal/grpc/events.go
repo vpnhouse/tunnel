@@ -9,22 +9,46 @@ import (
 	"errors"
 
 	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/federation_keys"
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
 type eventServer struct {
 	proto.EventLogServiceServer
-	events eventlog.EventManager
+	events    eventlog.EventManager
+	keystore  federation_keys.Keystore
+	tunnelKey string
 }
 
-func newEventServer(events eventlog.EventManager) proto.EventLogServiceServer {
-	return &eventServer{events: events}
+func newEventServer(events eventlog.EventManager, keystore federation_keys.Keystore, tunnelKey string) proto.EventLogServiceServer {
+	return &eventServer{
+		events:    events,
+		keystore:  keystore,
+		tunnelKey: tunnelKey,
+	}
 }
 
 func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.EventLogService_FetchEventsServer) error {
+
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if !ok {
+		return status.Errorf(codes.Unauthenticated, "failed to get metadata")
+	}
+
+	authSecret := md.Get(federationAuthHeader)
+	if len(authSecret) == 0 || authSecret[0] == "" {
+		return status.Errorf(codes.Unauthenticated, "auth secret is empty or not supplied")
+	}
+	_, ok = m.keystore.Authorize(authSecret[0])
+	if !ok {
+		return status.Errorf(codes.Unauthenticated, "auth secret is not valid")
+	}
+
 	sub, err := m.events.Subscribe(stream.Context(), eventlog.SubscriptionOpts{
 		LogID:  req.GetLogID(),
 		Offset: req.GetOffset(),
@@ -32,6 +56,12 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 	})
 	if err != nil {
 		return status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	header := metadata.New(map[string]string{tunnelAuthHeader: m.tunnelKey})
+	err = grpc.SendHeader(stream.Context(), header)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
 	}
 
 	types := newEventTypeSet(req.GetEventTypes())
