@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 
@@ -57,13 +58,17 @@ func (s *Client) connectSelfSignedTLS() error {
 	}
 
 	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("request tunnel CA failed: error read response body: %w", err)
+	}
 
 	var cas = struct {
 		CA []string `json:"ca"`
 	}{}
-	err = json.NewDecoder(resp.Body).Decode(&cas)
+	err = json.Unmarshal(body, &cas)
 	if err != nil {
-		return fmt.Errorf("parse request tunnel CA failed: %w", err)
+		return fmt.Errorf("parse request tunnel CA failed: \n%s\n: %w", string(body), err)
 	}
 
 	if len(cas.CA) == 0 {

@@ -188,11 +188,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		rapidoc.RegisterHandlers(xHttpServer.Router())
 	}
 
-	// Startup HTTP API
-	if err := xHttpServer.Run(xHttpAddr); err != nil {
-		return err
-	}
-
 	runtime.ExternalStats.Run()
 	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
 
@@ -208,6 +203,11 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		} else {
 			zap.L().Info("skipping gRPC init - no configuration given")
 		}
+	}
+
+	// Startup HTTP API
+	if err := xHttpServer.Run(xHttpAddr); err != nil {
+		return err
 	}
 
 	runtime.Services.RegisterService("httpServer", xHttpServer)
