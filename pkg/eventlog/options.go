@@ -25,6 +25,8 @@ type options struct {
 	tunnelKey string
 	// indicate to use http request to tunnel api (used for debug purposes)
 	noSSL bool
+	// use off
+	offsetDirectory string
 }
 
 type Option func(opts *options) error

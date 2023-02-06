@@ -37,7 +37,7 @@ func NewClient(opt ...Option) (*Client, error) {
 	}, nil
 }
 
-func (s *Client) Read() chan *Event {
+func (s *Client) Listen() chan *Event {
 	s.once.Do(func() {
 		go func() {
 			defer func() {
