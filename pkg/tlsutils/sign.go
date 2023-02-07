@@ -311,7 +311,7 @@ func decodePEM(data []byte, blockType PemBlockType) ([]byte, error) {
 		return nil, errors.New("cannot parse PEM block")
 	}
 
-	if pemBlock.Type == string(blockType) {
+	if pemBlock.Type != string(blockType) {
 		return nil, fmt.Errorf("unexpected pem block %s, expected %s", pemBlock.Type, blockType)
 	}
 
