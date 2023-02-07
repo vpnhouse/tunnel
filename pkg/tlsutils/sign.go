@@ -25,6 +25,8 @@ const (
 	privateKeyFileName = "tls.key"
 )
 
+var ErrStorageDir = errors.New("storage directory is empty")
+
 func makeName(signName string, fileName string) string {
 	if signName == "" {
 		return fileName
@@ -47,7 +49,11 @@ type Sign struct {
 
 func (s *Sign) String() string {
 	if s.Cert != nil {
-		return s.Cert.Subject.String()
+		return fmt.Sprintf(
+			"cert nb: %s, na: %s",
+			s.Cert.NotBefore.Format(time.RFC3339),
+			s.Cert.NotAfter.Format(time.RFC3339),
+		)
 	}
 	return ""
 }
@@ -84,7 +90,7 @@ func (s *Sign) GrpcClientCredentials() (credentials.TransportCredentials, error)
 
 func (s *Sign) Store(storageDirectory string, signName string) error {
 	if storageDirectory == "" {
-		return errors.New("storage directory is empty")
+		return ErrStorageDir
 	}
 	if len(s.CertPem) == 0 {
 		return errors.New("sign cert is not set on")
@@ -107,6 +113,9 @@ func (s *Sign) Store(storageDirectory string, signName string) error {
 }
 
 func LoadSign(storageDirectory string, signName string) (*Sign, error) {
+	if storageDirectory == "" {
+		return nil, ErrStorageDir
+	}
 	certPem, err := os.ReadFile(path.Join(storageDirectory, makeName(signName, certFileName)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load sign cert: %w", err)

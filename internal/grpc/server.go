@@ -42,9 +42,10 @@ type TlsConfig struct {
 }
 
 type TlsSelfSignConfig struct {
-	TunnelKey        string   `yaml:"tunnel_key"`
-	AllowedIPs       []string `yaml:"allowed_ips,omitempty"`
-	StorageDirectory string   `yaml:"storage_directory,omitempty"`
+	TunnelKey  string   `yaml:"tunnel_key"`
+	AllowedIPs []string `yaml:"allowed_ips,omitempty"`
+	// Storage directory is used to keep load self signed certs
+	Dir string `yaml:"dir,omitempty"`
 }
 
 // grpcServer wraps grpc.Server into the control.ServiceController interface
@@ -154,6 +155,8 @@ func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *TlsSelfSignConfig) (grpc.Ser
 		return nil, "", fmt.Errorf("tunnel key is not specified for self sign tls config")
 	}
 
+	zap.L().Debug("storage directory", zap.String("dir", tlsSelfSignConfig.Dir))
+
 	signCA, wasGenerated, err := loadOrGenerateCASign(tlsSelfSignConfig)
 	if err != nil {
 		return nil, "", err
@@ -177,8 +180,8 @@ func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *TlsSelfSignConfig) (grpc.Ser
 func loadOrGenerateCASign(tlsSelfSignConfig *TlsSelfSignConfig) (*tlsutils.Sign, bool, error) {
 	var signCA *tlsutils.Sign
 	var err error
-	if tlsSelfSignConfig.StorageDirectory != "" {
-		signCA, err = tlsutils.LoadSign(tlsSelfSignConfig.StorageDirectory, "ca")
+	if tlsSelfSignConfig.Dir != "" {
+		signCA, err = tlsutils.LoadSign(tlsSelfSignConfig.Dir, "ca")
 		if err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				return nil, false, err
@@ -187,6 +190,7 @@ func loadOrGenerateCASign(tlsSelfSignConfig *TlsSelfSignConfig) (*tlsutils.Sign,
 	}
 
 	if signCA != nil {
+		zap.L().Debug("sign ca was read from directory", zap.String("dir", tlsSelfSignConfig.Dir))
 		return signCA, false, nil
 	}
 
@@ -199,11 +203,12 @@ func loadOrGenerateCASign(tlsSelfSignConfig *TlsSelfSignConfig) (*tlsutils.Sign,
 	if err != nil {
 		return nil, false, err
 	}
-	if tlsSelfSignConfig.StorageDirectory != "" {
-		err = signCA.Store(tlsSelfSignConfig.StorageDirectory, "ca")
+	if tlsSelfSignConfig.Dir != "" {
+		err = signCA.Store(tlsSelfSignConfig.Dir, "ca")
 		if err != nil {
 			return nil, false, err
 		}
+		zap.L().Debug("sign ca was stored to storage directory", zap.String("dir", tlsSelfSignConfig.Dir))
 	}
 
 	return signCA, true, nil
@@ -212,8 +217,8 @@ func loadOrGenerateCASign(tlsSelfSignConfig *TlsSelfSignConfig) (*tlsutils.Sign,
 func loadOrGenerateServerSign(tlsSelfSignConfig *TlsSelfSignConfig, signCA *tlsutils.Sign, forceGenerate bool) (*tlsutils.Sign, error) {
 	var sign *tlsutils.Sign
 	var err error
-	if tlsSelfSignConfig.StorageDirectory != "" && forceGenerate == false {
-		sign, err = tlsutils.LoadSign(tlsSelfSignConfig.StorageDirectory, "server")
+	if tlsSelfSignConfig.Dir != "" && forceGenerate == false {
+		sign, err = tlsutils.LoadSign(tlsSelfSignConfig.Dir, "server")
 		if err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				return nil, err
@@ -222,6 +227,7 @@ func loadOrGenerateServerSign(tlsSelfSignConfig *TlsSelfSignConfig, signCA *tlsu
 	}
 
 	if sign != nil {
+		zap.L().Debug("sign server was read from directory", zap.String("dir", tlsSelfSignConfig.Dir))
 		return sign, nil
 	}
 
@@ -252,11 +258,12 @@ func loadOrGenerateServerSign(tlsSelfSignConfig *TlsSelfSignConfig, signCA *tlsu
 		return nil, err
 	}
 
-	if tlsSelfSignConfig.StorageDirectory != "" {
-		err = sign.Store(tlsSelfSignConfig.StorageDirectory, "server")
+	if tlsSelfSignConfig.Dir != "" {
+		err = sign.Store(tlsSelfSignConfig.Dir, "server")
 		if err != nil {
 			return nil, err
 		}
+		zap.L().Debug("sign server was stored from directory", zap.String("dir", tlsSelfSignConfig.Dir))
 	}
 
 	return sign, err
