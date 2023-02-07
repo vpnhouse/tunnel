@@ -1,5 +1,4 @@
 import { addNotification } from '../notifications';
-import { checkStatus } from '../status';
 import {
   $settingsStore,
   changeSettingsFx,
@@ -25,7 +24,6 @@ getSettingsFx.failData.watch(
 
 changeSettingsFx.doneData.watch((result) => {
   setSettings(result);
-  checkStatus();
 });
 
 changeSettingsFx.failData.watch(
