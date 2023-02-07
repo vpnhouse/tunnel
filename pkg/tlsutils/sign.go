@@ -13,16 +13,29 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"os"
+	"path"
 	"time"
 
 	"google.golang.org/grpc/credentials"
 )
 
+const (
+	certFileName       = "tls.cert"
+	privateKeyFileName = "tls.key"
+)
+
+func makeName(signName string, fileName string) string {
+	if signName == "" {
+		return fileName
+	}
+	return fmt.Sprintf("%s-%s", signName, fileName)
+}
+
 type SignGenOptions struct {
 	parentSign   *Sign
 	templateCert *x509.Certificate
-
-	signer crypto.Signer
+	signer       crypto.Signer
 }
 
 type Sign struct {
@@ -67,6 +80,70 @@ func (s *Sign) GrpcClientCredentials() (credentials.TransportCredentials, error)
 	return credentials.NewTLS(&tls.Config{
 		RootCAs: certPool,
 	}), nil
+}
+
+func (s *Sign) Store(storageDirectory string, signName string) error {
+	if storageDirectory == "" {
+		return errors.New("storage directory is empty")
+	}
+	if len(s.CertPem) == 0 {
+		return errors.New("sign cert is not set on")
+	}
+	if len(s.PrivateKeyPem) == 0 {
+		return errors.New("sign private key is not set on")
+	}
+
+	err := os.WriteFile(path.Join(storageDirectory, makeName(signName, certFileName)), s.CertPem, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to store sign cert: %w", err)
+	}
+
+	err = os.WriteFile(path.Join(storageDirectory, makeName(signName, privateKeyFileName)), s.PrivateKeyPem, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to store sign cert: %w", err)
+	}
+
+	return nil
+}
+
+func LoadSign(storageDirectory string, signName string) (*Sign, error) {
+	certPem, err := os.ReadFile(path.Join(storageDirectory, makeName(signName, certFileName)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load sign cert: %w", err)
+	}
+
+	crtDer, err := decodePEM(certPem, PemBlockTypeCertificate)
+	if err != nil {
+		return nil, err
+	}
+
+	cert, err := x509.ParseCertificate(crtDer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse sign cert: %w", err)
+	}
+
+	privateKeyPem, err := os.ReadFile(path.Join(storageDirectory, makeName(signName, privateKeyFileName)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load sign private key: %w", err)
+	}
+
+	privateKeyDer, err := decodePEM(privateKeyPem, PemBlockTypePrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := unmarshalPrivateKey(privateKeyDer)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Sign{
+		Cert:          cert,
+		CertPem:       certPem,
+		PrivateKey:    privateKey,
+		PrivateKeyPem: privateKeyPem,
+	}, nil
+
 }
 
 type SignGenOption func(opts *SignGenOptions) error
@@ -219,21 +296,52 @@ func encodePEM(data []byte, blockType PemBlockType) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+func decodePEM(data []byte, blockType PemBlockType) ([]byte, error) {
+	pemBlock, _ := pem.Decode(data)
+	if pemBlock == nil {
+		return nil, errors.New("cannot parse PEM block")
+	}
+
+	if pemBlock.Type == string(blockType) {
+		return nil, fmt.Errorf("unexpected pem block %s, expected %s", pemBlock.Type, blockType)
+	}
+
+	if len(pemBlock.Headers) != 0 {
+		return nil, errors.New("invalid PEM block, no headers")
+	}
+
+	return pemBlock.Bytes, nil
+}
+
 func marshalPrivateKey(privateKey crypto.PrivateKey) ([]byte, error) {
 	switch k := privateKey.(type) {
 	case *rsa.PrivateKey:
-		return rsaPrivateKeyMarshal(k)
+		key, err := x509.MarshalPKCS8PrivateKey(k)
+		if err != nil {
+			return nil, err
+		}
+		return key, nil
 	default:
 		return nil, fmt.Errorf("unsupported private key type: (%v) %T", privateKey, privateKey)
 	}
 }
 
-func rsaPrivateKeyMarshal(privateKey *rsa.PrivateKey) ([]byte, error) {
-	key, err := x509.MarshalPKCS8PrivateKey(privateKey)
-	if err != nil {
-		return nil, err
+func unmarshalPrivateKey(keyDer []byte) (crypto.PrivateKey, error) {
+	if key, err := x509.ParsePKCS1PrivateKey(keyDer); err == nil {
+		return key, nil
 	}
-	return key, nil
+
+	key, err := x509.ParsePKCS8PrivateKey(keyDer)
+	if err == nil {
+		switch key := key.(type) {
+		case *rsa.PrivateKey:
+			return key, nil
+		default:
+			return nil, fmt.Errorf("unknown private key type (%v) %T in PKCS#8 wrapping", key, key)
+		}
+	}
+
+	return nil, errors.New("unsupported private key type")
 }
 
 func getPublicKey(pivateKey crypto.PrivateKey) (crypto.PublicKey, error) {

@@ -7,6 +7,7 @@ package grpc
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -41,8 +42,9 @@ type TlsConfig struct {
 }
 
 type TlsSelfSignConfig struct {
-	TunnelKey  string   `yaml:"tunnel_key"`
-	AllowedIPs []string `yaml:"allowed_ips,omitempty"`
+	TunnelKey        string   `yaml:"tunnel_key"`
+	AllowedIPs       []string `yaml:"allowed_ips,omitempty"`
+	StorageDirectory string   `yaml:"storage_directory,omitempty"`
 }
 
 // grpcServer wraps grpc.Server into the control.ServiceController interface
@@ -151,9 +153,41 @@ func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *TlsSelfSignConfig) (grpc.Ser
 	if tlsSelfSignConfig.TunnelKey == "" {
 		return nil, "", fmt.Errorf("tunnel key is not specified for self sign tls config")
 	}
-	externalIp, err := xnet.GetExternalIPv4Addr()
+
+	signCA, wasGenerated, err := loadOrGenerateCASign(tlsSelfSignConfig)
 	if err != nil {
 		return nil, "", err
+	}
+
+	sign, err := loadOrGenerateServerSign(tlsSelfSignConfig, signCA, wasGenerated)
+	if err != nil {
+		return nil, "", err
+	}
+
+	creds, err := sign.GrpcServerCredentials()
+	if err != nil {
+		return nil, "", err
+	}
+
+	zap.L().Info("setup self sign tls cert done", zap.Stringer("cert", sign))
+
+	return grpc.Creds(creds), string(signCA.CertPem), nil
+}
+
+func loadOrGenerateCASign(tlsSelfSignConfig *TlsSelfSignConfig) (*tlsutils.Sign, bool, error) {
+	var signCA *tlsutils.Sign
+	var err error
+	if tlsSelfSignConfig.StorageDirectory != "" {
+		signCA, err = tlsutils.LoadSign(tlsSelfSignConfig.StorageDirectory, "ca")
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return nil, false, err
+			}
+		}
+	}
+
+	if signCA != nil {
+		return signCA, false, nil
 	}
 
 	optsCA := []tlsutils.SignGenOption{
@@ -161,9 +195,39 @@ func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *TlsSelfSignConfig) (grpc.Ser
 		tlsutils.WithRsaSigner(4096),
 	}
 
-	signCA, err := tlsutils.GenerateSign(optsCA...)
+	signCA, err = tlsutils.GenerateSign(optsCA...)
 	if err != nil {
-		return nil, "", err
+		return nil, false, err
+	}
+	if tlsSelfSignConfig.StorageDirectory != "" {
+		err = signCA.Store(tlsSelfSignConfig.StorageDirectory, "ca")
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	return signCA, true, nil
+}
+
+func loadOrGenerateServerSign(tlsSelfSignConfig *TlsSelfSignConfig, signCA *tlsutils.Sign, forceGenerate bool) (*tlsutils.Sign, error) {
+	var sign *tlsutils.Sign
+	var err error
+	if tlsSelfSignConfig.StorageDirectory != "" && forceGenerate == false {
+		sign, err = tlsutils.LoadSign(tlsSelfSignConfig.StorageDirectory, "server")
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return nil, err
+			}
+		}
+	}
+
+	if sign != nil {
+		return sign, nil
+	}
+
+	externalIp, err := xnet.GetExternalIPv4Addr()
+	if err != nil {
+		return nil, err
 	}
 
 	allowedIPs := make([]net.IP, 0, len(tlsSelfSignConfig.AllowedIPs)+1)
@@ -182,17 +246,18 @@ func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *TlsSelfSignConfig) (grpc.Ser
 		tlsutils.WithLocalIPAddresses(),
 	}
 
-	sign, err := tlsutils.GenerateSign(opts...)
+	sign, err = tlsutils.GenerateSign(opts...)
+
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	creds, err := sign.GrpcServerCredentials()
-	if err != nil {
-		return nil, "", err
+	if tlsSelfSignConfig.StorageDirectory != "" {
+		err = sign.Store(tlsSelfSignConfig.StorageDirectory, "server")
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	zap.L().Info("setup self sign tls cert done", zap.Stringer("cert", sign))
-
-	return grpc.Creds(creds), string(signCA.CertPem), nil
+	return sign, err
 }
