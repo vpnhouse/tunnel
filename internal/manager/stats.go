@@ -129,6 +129,8 @@ func (s *runtimePeerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wire
 
 	now := time.Now()
 
+	existedPeers := make(map[string]struct{}, len(peers))
+
 	for _, peer := range peers {
 		if peer.WireguardPublicKey == nil {
 			// We should never be here so it's added to be in safe
@@ -151,11 +153,11 @@ func (s *runtimePeerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wire
 				zap.Any("install_id", peer.InstallationId),
 			)
 			// Remove peer stats in case it's gone
-			if _, ok := s.stats[*peer.WireguardPublicKey]; ok {
-				delete(s.stats, *peer.WireguardPublicKey)
-			}
+			delete(s.stats, *peer.WireguardPublicKey)
 			continue
 		}
+
+		existedPeers[*peer.WireguardPublicKey] = struct{}{}
 
 		// Update peer stats and add peer to the update peers list for futher processing
 		changes := s.updateRuntimePeerStatFromWireguardPeer(now, wgPeer, peer)
@@ -193,6 +195,15 @@ func (s *runtimePeerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wire
 		if peer.Expires != nil && peer.Expires.Time.Before(now) {
 			results.ExpiredPeers = append(results.ExpiredPeers, peer)
 		}
+	}
+
+	for key := range s.stats {
+		if _, ok := existedPeers[key]; ok {
+			continue
+		}
+		// Delete peer that was gone or absent
+		// Usually the peers may disappear when expire
+		delete(s.stats, key)
 	}
 
 	// Finally snap the current number of available peers
