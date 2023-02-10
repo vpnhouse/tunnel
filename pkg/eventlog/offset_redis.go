@@ -2,7 +2,6 @@ package eventlog
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -102,7 +101,7 @@ func (s *offsetSyncRedis) GetOffset(tunnelID string) (Offset, error) {
 		return Offset{}, fmt.Errorf("failed to read and parse offset data: %w", err)
 	}
 
-	return OffsetFromJson(res)
+	return offsetFromJson(res)
 }
 
 func (s *offsetSyncRedis) PutOffset(offset Offset) error {
@@ -112,17 +111,9 @@ func (s *offsetSyncRedis) PutOffset(offset Offset) error {
 
 	val := offset.ToJson()
 	// Never be expired
-	err := s.redisClient.Set(ctx, key, val, time.Duration(0)).Err()
+	err := s.redisClient.Set(ctx, key, val, offsetKeepTimeout).Err()
 	if err != nil {
 		return fmt.Errorf("failed to store offset data: %w", err)
 	}
 	return nil
-}
-
-func buildSyncKey(value string) string {
-	return fmt.Sprintf("eventlogs.sync.%s", base64.RawStdEncoding.EncodeToString([]byte(value)))
-}
-
-func buildOffsetKey(value string) string {
-	return fmt.Sprintf("eventlogs.offset.%s", base64.RawStdEncoding.EncodeToString([]byte(value)))
 }

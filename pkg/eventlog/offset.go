@@ -1,8 +1,14 @@
 package eventlog
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"time"
+)
+
+const (
+	offsetKeepTimeout = 7 * 24 * time.Hour
 )
 
 type Offset struct {
@@ -17,16 +23,28 @@ func (s *Offset) ToJson() string {
 	return string(data)
 }
 
-func OffsetFromJson(data string) (Offset, error) {
-	var offset Offset
-	err := json.Unmarshal([]byte(data), &offset)
-	return offset, err
-}
-
 type OffsetSync interface {
 	Acquire(instanceID string, tunnelID string, ttl time.Duration) (bool, error)
 	Release(instanceID string, tunnelID string) error
 
 	GetOffset(tunnelID string) (Offset, error)
 	PutOffset(offset Offset) error
+}
+
+func offsetFromJson(data string) (Offset, error) {
+	return offsetFromJsonBytes([]byte(data))
+}
+
+func offsetFromJsonBytes(data []byte) (Offset, error) {
+	var offset Offset
+	err := json.Unmarshal([]byte(data), &offset)
+	return offset, err
+}
+
+func buildSyncKey(value string) string {
+	return fmt.Sprintf("eventlogs.sync.%s", base64.RawStdEncoding.EncodeToString([]byte(value)))
+}
+
+func buildOffsetKey(value string) string {
+	return fmt.Sprintf("eventlogs.offset.%s", base64.RawStdEncoding.EncodeToString([]byte(value)))
 }

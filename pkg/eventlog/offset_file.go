@@ -106,12 +106,19 @@ func (s *offsetSyncFile) Release(instanceID string, tunnelID string) error {
 
 func (s *offsetSyncFile) GetOffset(tunnelID string) (Offset, error) {
 	offsetFile := s.buildOffsetFile(tunnelID)
+	stats, err := os.Stat(offsetFile)
+	if errors.Is(err, os.ErrNotExist) {
+		return Offset{}, err
+	}
+	if time.Now().Sub(stats.ModTime()) > offsetKeepTimeout {
+		_ = os.RemoveAll(offsetFile)
+	}
 	data, err := os.ReadFile(offsetFile)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		return Offset{TunnelID: tunnelID}, nil
 	}
 
-	return OffsetFromJson(string(data))
+	return offsetFromJson(string(data))
 }
 
 func (s *offsetSyncFile) PutOffset(offset Offset) error {
