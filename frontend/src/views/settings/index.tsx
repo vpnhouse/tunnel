@@ -129,7 +129,7 @@ const Settings: FC = () => {
       ...restFieldsChanged,
       dns: dnsChanged,
       domain: domainChanged,
-      admin_password: password !== ''
+      admin_password: password !== '' && password !== undefined
     };
   }, [settings, savedSettings, domainConfig, withDomain]);
 
