@@ -30,5 +30,3 @@ type OffsetSync interface {
 	GetOffset(tunnelID string) (Offset, error)
 	PutOffset(offset Offset) error
 }
-
-type 
