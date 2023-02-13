@@ -6,9 +6,12 @@ package eventlog
 
 import (
 	"context"
+	"errors"
 
 	"github.com/vpnhouse/tunnel/pkg/control"
 )
+
+var ErrNotFound = errors.New("not found")
 
 type EventPusher interface {
 	Push(eventType uint32, timestamp int64, data interface{}) error

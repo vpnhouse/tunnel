@@ -6,6 +6,7 @@ package storage
 
 import (
 	"embed"
+	"errors"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
@@ -16,6 +17,8 @@ import (
 
 //go:embed db/migrations
 var migrations embed.FS
+
+var ErrNotFound = errors.New("not found")
 
 type Storage struct {
 	db *sqlx.DB

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/vpnhouse/tunnel/proto"
 )
@@ -26,27 +27,37 @@ const (
 	maxBodyLen = 1<<16 - headerSize
 )
 
+type EventType int32
+
+const (
+	Unspecified      EventType = EventType(proto.EventType_Unspecified)
+	PeerAdd          EventType = EventType(proto.EventType_PeerAdd)
+	PeerRemove       EventType = EventType(proto.EventType_PeerRemove)
+	PeerUpdate       EventType = EventType(proto.EventType_PeerUpdate)
+	PeerTraffic      EventType = EventType(proto.EventType_PeerTraffic)
+	PeerFirstConnect EventType = EventType(proto.EventType_PeerFirstConnect)
+)
+
 type Event struct {
-	Type      uint32 `json:"type"`
-	Timestamp int64  `json:"ts"`
-	Data      []byte `json:"data"`
-	LogID     string `json:"log_id"`
-	Offset    int64  `json:"offset"`
+	Type      EventType `json:"type"`
+	Timestamp int64     `json:"ts"`
+	LogID     string    `json:"log_id"`
+	Offset    int64     `json:"offset"`
+	Data      []byte    `json:"data"`
 }
 
 func (e Event) IntoProto() *proto.FetchEventsResponse {
 	return &proto.FetchEventsResponse{
-		EventType: e.Type,
-		Timestamp: e.Timestamp,
-		LogID:     e.LogID,
-		Offset:    e.Offset,
+		EventType: proto.EventType(e.Type),
+		Timestamp: proto.TimestampFromTime(time.Unix(e.Timestamp, 0)),
+		Position:  &proto.EventLogPosition{LogId: e.LogID, Offset: e.Offset},
 		Data:      e.Data,
 	}
 }
 
 type eventHeader struct {
 	bodySize  uint16
-	eventType uint32
+	eventType int32
 	timestamp int64
 }
 
@@ -96,7 +107,7 @@ func readEvent(r io.Reader, atOffset int64, atLogID string) (Event, int64, error
 	}
 
 	event := Event{
-		Type:      header.eventType,
+		Type:      EventType(header.eventType),
 		Timestamp: header.timestamp,
 		Data:      body,
 		LogID:     atLogID,
@@ -124,7 +135,7 @@ func readEventHeader(r io.Reader) (eventHeader, error) {
 
 	header := eventHeader{
 		bodySize:  from2bytes(bs[2:4]),
-		eventType: from4bytes(bs[4:8]),
+		eventType: int32(from4bytes(bs[4:8])),
 		timestamp: from8bytes(bs[8:16]),
 	}
 	return header, nil

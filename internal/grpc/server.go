@@ -16,6 +16,7 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/federation_keys"
+	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/pkg/tlsutils"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
 	"github.com/vpnhouse/tunnel/proto"
@@ -74,7 +75,7 @@ func (g *grpcServer) Shutdown() error {
 }
 
 // New creates and starts gRPC services.
-func New(config Config, eventLog eventlog.EventManager, keystore federation_keys.Keystore) (*grpcServer, error) {
+func New(config Config, eventLog eventlog.EventManager, keystore federation_keys.Keystore, storage *storage.Storage) (*grpcServer, error) {
 	var withTls grpc.ServerOption
 	var ca string
 	var err error
@@ -97,7 +98,7 @@ func New(config Config, eventLog eventlog.EventManager, keystore federation_keys
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 	)
-	eventSrv := newEventServer(eventLog, keystore, tunnelKey)
+	eventSrv := newEventServer(eventLog, keystore, tunnelKey, storage)
 	proto.RegisterEventLogServiceServer(srv, eventSrv)
 
 	lis, err := net.Listen("tcp", config.Addr)

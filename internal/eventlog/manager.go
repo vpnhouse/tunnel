@@ -86,10 +86,10 @@ func (em *eventManager) Push(eventType uint32, timestamp int64, data interface{}
 }
 
 type Subscription struct {
-	labels map[string]string
-	cancel context.CancelFunc
-	events chan Event
-	errors chan error
+	subscriberID string
+	cancel       context.CancelFunc
+	events       chan Event
+	errors       chan error
 
 	// notify closes when the subscriber done
 	stopChan chan struct{}
@@ -114,9 +114,9 @@ func (s *Subscription) Close() <-chan struct{} {
 // Zero offset means the beginning of the file.
 // Empty logID means the beginning of the whole journal.
 type SubscriptionOpts struct {
-	LogID  string
-	Offset int64
-	Labels map[string]string
+	LogID        string
+	Offset       int64
+	SubscriberID string
 }
 
 func (s SubscriptionOpts) validate() error {
@@ -154,16 +154,16 @@ func (em *eventManager) Subscribe(ctx context.Context, opts SubscriptionOpts) (*
 	if len(opts.LogID) == 0 {
 		opts.LogID = em.storage.FirstLog()
 	} else if !em.storage.HasLog(opts.LogID) {
-		return nil, fmt.Errorf("unknown log file `%s`", opts.LogID)
+		return nil, fmt.Errorf("no such log %s: %w", opts.LogID, ErrNotFound)
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	sub := &Subscription{
-		cancel:   cancel,
-		labels:   opts.Labels,
-		events:   make(chan Event),
-		errors:   make(chan error),
-		stopChan: make(chan struct{}),
+		cancel:       cancel,
+		subscriberID: opts.SubscriberID,
+		events:       make(chan Event),
+		errors:       make(chan error),
+		stopChan:     make(chan struct{}),
 	}
 
 	// add ourselves to the subscribers map,
@@ -171,7 +171,7 @@ func (em *eventManager) Subscribe(ctx context.Context, opts SubscriptionOpts) (*
 	em.subscribers[sub] = struct{}{}
 
 	go func() {
-		err := em.tail(ctx, opts.LogID, opts.Offset, sub.events)
+		err := em.tail(ctx, opts.LogID, opts.Offset, sub)
 		select {
 		// dont block if nobody consumes the chan
 		case sub.errors <- err:
@@ -258,7 +258,7 @@ func (em *eventManager) teardown() {
 	defer em.lock.Unlock()
 
 	for sub := range em.subscribers {
-		zap.L().Debug("closing the subscriber", zap.Any("labels", sub.labels))
+		zap.L().Debug("closing the subscriber", zap.String("subscriber_id", sub.subscriberID))
 		// wait for subscriber termination
 		<-sub.Close()
 	}
@@ -271,8 +271,8 @@ func (em *eventManager) teardown() {
 
 // tail sequentially reads a given log at given offset, and all the following files, if any.
 // tail does not validate given arguments expecting them to be verified by a caller.
-func (em *eventManager) tail(ctx context.Context, logID string, offset int64, data chan<- Event) error {
-	zap.L().Debug("start tailing", zap.String("log_id", logID), zap.Int64("offset", offset))
+func (em *eventManager) tail(ctx context.Context, logID string, offset int64, sub *Subscription) error {
+	zap.L().Debug("start tailing", zap.String("log_id", logID), zap.Int64("offset", offset), zap.String("subscriber_id", sub.subscriberID))
 
 	var reader io.ReadCloser
 	defer func() {
@@ -335,7 +335,7 @@ func (em *eventManager) tail(ctx context.Context, logID string, offset int64, da
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
-			case data <- event:
+			case sub.events <- event:
 			}
 		}
 	}

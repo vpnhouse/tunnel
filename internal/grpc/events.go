@@ -7,9 +7,12 @@ package grpc
 import (
 	"context"
 	"errors"
+	"io"
 
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/federation_keys"
+	"github.com/vpnhouse/tunnel/internal/storage"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -23,13 +26,15 @@ type eventServer struct {
 	events    eventlog.EventManager
 	keystore  federation_keys.Keystore
 	tunnelKey string
+	storage   *storage.Storage
 }
 
-func newEventServer(events eventlog.EventManager, keystore federation_keys.Keystore, tunnelKey string) proto.EventLogServiceServer {
+func newEventServer(events eventlog.EventManager, keystore federation_keys.Keystore, tunnelKey string, storage *storage.Storage) proto.EventLogServiceServer {
 	return &eventServer{
 		events:    events,
 		keystore:  keystore,
 		tunnelKey: tunnelKey,
+		storage:   storage,
 	}
 }
 
@@ -44,18 +49,42 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 	if len(authSecret) == 0 || authSecret[0] == "" {
 		return status.Errorf(codes.Unauthenticated, "auth secret is empty or not supplied")
 	}
-	_, ok = m.keystore.Authorize(authSecret[0])
+
+	subscriberId, ok := m.keystore.Authorize(authSecret[0])
 	if !ok {
 		return status.Errorf(codes.Unauthenticated, "auth secret is not valid")
 	}
 
-	sub, err := m.events.Subscribe(stream.Context(), eventlog.SubscriptionOpts{
-		LogID:  req.GetLogID(),
-		Offset: req.GetOffset(),
-		Labels: req.GetLabels(),
-	})
+	opts := eventlog.SubscriptionOpts{
+		LogID:        req.GetStartPosition().GetLogId(),
+		Offset:       req.GetStartPosition().GetOffset(),
+		SubscriberID: subscriberId,
+	}
+
+	if req.StartPosition == nil {
+		eventlogSubscriber, err := m.storage.GetEventlogsSubscriber(subscriberId)
+		if err != nil && !errors.Is(err, storage.ErrNotFound) {
+			zap.L().Error("failed to get eventlogs subscriber", zap.String("subscriber_id", subscriberId), zap.Error(err))
+		}
+		if eventlogSubscriber != nil {
+			opts.LogID = eventlogSubscriber.LogID
+			opts.Offset = eventlogSubscriber.Offset
+		}
+	}
+
+	zap.L().Debug("start reading eventlogs",
+		zap.String("subscriber_id", subscriberId),
+		zap.String("log_id", opts.LogID),
+		zap.Int64("offset", opts.Offset),
+	)
+
+	sub, err := m.events.Subscribe(stream.Context(), opts)
 	if err != nil {
-		return status.Error(codes.InvalidArgument, err.Error())
+		if !errors.Is(err, eventlog.ErrNotFound) {
+			return status.Error(codes.InvalidArgument, err.Error())
+		}
+		zap.L().Error("failed to detect start eventlogs position", zap.Error(err))
+		return status.Error(codes.NotFound, err.Error())
 	}
 
 	header := metadata.New(map[string]string{tunnelAuthHeader: m.tunnelKey})
@@ -74,7 +103,7 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 			if types.has(event.Type) {
 				if err := stream.Send(event.IntoProto()); err != nil {
 					zap.L().Warn("failed to send an event",
-						zap.Error(err), zap.Any("caller_labels", req.GetLabels()))
+						zap.Error(err), zap.String("subscriber_id", subscriberId))
 				}
 			}
 		case err := <-sub.Errors():
@@ -88,17 +117,62 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 	}
 }
 
-type eventTypesSet map[uint32]struct{}
+func (m *eventServer) EventFetched(stream proto.EventLogService_EventFetchedServer) error {
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if !ok {
+		return status.Errorf(codes.Unauthenticated, "failed to get metadata")
+	}
 
-func newEventTypeSet(vs []uint32) eventTypesSet {
-	m := eventTypesSet{}
+	authSecret := md.Get(federationAuthHeader)
+	if len(authSecret) == 0 || authSecret[0] == "" {
+		return status.Errorf(codes.Unauthenticated, "auth secret is empty or not supplied")
+	}
+
+	subscriberId, ok := m.keystore.Authorize(authSecret[0])
+	if !ok {
+		return status.Errorf(codes.Unauthenticated, "auth secret is not valid")
+	}
+
+	header := metadata.New(map[string]string{tunnelAuthHeader: m.tunnelKey})
+	err := grpc.SendHeader(stream.Context(), header)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	for {
+		sub, err := stream.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				zap.L().Debug("event fetched notifications closed", zap.String("subscriber_id", subscriberId))
+			} else {
+				zap.L().Error("failed to recieve event fetched notification", zap.String("subscriber_id", subscriberId))
+			}
+			break
+		}
+		err = m.storage.PutEventlogsSubscriber(&types.EventlogSubscriber{
+			SubscriberID: subscriberId,
+			LogID:        sub.GetPosition().GetLogId(),
+			Offset:       sub.GetPosition().GetOffset(),
+		})
+		if err != nil {
+			zap.L().Error("failed to store eventlogs subscriber", zap.Any("subscriber", sub), zap.Error(err))
+		}
+	}
+
+	return nil
+}
+
+type eventTypesSet map[eventlog.EventType]struct{}
+
+func newEventTypeSet(vs []proto.EventType) eventTypesSet {
+	m := make(eventTypesSet, len(vs))
 	for _, v := range vs {
-		m[v] = struct{}{}
+		m[eventlog.EventType(v)] = struct{}{}
 	}
 	return m
 }
 
-func (e eventTypesSet) has(v uint32) bool {
+func (e eventTypesSet) has(v eventlog.EventType) bool {
 	// empty set mean any events
 	if len(e) == 0 {
 		return true

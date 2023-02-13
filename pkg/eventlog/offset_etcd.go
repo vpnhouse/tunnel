@@ -30,19 +30,27 @@ func (s *offsetSyncEtcd) Acquire(instanceID string, tunnelID string, ttl time.Du
 	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 	defer cancel()
 
-	lease, _ := s.client.Grant(ctx, int64(ttl.Seconds()))
-	isEqual := clientv3.Compare(clientv3.Value(key), "=", instanceID)
-	isNotExist := clientv3.Compare(clientv3.ModRevision(key), "=", 0)
-	opPut := clientv3.OpPut(key, instanceID, clientv3.WithLease(lease.ID))
-
-	txn := s.client.Txn(ctx)
-	txn = txn.If(isEqual).Then(opPut)
-	txn = txn.If(isNotExist).Then(opPut)
-
-	resp, err := txn.Commit()
+	lease, err := s.client.Grant(ctx, int64(ttl.Seconds()))
 	if err != nil {
 		return false, fmt.Errorf("aquire job lock key %s failed: %w", key, err)
 	}
+
+	opPut := clientv3.OpPut(key, instanceID, clientv3.WithLease(lease.ID))
+
+	isEqual := clientv3.Compare(clientv3.Value(key), "=", instanceID)
+	resp, err := s.client.Txn(ctx).If(isEqual).Then(opPut).Commit()
+	if err != nil {
+		return false, fmt.Errorf("aquire job lock key %s failed: %w", key, err)
+	}
+
+	if !resp.Succeeded {
+		isNotExist := clientv3.Compare(clientv3.ModRevision(key), "=", 0)
+		resp, err = s.client.Txn(ctx).If(isNotExist).Then(opPut).Commit()
+		if err != nil {
+			return false, fmt.Errorf("aquire job lock key %s failed: %w", key, err)
+		}
+	}
+
 	return resp.Succeeded, nil
 }
 
@@ -88,8 +96,11 @@ func (s *offsetSyncEtcd) PutOffset(offset Offset) error {
 	defer cancel()
 
 	val := offset.ToJson()
-	lease, _ := s.client.Grant(ctx, int64(offsetKeepTimeout.Seconds()))
-	_, err := s.kv.Put(ctx, key, val, clientv3.WithLease(lease.ID))
+	lease, err := s.client.Grant(ctx, int64(offsetKeepTimeout.Seconds()))
+	if err != nil {
+		return fmt.Errorf("failed to grant ttl lease offset data: %w", err)
+	}
+	_, err = s.kv.Put(ctx, key, val, clientv3.WithLease(lease.ID))
 	if err != nil {
 		return fmt.Errorf("failed to read and parse offset data: %w", err)
 	}
