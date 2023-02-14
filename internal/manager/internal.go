@@ -8,6 +8,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/ippool"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
@@ -70,7 +71,7 @@ func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
 	errs = multierr.Append(errs, err)
 
 	allPeersGauge.Dec()
-	if err := manager.eventLog.Push(uint32(proto.EventType_PeerRemove), time.Now().Unix(), peer.IntoProto()); err != nil {
+	if err := manager.eventLog.Push(eventlog.PeerRemove, peer.IntoProto()); err != nil {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
 	}
@@ -143,7 +144,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 	}
 
 	allPeersGauge.Inc()
-	if err := manager.eventLog.Push(uint32(proto.EventType_PeerAdd), time.Now().Unix(), peer.IntoProto()); err != nil {
+	if err := manager.eventLog.Push(eventlog.PeerAdd, peer.IntoProto()); err != nil {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerAdd)))
 	}
@@ -242,7 +243,7 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 	}
 
 	// TODO(nikonov): report an actual traffic on update
-	if err := manager.eventLog.Push(uint32(proto.EventType_PeerUpdate), time.Now().Unix(), newPeer.IntoProto()); err != nil {
+	if err := manager.eventLog.Push(eventlog.PeerUpdate, newPeer.IntoProto()); err != nil {
 		// do not return an error here because it's not related to the method itself.
 		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerUpdate)))
 	}
@@ -308,7 +309,7 @@ func (manager *Manager) syncPeerStats() {
 	// Send notifications about peers with first connection
 	for _, peer := range results.FirstConnectedPeers {
 		// Send event containing updated peer
-		err := manager.eventLog.Push(uint32(proto.EventType_PeerFirstConnect), time.Now().Unix(), peer.IntoProto())
+		err := manager.eventLog.Push(eventlog.PeerFirstConnect, peer.IntoProto())
 		if err != nil {
 			zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerFirstConnect)))
 		}

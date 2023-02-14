@@ -129,7 +129,7 @@ func (s *peerTrafficUpdateEventSender) sendUpdates() {
 		return
 	}
 	for _, peer := range s.updatedPeers {
-		err := s.eventLog.Push(uint32(proto.EventType_PeerTraffic), time.Now().Unix(), peer.IntoProto())
+		err := s.eventLog.Push(eventlog.PeerTraffic, peer.IntoProto())
 		if err != nil {
 			zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerTraffic)))
 		}

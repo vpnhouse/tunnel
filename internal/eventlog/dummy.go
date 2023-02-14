@@ -11,16 +11,13 @@ import (
 )
 
 func NewDummy() *dummyEventManager {
-	return &dummyEventManager{
-		running: true,
-	}
+	return &dummyEventManager{}
 }
 
 type dummyEventManager struct {
-	running bool
 }
 
-func (d *dummyEventManager) Push(_ uint32, _ int64, _ interface{}) error {
+func (d *dummyEventManager) Push(_ EventType, _ interface{}) error {
 	return nil
 }
 func (d *dummyEventManager) Subscribe(_ context.Context, _ SubscriptionOpts) (*Subscription, error) {
@@ -28,10 +25,9 @@ func (d *dummyEventManager) Subscribe(_ context.Context, _ SubscriptionOpts) (*S
 }
 
 func (d *dummyEventManager) Running() bool {
-	return d.running
+	return false
 }
 
 func (d *dummyEventManager) Shutdown() error {
-	d.running = false
 	return nil
 }

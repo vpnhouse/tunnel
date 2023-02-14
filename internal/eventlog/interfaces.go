@@ -14,7 +14,7 @@ import (
 var ErrNotFound = errors.New("not found")
 
 type EventPusher interface {
-	Push(eventType uint32, timestamp int64, data interface{}) error
+	Push(eventType EventType, data interface{}) error
 }
 
 type EventSubscriber interface {

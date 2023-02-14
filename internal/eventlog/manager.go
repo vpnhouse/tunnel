@@ -55,7 +55,7 @@ func New(cfg StorageConfig, fss ...afero.Fs) (*eventManager, error) {
 }
 
 // Push adds the event to the log.
-func (em *eventManager) Push(eventType uint32, timestamp int64, data interface{}) error {
+func (em *eventManager) Push(eventType EventType, data interface{}) error {
 	em.lock.Lock()
 	running := em.running
 	em.lock.Unlock()
@@ -69,10 +69,9 @@ func (em *eventManager) Push(eventType uint32, timestamp int64, data interface{}
 	if data == nil {
 		return fmt.Errorf("cannot push nil event")
 	}
-	if timestamp == 0 {
-		// TODO(nikonov): or UnixNano?
-		timestamp = time.Now().Unix()
-	}
+
+	// timestamp in seconds
+	timestamp := time.Now().UTC().Unix()
 
 	// marshal event here, this way we block the caller, not the
 	// processEvent method, which, in turn, will block the whole queue.

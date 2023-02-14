@@ -62,7 +62,7 @@ type eventHeader struct {
 }
 
 // marshalEvent marshals events with a header
-func marshalEvent(eventType uint32, timestamp int64, event interface{}) ([]byte, error) {
+func marshalEvent(eventType EventType, timestamp int64, event interface{}) ([]byte, error) {
 	// to prevent too much parsing and leave event body eve-readable in the file, store it as:
 	// magic(2) + size(2) + event_type(4) + timestamp(8) + body(any)
 	body, err := json.Marshal(event)
@@ -80,7 +80,7 @@ func marshalEvent(eventType uint32, timestamp int64, event interface{}) ([]byte,
 	}
 
 	size := into2bytes(bodyLen)
-	typeBytes := into4bytes(eventType)
+	typeBytes := into4bytes(uint32(eventType))
 	tsBytes := into8bytes(timestamp)
 
 	header := make([]byte, 0, headerSize)
