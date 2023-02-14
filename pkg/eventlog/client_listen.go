@@ -107,8 +107,8 @@ func parseEvent(evt *proto.FetchEventsResponse) (*proto.PeerInfo, Offset, error)
 	}
 
 	offset := Offset{
-		LogID:  evt.GetLogID(),
-		Offset: evt.GetOffset(),
+		LogID:  evt.GetPosition().GetLogId(),
+		Offset: evt.GetPosition().GetOffset(),
 	}
 
 	return &peerInfo, offset, nil
