@@ -60,7 +60,7 @@ func run_client(serverHost string, serverPort string, authSecret string) {
 
 	for {
 		select {
-		case evt, ok := <-client.Listen():
+		case evt, ok := <-client.Events():
 			if !ok {
 				zap.L().Info("no events, exiting...")
 				return

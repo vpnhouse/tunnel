@@ -21,7 +21,7 @@ const (
 
 var errOutputEventStucked = errors.New("output event stucked")
 
-func (s *Client) listenAndPublish() {
+func (s *Client) readAndPublishEvents() {
 
 	fetchEventsClient, cancel, err := s.fetchEventsClient()
 

@@ -37,7 +37,7 @@ func NewClient(opt ...Option) (*Client, error) {
 	}, nil
 }
 
-func (s *Client) Listen() chan *Event {
+func (s *Client) Events() chan *Event {
 	s.once.Do(func() {
 		go func() {
 			defer func() {
@@ -49,7 +49,7 @@ func (s *Client) Listen() chan *Event {
 				s.publishOrDrop(&Event{Err: err})
 				return
 			}
-			s.listenAndPublish()
+			s.readAndPublishEvents()
 		}()
 	})
 	return s.out
