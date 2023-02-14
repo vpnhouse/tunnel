@@ -15,4 +15,6 @@ jobs:
         with:
           go-version: 1.19
       - name: do stuff
+        env:
+          CI: github
         run: make test fmt vet build/app
