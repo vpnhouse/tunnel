@@ -109,16 +109,15 @@ func (s *Subscription) Close() <-chan struct{} {
 	return s.stopChan
 }
 
-// SubscriptionOpts describe where we want to start reading the log.
+// EventlogPosition describe where we want to start reading the log.
 // Zero offset means the beginning of the file.
 // Empty logID means the beginning of the whole journal.
-type SubscriptionOpts struct {
-	LogID        string
-	Offset       int64
-	SubscriberID string
+type EventlogPosition struct {
+	LogID  string
+	Offset int64
 }
 
-func (s SubscriptionOpts) validate() error {
+func (s *EventlogPosition) validate() error {
 	if s.Offset < 0 {
 		return fmt.Errorf("negative offset is not supported")
 	}
@@ -138,8 +137,8 @@ func (s SubscriptionOpts) validate() error {
 // The caller must consume channels given by .Events() and .Errors() methods.
 // Context cancellation leads to subscription destruction, as well as calls of
 // .Close() method.
-func (em *eventManager) Subscribe(ctx context.Context, opts SubscriptionOpts) (*Subscription, error) {
-	if err := opts.validate(); err != nil {
+func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, evenlogPosition EventlogPosition) (*Subscription, error) {
+	if err := evenlogPosition.validate(); err != nil {
 		return nil, err
 	}
 
@@ -150,16 +149,16 @@ func (em *eventManager) Subscribe(ctx context.Context, opts SubscriptionOpts) (*
 		return nil, fmt.Errorf("manager is not running")
 	}
 
-	if len(opts.LogID) == 0 {
-		opts.LogID = em.storage.FirstLog()
-	} else if !em.storage.HasLog(opts.LogID) {
-		return nil, fmt.Errorf("no such log %s: %w", opts.LogID, ErrNotFound)
+	if len(evenlogPosition.LogID) == 0 {
+		evenlogPosition.LogID = em.storage.FirstLog()
+	} else if !em.storage.HasLog(evenlogPosition.LogID) {
+		return nil, fmt.Errorf("no such log %s: %w", evenlogPosition.LogID, ErrNotFound)
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	sub := &Subscription{
 		cancel:       cancel,
-		subscriberID: opts.SubscriberID,
+		subscriberID: subscriberID,
 		events:       make(chan Event),
 		errors:       make(chan error),
 		stopChan:     make(chan struct{}),
@@ -170,7 +169,7 @@ func (em *eventManager) Subscribe(ctx context.Context, opts SubscriptionOpts) (*
 	em.subscribers[sub] = struct{}{}
 
 	go func() {
-		err := em.tail(ctx, opts.LogID, opts.Offset, sub)
+		err := em.tail(ctx, evenlogPosition, sub)
 		select {
 		// dont block if nobody consumes the chan
 		case sub.errors <- err:
@@ -270,8 +269,12 @@ func (em *eventManager) teardown() {
 
 // tail sequentially reads a given log at given offset, and all the following files, if any.
 // tail does not validate given arguments expecting them to be verified by a caller.
-func (em *eventManager) tail(ctx context.Context, logID string, offset int64, sub *Subscription) error {
-	zap.L().Debug("start tailing", zap.String("log_id", logID), zap.Int64("offset", offset), zap.String("subscriber_id", sub.subscriberID))
+func (em *eventManager) tail(ctx context.Context, eventlogPosition EventlogPosition, sub *Subscription) error {
+	zap.L().Debug("start tailing",
+		zap.String("log_id", eventlogPosition.LogID),
+		zap.Int64("offset", eventlogPosition.Offset),
+		zap.String("subscriber_id", sub.subscriberID),
+	)
 
 	var reader io.ReadCloser
 	defer func() {
@@ -279,6 +282,9 @@ func (em *eventManager) tail(ctx context.Context, logID string, offset int64, su
 			_ = reader.Close()
 		}
 	}()
+
+	logID := eventlogPosition.LogID
+	offset := eventlogPosition.Offset
 
 	for {
 		var err error

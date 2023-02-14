@@ -55,10 +55,9 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 		return status.Errorf(codes.Unauthenticated, "auth secret is not valid")
 	}
 
-	opts := eventlog.SubscriptionOpts{
-		LogID:        req.GetStartPosition().GetLogId(),
-		Offset:       req.GetStartPosition().GetOffset(),
-		SubscriberID: subscriberId,
+	eventlogPosition := eventlog.EventlogPosition{
+		LogID:  req.GetStartPosition().GetLogId(),
+		Offset: req.GetStartPosition().GetOffset(),
 	}
 
 	if req.StartPosition == nil {
@@ -67,18 +66,18 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 			zap.L().Error("failed to get eventlogs subscriber", zap.String("subscriber_id", subscriberId), zap.Error(err))
 		}
 		if eventlogSubscriber != nil {
-			opts.LogID = eventlogSubscriber.LogID
-			opts.Offset = eventlogSubscriber.Offset
+			eventlogPosition.LogID = eventlogSubscriber.LogID
+			eventlogPosition.Offset = eventlogSubscriber.Offset
 		}
 	}
 
 	zap.L().Debug("start reading eventlogs",
 		zap.String("subscriber_id", subscriberId),
-		zap.String("log_id", opts.LogID),
-		zap.Int64("offset", opts.Offset),
+		zap.String("log_id", eventlogPosition.LogID),
+		zap.Int64("offset", eventlogPosition.Offset),
 	)
 
-	sub, err := m.events.Subscribe(stream.Context(), opts)
+	sub, err := m.events.Subscribe(stream.Context(), subscriberId, eventlogPosition)
 	if err != nil {
 		if !errors.Is(err, eventlog.ErrNotFound) {
 			return status.Error(codes.InvalidArgument, err.Error())
