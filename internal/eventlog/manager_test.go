@@ -61,10 +61,7 @@ func TestReadBack(t *testing.T) {
 	err := l.Push(PeerAdd, "hello world")
 	require.NoError(t, err)
 
-	sub, err := l.Subscribe(context.Background(), "", EventlogPosition{
-		Offset: 0,
-		LogID:  "",
-	})
+	sub, err := l.Subscribe(context.Background(), "", WithPosition(EventlogPosition{Offset: 0, LogID:  ""}))
 	require.NoError(t, err)
 
 	event := <-sub.Events()
@@ -89,7 +86,7 @@ func TestSubscribeToInvalidOffset(t *testing.T) {
 	log.storage.lock.Unlock()
 
 	// assume we know the logID somehow
-	sub, err := log.Subscribe(context.Background(), "", EventlogPosition{LogID: logID, Offset: 5})
+	sub, err := log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: logID, Offset: 5}))
 	require.NoError(t, err)
 
 	// must immediately get an error
@@ -100,7 +97,7 @@ func TestSubscribeToInvalidOffset(t *testing.T) {
 func TestSubscribeToUnknownLog(t *testing.T) {
 	log := newTestInstance(StorageConfig{Dir: "/", Size: 10_000})
 
-	_, err := log.Subscribe(context.Background(), "", EventlogPosition{LogID: uuid.New().String(), Offset: 0})
+	_, err := log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: uuid.New().String(), Offset: 0}))
 	require.Error(t, err)
 }
 
@@ -126,13 +123,13 @@ func TestSubscribeToOffset(t *testing.T) {
 	offset := int64(len(bs))
 
 	logID := log.storage.currentLog.uuid
-	sub, err := log.Subscribe(context.Background(), "", EventlogPosition{LogID: logID, Offset: offset})
+	sub, err := log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: logID, Offset: offset}))
 	require.NoError(t, err)
 	ev1 := <-sub.Events()
 	sub.Close()
 	assert.Equal(t, PeerRemove, ev1.Type)
 
-	sub, err = log.Subscribe(context.Background(), "", EventlogPosition{LogID: logID, Offset: 4 * offset})
+	sub, err = log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: logID, Offset: 4 * offset}))
 	require.NoError(t, err)
 	ev2 := <-sub.Events()
 	sub.Close()
@@ -153,7 +150,7 @@ func TestMultipleReads(t *testing.T) {
 	wg.Add(reads)
 
 	for i := 0; i < reads; i++ {
-		sub, err := log.Subscribe(context.Background(), "", EventlogPosition{LogID: logID, Offset: 0})
+		sub, err := log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: logID, Offset: 0}))
 		if err != nil {
 			panic(err)
 		}
@@ -180,7 +177,7 @@ func TestWritesOrder(t *testing.T) {
 
 	ctx := context.Background()
 
-	sub, err := log.Subscribe(ctx, "", EventlogPosition{LogID: "", Offset: 0})
+	sub, err := log.Subscribe(ctx, "", WithPosition(EventlogPosition{LogID: "", Offset: 0}))
 	require.NoError(t, err)
 
 	const writes = 5000
@@ -251,7 +248,7 @@ func TestReadsCount(t *testing.T) {
 
 	rets := make([]int, concurrency)
 	for i := 0; i < concurrency; i++ {
-		sub, err := log.Subscribe(ctx, "", EventlogPosition{LogID: "", Offset: 0})
+		sub, err := log.Subscribe(ctx, "", WithPosition(EventlogPosition{LogID: "", Offset: 0}))
 		require.NoError(t, err)
 
 		wg.Add(1)

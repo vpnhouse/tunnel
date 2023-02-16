@@ -90,8 +90,8 @@ func (s *offsetSyncEtcd) GetOffset(tunnelID string) (Offset, error) {
 	return offsetFromJsonBytes(resp.Kvs[0].Value)
 }
 
-func (s *offsetSyncEtcd) PutOffset(offset Offset) error {
-	key := buildOffsetKey(offset.TunnelID)
+func (s *offsetSyncEtcd) PutOffset(tunnelId string, offset Offset) error {
+	key := buildOffsetKey(tunnelId)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 	defer cancel()
 

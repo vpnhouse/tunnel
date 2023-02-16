@@ -12,12 +12,14 @@ const (
 )
 
 type Client struct {
-	opts   options
-	client proto.EventLogServiceClient
-	out    chan *Event
-	once   sync.Once
-	stop   chan struct{}
-	done   chan struct{}
+	opts       options
+	client     proto.EventLogServiceClient
+	out        chan *Event
+	once       sync.Once
+	stop       chan struct{}
+	done       chan struct{}
+	offsetSync OffsetSync
+	tunnelID   string
 }
 
 func NewClient(opt ...Option) (*Client, error) {
@@ -30,10 +32,11 @@ func NewClient(opt ...Option) (*Client, error) {
 	}
 
 	return &Client{
-		opts: opts,
-		out:  make(chan *Event),
-		stop: make(chan struct{}),
-		done: make(chan struct{}),
+		opts:     opts,
+		out:      make(chan *Event),
+		stop:     make(chan struct{}),
+		done:     make(chan struct{}),
+		tunnelID: opts.TunnelID(),
 	}, nil
 }
 

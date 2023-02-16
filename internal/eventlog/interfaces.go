@@ -18,7 +18,7 @@ type EventPusher interface {
 }
 
 type EventSubscriber interface {
-	Subscribe(ctx context.Context, subscriberId string, eventlogPosition EventlogPosition) (*Subscription, error)
+	Subscribe(ctx context.Context, subscriberId string, opts ...SubscribeOption) (*Subscription, error)
 }
 
 type EventManager interface {

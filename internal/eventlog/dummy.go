@@ -20,7 +20,7 @@ type dummyEventManager struct {
 func (d *dummyEventManager) Push(_ EventType, _ interface{}) error {
 	return nil
 }
-func (d *dummyEventManager) Subscribe(ctx context.Context, subscriberId string, eventlogPosition EventlogPosition) (*Subscription, error) {
+func (d *dummyEventManager) Subscribe(ctx context.Context, subscriberId string, opts ...SubscribeOption) (*Subscription, error) {
 	return nil, xerror.EInternalError("Attempt to receive events from dummy event manager", nil)
 }
 

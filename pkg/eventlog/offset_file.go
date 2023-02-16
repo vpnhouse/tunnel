@@ -115,14 +115,14 @@ func (s *offsetSyncFile) GetOffset(tunnelID string) (Offset, error) {
 	}
 	data, err := os.ReadFile(offsetFile)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
-		return Offset{TunnelID: tunnelID}, nil
+		return Offset{}, nil
 	}
 
 	return offsetFromJson(string(data))
 }
 
-func (s *offsetSyncFile) PutOffset(offset Offset) error {
-	offsetFile := s.buildOffsetFile(offset.TunnelID)
+func (s *offsetSyncFile) PutOffset(tunnelID string, offset Offset) error {
+	offsetFile := s.buildOffsetFile(tunnelID)
 	data := offset.ToJson()
 	return os.WriteFile(offsetFile, []byte(data), 0600)
 }

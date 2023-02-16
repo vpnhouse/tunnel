@@ -12,7 +12,6 @@ const (
 )
 
 type Offset struct {
-	TunnelID string `json:"tunnel_id"`
 	LogID    string `json:"log_id"`
 	Offset   int64  `json:"offset"`
 }
@@ -28,7 +27,7 @@ type OffsetSync interface {
 	Release(instanceID string, tunnelID string) error
 
 	GetOffset(tunnelID string) (Offset, error)
-	PutOffset(offset Offset) error
+	PutOffset(tunnelID string, offset Offset) error
 }
 
 func offsetFromJson(data string) (Offset, error) {

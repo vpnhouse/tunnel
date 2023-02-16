@@ -137,9 +137,13 @@ func (s *EventlogPosition) validate() error {
 // The caller must consume channels given by .Events() and .Errors() methods.
 // Context cancellation leads to subscription destruction, as well as calls of
 // .Close() method.
-func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, evenlogPosition EventlogPosition) (*Subscription, error) {
-	if err := evenlogPosition.validate(); err != nil {
-		return nil, err
+func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts ...SubscribeOption) (*Subscription, error) {
+	var options subscribeOptions
+	for _, opt := range opts {
+		err := opt(&options)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	em.lock.Lock()
@@ -149,10 +153,22 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, even
 		return nil, fmt.Errorf("manager is not running")
 	}
 
-	if len(evenlogPosition.LogID) == 0 {
-		evenlogPosition.LogID = em.storage.FirstLog()
-	} else if !em.storage.HasLog(evenlogPosition.LogID) {
-		return nil, fmt.Errorf("no such log %s: %w", evenlogPosition.LogID, ErrNotFound)
+	evenlogPosition := options.Position
+
+	if options.ActiveLog {
+		evenlogPosition = EventlogPosition{
+			LogID:  em.storage.CurrentLog(),
+			Offset: 0,
+		}
+	} else {
+		if len(evenlogPosition.LogID) == 0 {
+			evenlogPosition = EventlogPosition{
+				LogID:  em.storage.FirstLog(),
+				Offset: 0,
+			}
+		} else if !em.storage.HasLog(evenlogPosition.LogID) {
+			return nil, fmt.Errorf("no such log %s: %w", evenlogPosition.LogID, ErrNotFound)
+		}
 	}
 
 	ctx, cancel := context.WithCancel(ctx)

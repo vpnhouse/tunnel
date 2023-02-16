@@ -14,12 +14,14 @@ import (
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Client) connect() error {
-	if s.opts.selfSigned {
+	if s.opts.SelfSigned {
 		return s.connectSelfSignedTLS()
 	} else if s.client == nil {
 		return s.connectTLS()
@@ -30,14 +32,14 @@ func (s *Client) connect() error {
 func (s *Client) connectSelfSignedTLS() error {
 	// Get ca certificate
 	urlPrefix := "https"
-	if s.opts.noSSL {
+	if s.opts.NoSSL {
 		urlPrefix = "http"
 	}
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s://%s/grpc/ca", urlPrefix, s.opts.tunnelHost), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s://%s/grpc/ca", urlPrefix, s.opts.TunnelHost), nil)
 	if err != nil {
 		return fmt.Errorf("get tunnel CA failed: %w", err)
 	}
-	req.Header.Add(federationAuthHeader, s.opts.authSecret)
+	req.Header.Add(federationAuthHeader, s.opts.AuthSecret)
 	resp, err := http.DefaultClient.Do(req)
 
 	if err != nil {
@@ -49,11 +51,11 @@ func (s *Client) connectSelfSignedTLS() error {
 	}
 
 	tunnelKey := resp.Header.Get(tunnelAuthHeader)
-	if s.opts.tunnelKey != "" && tunnelKey == "" {
+	if s.opts.TunnelKey != "" && tunnelKey == "" {
 		return errors.New("request tunnel CA failed: unauthorized response, tunnel key is empty")
 	}
 
-	if s.opts.tunnelKey != "" && s.opts.tunnelKey != tunnelKey {
+	if s.opts.TunnelKey != "" && s.opts.TunnelKey != tunnelKey {
 		return errors.New("request tunnel CA failed: invalid response tunnel key")
 	}
 
@@ -89,12 +91,12 @@ func (s *Client) connectSelfSignedTLS() error {
 
 func (s *Client) connectTLS() error {
 	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(s.opts.ca) {
+	if !certPool.AppendCertsFromPEM(s.opts.CA) {
 		return errors.New("failed to add CA's certificate")
 	}
 
 	config := &tls.Config{
-		Certificates: []tls.Certificate{s.opts.cert},
+		Certificates: []tls.Certificate{s.opts.Cert},
 		RootCAs:      certPool,
 	}
 
@@ -105,7 +107,7 @@ func (s *Client) connectTLS() error {
 
 func (s *Client) connectWithCreds(creds credentials.TransportCredentials) error {
 	cc, err := grpc.Dial(
-		net.JoinHostPort(s.opts.tunnelHost, s.opts.tunnelPort),
+		net.JoinHostPort(s.opts.TunnelHost, s.opts.TunnelPort),
 		grpc.WithTransportCredentials(creds),
 	)
 	if err != nil {
@@ -117,28 +119,66 @@ func (s *Client) connectWithCreds(creds credentials.TransportCredentials) error 
 	return nil
 }
 
-func (s *Client) fetchEventsClient() (proto.EventLogService_FetchEventsClient, context.CancelFunc, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	md := metadata.New(map[string]string{federationAuthHeader: s.opts.authSecret})
+func (s *Client) fetchEventsClient(ctx context.Context) (proto.EventLogService_FetchEventsClient, error) {
+	md := metadata.New(map[string]string{federationAuthHeader: s.opts.AuthSecret})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 	var header metadata.MD
-	fetchEventsClient, err := s.client.FetchEvents(ctx, &proto.FetchEventsRequest{}, grpc.Header(&header))
+
+	req := &proto.FetchEventsRequest{}
+
+	offset, err := s.offsetSync.GetOffset(s.tunnelID)
+	if err == nil {
+		req.StartPosition = &proto.EventLogPosition{
+			LogId:  offset.LogID,
+			Offset: offset.Offset,
+		}
+	} else {
+		zap.L().Error("failed to get offset position. Start reading from the beginning of the active log")
+	}
+	fetchEventsClient, err := s.client.FetchEvents(ctx, req, grpc.Header(&header))
 	if err != nil {
-		cancel()
-		return nil, nil, err
+		if req.StartPosition == nil {
+			return nil, fmt.Errorf("failed to connect to the active log stream: %w", err)
+		}
+		if status, ok := status.FromError(err); !ok || status.Code() != codes.NotFound {
+			zap.L().Info("event log not found, use active event log", zap.String("log_id", req.StartPosition.LogId))
+			req.StartPosition = nil // nil position means read from the active log
+			fetchEventsClient, err = s.client.FetchEvents(ctx, req, grpc.Header(&header))
+			if err != nil {
+				return nil, fmt.Errorf("failed to connect to the active log stream: %w", err)
+			}
+		}
 	}
 
 	tunnelKey := header.Get(tunnelAuthHeader)
-	if s.opts.tunnelKey != "" && (len(tunnelKey) == 0 || tunnelKey[0] == "") {
-		cancel()
-		return nil, nil, errors.New("request tunnel CA failed: unauthorized response, tunnel key is empty")
+	if s.opts.TunnelKey != "" && (len(tunnelKey) == 0 || tunnelKey[0] == "") {
+		return nil, errors.New("connect tunnel fetch events failed: unauthorized response, tunnel key is empty")
 	}
 
-	if s.opts.tunnelKey != "" && s.opts.tunnelKey != tunnelKey[0] {
-		cancel()
-		return nil, nil, errors.New("request tunnel CA failed: invalid response tunnel key")
+	if s.opts.TunnelKey != "" && s.opts.TunnelKey != tunnelKey[0] {
+		return nil, errors.New("connect tunnel fetch events failed: invalid response tunnel key")
 	}
 
-	return fetchEventsClient, cancel, nil
+	return fetchEventsClient, nil
+}
+
+func (s *Client) eventFetchedClient(ctx context.Context) (proto.EventLogService_EventFetchedClient, error) {
+	md := metadata.New(map[string]string{federationAuthHeader: s.opts.AuthSecret})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	var header metadata.MD
+	eventFetchedClient, err := s.client.EventFetched(ctx, grpc.Header(&header))
+	if err != nil {
+		return nil, err
+	}
+
+	tunnelKey := header.Get(tunnelAuthHeader)
+	if s.opts.TunnelKey != "" && (len(tunnelKey) == 0 || tunnelKey[0] == "") {
+		return nil, errors.New("connect tunnel event fetched notification stream failed: unauthorized response, tunnel key is empty")
+	}
+
+	if s.opts.TunnelKey != "" && s.opts.TunnelKey != tunnelKey[0] {
+		return nil, errors.New("connect tunnel event fetched notification stream failed: invalid response tunnel key")
+	}
+
+	return eventFetchedClient, nil
 }

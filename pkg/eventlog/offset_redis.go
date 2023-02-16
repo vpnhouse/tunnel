@@ -96,7 +96,7 @@ func (s *offsetSyncRedis) GetOffset(tunnelID string) (Offset, error) {
 	res, err := s.redisClient.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return Offset{TunnelID: tunnelID}, nil
+			return Offset{}, nil
 		}
 		return Offset{}, fmt.Errorf("failed to read and parse offset data: %w", err)
 	}
@@ -104,8 +104,8 @@ func (s *offsetSyncRedis) GetOffset(tunnelID string) (Offset, error) {
 	return offsetFromJson(res)
 }
 
-func (s *offsetSyncRedis) PutOffset(offset Offset) error {
-	key := buildOffsetKey(offset.TunnelID)
+func (s *offsetSyncRedis) PutOffset(tunnelID string, offset Offset) error {
+	key := buildOffsetKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()
 

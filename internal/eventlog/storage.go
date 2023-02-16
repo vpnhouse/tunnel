@@ -279,6 +279,15 @@ func (ds *fsStorage) FirstLog() string {
 	return ds.currentLog.uuid
 }
 
+// CurrentLog returns the name of the current known log,
+// i.e. active file.
+func (ds *fsStorage) CurrentLog() string {
+	ds.lock.Lock()
+	defer ds.lock.Unlock()
+
+	return ds.currentLog.uuid
+}
+
 // NextLog returns next log to read from.
 // Returns an error if no next log for a given log can be found.
 // This may happen for very slow clients, who reads the very first log

@@ -39,7 +39,6 @@ func newEventServer(events eventlog.EventManager, keystore federation_keys.Keyst
 }
 
 func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.EventLogService_FetchEventsServer) error {
-
 	md, ok := metadata.FromIncomingContext(stream.Context())
 	if !ok {
 		return status.Errorf(codes.Unauthenticated, "failed to get metadata")
@@ -77,13 +76,20 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 		zap.Int64("offset", eventlogPosition.Offset),
 	)
 
-	sub, err := m.events.Subscribe(stream.Context(), subscriberId, eventlogPosition)
-	if err != nil {
-		if !errors.Is(err, eventlog.ErrNotFound) {
-			return status.Error(codes.InvalidArgument, err.Error())
+	sub, err := m.events.Subscribe(stream.Context(), subscriberId, eventlog.WithPosition(eventlogPosition))
+	if err != nil && errors.Is(err, eventlog.ErrNotFound) {
+		// Return not found error in case caller supply the position
+		if req.StartPosition != nil {
+			zap.L().Error("failed to detect start eventlogs position", zap.Error(err))
+			return status.Error(codes.NotFound, err.Error())
 		}
-		zap.L().Error("failed to detect start eventlogs position", zap.Error(err))
-		return status.Error(codes.NotFound, err.Error())
+
+		// Otherwise try to subscribe to the active log
+		sub, err = m.events.Subscribe(stream.Context(), subscriberId, eventlog.WithActiveLog())
+	}
+
+	if err != nil {
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	header := metadata.New(map[string]string{tunnelAuthHeader: m.tunnelKey})
