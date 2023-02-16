@@ -27,12 +27,14 @@ func (s *Client) readAndPublishEvents() {
 
 	fetchEventsClient, err := s.fetchEventsClient(ctx)
 	if err != nil {
+		cancel()
 		s.publishOrDrop(&Event{Err: err})
 		return
 	}
 
 	eventFetchedClient, err := s.eventFetchedClient(ctx)
 	if err != nil {
+		cancel()
 		s.publishOrDrop(&Event{Err: err})
 		return
 	}
@@ -67,8 +69,8 @@ func (s *Client) readAndPublishEvents() {
 			}
 
 			select {
-			case <-time.After(5 * time.Second):
-				s.publishOrDrop(&Event{Err: errors.New("failed to send read event position offset to tunnel node")})
+			case <-time.After(time.Second):
+				s.publishOrDrop(&Event{Err: errors.New("timeout to send read event position offset to tunnel node")})
 				return
 			case offsetChan <- offset:
 			}
@@ -127,11 +129,19 @@ func (s *Client) readAndPublishEvents() {
 			attempt := numReadAttempts.Add(1)
 			if attempt >= maxInputReadAttempts {
 				cancel()
+				zap.L().Debug(
+					"exceed number of attempts to wait events, trigger to stop reading events",
+					zap.Int32("attempt", attempt),
+					zap.Int32("max_attempts", maxInputReadAttempts),
+				)
+			} else {
+				zap.L().Debug("waiting event", zap.Int32("attempt", attempt))
 			}
-			zap.L().Debug("waiting event", zap.Int32("attempt", attempt))
 		case <-s.stop:
 			cancel()
+			zap.L().Debug("trigger to stop reading events")
 		case <-done:
+			cancel()
 			zap.L().Info("listen and publish events stopped")
 			return
 		}
