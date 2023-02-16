@@ -61,7 +61,7 @@ func TestReadBack(t *testing.T) {
 	err := l.Push(PeerAdd, "hello world")
 	require.NoError(t, err)
 
-	sub, err := l.Subscribe(context.Background(), "", WithPosition(EventlogPosition{Offset: 0, LogID:  ""}))
+	sub, err := l.Subscribe(context.Background(), "", WithPosition(EventlogPosition{Offset: 0, LogID: ""}))
 	require.NoError(t, err)
 
 	event := <-sub.Events()

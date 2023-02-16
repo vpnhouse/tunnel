@@ -12,8 +12,8 @@ const (
 )
 
 type Offset struct {
-	LogID    string `json:"log_id"`
-	Offset   int64  `json:"offset"`
+	LogID  string `json:"log_id"`
+	Offset int64  `json:"offset"`
 }
 
 func (s *Offset) ToJson() string {
