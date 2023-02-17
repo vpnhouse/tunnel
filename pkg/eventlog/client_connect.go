@@ -135,6 +135,7 @@ func (s *Client) fetchEventsClient(ctx context.Context) (proto.EventLogService_F
 	} else {
 		zap.L().Error("failed to get offset position. Start reading from the beginning of the active log")
 	}
+
 	fetchEventsClient, err := s.client.FetchEvents(ctx, req, grpc.Header(&header))
 	if err != nil {
 		if req.StartPosition == nil {

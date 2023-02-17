@@ -39,19 +39,9 @@ func newEventServer(events eventlog.EventManager, keystore federation_keys.Keyst
 }
 
 func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.EventLogService_FetchEventsServer) error {
-	md, ok := metadata.FromIncomingContext(stream.Context())
-	if !ok {
-		return status.Errorf(codes.Unauthenticated, "failed to get metadata")
-	}
-
-	authSecret := md.Get(federationAuthHeader)
-	if len(authSecret) == 0 || authSecret[0] == "" {
-		return status.Errorf(codes.Unauthenticated, "auth secret is empty or not supplied")
-	}
-
-	subscriberId, ok := m.keystore.Authorize(authSecret[0])
-	if !ok {
-		return status.Errorf(codes.Unauthenticated, "auth secret is not valid")
+	subscriberId, err := m.authenticate(stream.Context())
+	if err != nil {
+		return err
 	}
 
 	eventlogPosition := eventlog.EventlogPosition{
@@ -92,10 +82,9 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	header := metadata.New(map[string]string{tunnelAuthHeader: m.tunnelKey})
-	err = grpc.SendHeader(stream.Context(), header)
+	err = m.authorise(stream.Context())
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		return err
 	}
 
 	types := newEventTypeSet(req.GetEventTypes())
@@ -123,25 +112,14 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 }
 
 func (m *eventServer) EventFetched(stream proto.EventLogService_EventFetchedServer) error {
-	md, ok := metadata.FromIncomingContext(stream.Context())
-	if !ok {
-		return status.Errorf(codes.Unauthenticated, "failed to get metadata")
-	}
-
-	authSecret := md.Get(federationAuthHeader)
-	if len(authSecret) == 0 || authSecret[0] == "" {
-		return status.Errorf(codes.Unauthenticated, "auth secret is empty or not supplied")
-	}
-
-	subscriberId, ok := m.keystore.Authorize(authSecret[0])
-	if !ok {
-		return status.Errorf(codes.Unauthenticated, "auth secret is not valid")
-	}
-
-	header := metadata.New(map[string]string{tunnelAuthHeader: m.tunnelKey})
-	err := grpc.SendHeader(stream.Context(), header)
+	subscriberId, err := m.authenticate(stream.Context())
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		return err
+	}
+
+	err = m.authorise(stream.Context())
+	if err != nil {
+		return err
 	}
 
 	for {
@@ -164,6 +142,34 @@ func (m *eventServer) EventFetched(stream proto.EventLogService_EventFetchedServ
 		}
 	}
 
+	return nil
+}
+
+func (m *eventServer) authenticate(ctx context.Context) (string, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", status.Errorf(codes.Unauthenticated, "failed to get metadata")
+	}
+
+	authSecret := md.Get(federationAuthHeader)
+	if len(authSecret) == 0 || authSecret[0] == "" {
+		return "", status.Errorf(codes.Unauthenticated, "auth secret is empty or not supplied")
+	}
+
+	subscriberId, ok := m.keystore.Authorize(authSecret[0])
+	if !ok {
+		return "", status.Errorf(codes.Unauthenticated, "auth secret is not valid")
+	}
+
+	return subscriberId, nil
+}
+
+func (m *eventServer) authorise(ctx context.Context) error {
+	header := metadata.New(map[string]string{tunnelAuthHeader: m.tunnelKey})
+	err := grpc.SendHeader(ctx, header)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
 	return nil
 }
 
