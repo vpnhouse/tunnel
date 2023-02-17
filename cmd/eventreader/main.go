@@ -43,11 +43,18 @@ func main() {
 }
 
 func run_client(serverHost string, serverPort string, authSecret string) {
+	offsetSync, err := eventlog.NewOffsetSyncFile("./offsets")
+	if err != nil {
+		zap.L().Error("failed to create offset sync", zap.Error(err))
+	}
 	client, err := eventlog.NewClient(
+		"federation_1",
+		offsetSync,
 		eventlog.WithSelfSignedTLS(),
 		eventlog.WithNoSSL(),
 		eventlog.WithHost(serverHost, serverPort),
 		eventlog.WithAuthSecret(authSecret),
+		eventlog.WithStopIdleTimeout(time.Minute),
 	)
 	if err != nil {
 		zap.L().Fatal("failed to create eventlog client", zap.Error(err))

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
+	"time"
 )
 
 type options struct {
@@ -27,6 +28,10 @@ type options struct {
 	NoSSL bool
 	// use off
 	OffsetDirectory string
+	// Stop idle timeout
+	// > 0 the client stops listen events and close connection
+	// in case silence (idle) from the server during timeout
+	StopIdleTimeout time.Duration
 }
 
 // Use tunnel host as TunnnelID
@@ -95,6 +100,13 @@ func WithHost(host string, port string) Option {
 func WithAuthSecret(authSecret string) Option {
 	return func(opts *options) error {
 		opts.AuthSecret = authSecret
+		return nil
+	}
+}
+
+func WithStopIdleTimeout(stopIdleTimeout time.Duration) Option {
+	return func(opts *options) error {
+		opts.StopIdleTimeout = stopIdleTimeout
 		return nil
 	}
 }

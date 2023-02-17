@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	waitOutputWriteTimeout      = time.Second * 5
-	waitInputReadAttemptTimeout = time.Second * 10
-	maxInputReadAttempts        = 5
+	waitOutputWriteTimeout     = time.Second * 5
+	minInputReadAttemptTimeout = time.Second * 10
 )
 
 var errOutputEventStucked = errors.New("output event stucked")
+var errLockNotAcquired = errors.New("lock not acquired")
 
 func (s *Client) readAndPublishEvents() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -42,7 +42,7 @@ func (s *Client) readAndPublishEvents() {
 	done := make(chan struct{})
 	offsetChan := make(chan Offset)
 
-	var numReadAttempts atomic.Int32
+	var numReadAttempts atomic.Uint64
 
 	go func() {
 		defer func() {
@@ -80,10 +80,21 @@ func (s *Client) readAndPublishEvents() {
 	// Loop to notify offset positions
 	go func() {
 		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
-
 		var sentOffset Offset
 		var currOffset Offset
+
+		defer func() {
+			if sentOffset != currOffset {
+				err := eventFetchedClient.Send(&proto.EventFetchedRequest{Position: &proto.EventLogPosition{
+					LogId:  currOffset.LogID,
+					Offset: currOffset.Offset,
+				}})
+				if err != nil {
+					zap.L().Error("failed to send read event offset position", zap.Error(err))
+				}
+			}
+			ticker.Stop()
+		}()
 
 		for {
 			select {
@@ -120,22 +131,30 @@ func (s *Client) readAndPublishEvents() {
 		}
 	}()
 
-	ticker := time.NewTicker(waitInputReadAttemptTimeout)
+	hasStopIdleTimeout := s.opts.StopIdleTimeout > 0
+
+	ticker := time.NewTicker(s.getStopIdleTimeout())
 	defer ticker.Stop()
+
+	lockTimeout := s.getLockTtl()
 
 	for {
 		select {
 		case <-ticker.C:
-			attempt := numReadAttempts.Add(1)
-			if attempt >= maxInputReadAttempts {
+			if hasStopIdleTimeout && numReadAttempts.Add(1) > 2 {
 				cancel()
-				zap.L().Debug(
-					"exceed number of attempts to wait events, trigger to stop reading events",
-					zap.Int32("attempt", attempt),
-					zap.Int32("max_attempts", maxInputReadAttempts),
-				)
+				zap.L().Debug("stop reading events as timeout to wait events is exceeded")
 			} else {
-				zap.L().Debug("waiting event", zap.Int32("attempt", attempt))
+				acquired, err := s.offsetSync.Acquire(s.instanceID, s.tunnelID, lockTimeout)
+				if !acquired {
+					s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to acquire lock to process events: %w", errLockNotAcquired)})
+					cancel()
+					zap.L().Info("stop reading events as failed to acquire lock to process events",
+						zap.String("instance_id", s.instanceID),
+						zap.String("tunnel_id", s.tunnelID),
+						zap.Error(err),
+					)
+				}
 			}
 		case <-s.stop:
 			cancel()
@@ -169,6 +188,17 @@ func (s *Client) publishOrError(event *Event) error {
 	case s.out <- event:
 		return nil
 	}
+}
+
+func (s *Client) getLockTtl() time.Duration {
+	return s.getStopIdleTimeout() + time.Minute
+}
+
+func (s *Client) getStopIdleTimeout() time.Duration {
+	if s.opts.StopIdleTimeout > 0 {
+		return s.opts.StopIdleTimeout
+	}
+	return minInputReadAttemptTimeout
 }
 
 func parseEvent(evt *proto.FetchEventsResponse) (*proto.PeerInfo, Offset, error) {
