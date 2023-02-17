@@ -44,6 +44,11 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 		return err
 	}
 
+	err = m.authorise(stream.Context())
+	if err != nil {
+		return err
+	}
+
 	eventlogPosition := eventlog.EventlogPosition{
 		LogID:  req.GetStartPosition().GetLogId(),
 		Offset: req.GetStartPosition().GetOffset(),
@@ -80,11 +85,6 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 
 	if err != nil {
 		return status.Error(codes.InvalidArgument, err.Error())
-	}
-
-	err = m.authorise(stream.Context())
-	if err != nil {
-		return err
 	}
 
 	types := newEventTypeSet(req.GetEventTypes())
