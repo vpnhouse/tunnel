@@ -49,10 +49,11 @@ func run_client(serverHost string, serverPort string, authSecret string) {
 	}
 	client, err := eventlog.NewClient(
 		"federation_1",
+		serverHost,
 		offsetSync,
 		eventlog.WithSelfSignedTLS(),
 		eventlog.WithNoSSL(),
-		eventlog.WithHost(serverHost, serverPort),
+		eventlog.WithTunnelPort(serverPort),  // can be omitted
 		eventlog.WithAuthSecret(authSecret),
 		eventlog.WithStopIdleTimeout(time.Minute),
 	)

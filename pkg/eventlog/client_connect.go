@@ -35,7 +35,7 @@ func (s *Client) connectSelfSignedTLS() error {
 	if s.opts.NoSSL {
 		urlPrefix = "http"
 	}
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s://%s/grpc/ca", urlPrefix, s.opts.TunnelHost), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s://%s/grpc/ca", urlPrefix, s.tunnelHost), nil)
 	if err != nil {
 		return fmt.Errorf("get tunnel CA failed: %w", err)
 	}
@@ -107,7 +107,7 @@ func (s *Client) connectTLS() error {
 
 func (s *Client) connectWithCreds(creds credentials.TransportCredentials) error {
 	cc, err := grpc.Dial(
-		net.JoinHostPort(s.opts.TunnelHost, s.opts.TunnelPort),
+		net.JoinHostPort(s.tunnelHost, s.opts.TunnelPort),
 		grpc.WithTransportCredentials(creds),
 	)
 	if err != nil {
@@ -126,7 +126,7 @@ func (s *Client) fetchEventsClient(ctx context.Context) (proto.EventLogService_F
 
 	req := &proto.FetchEventsRequest{}
 
-	offset, err := s.offsetSync.GetOffset(s.tunnelID)
+	offset, err := s.offsetSync.GetOffset(s.tunnelHost)
 	if err == nil {
 		req.StartPosition = &proto.EventLogPosition{
 			LogId:  offset.LogID,

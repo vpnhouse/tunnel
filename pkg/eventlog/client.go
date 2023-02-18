@@ -21,21 +21,22 @@ type Client struct {
 	stop       chan struct{}
 	done       chan struct{}
 	offsetSync OffsetSync
-	tunnelID   string
+	tunnelHost string
 	instanceID string
 }
 
-func NewClient(instanceID string, offsetSync OffsetSync, opt ...Option) (*Client, error) {
-	var opts options
+func NewClient(instanceID string, tunnelHost string, offsetSync OffsetSync, opt ...Option) (*Client, error) {
+	opts := options{
+		TunnelPort: "8089",     // Default port
+		TunnelID:   tunnelHost, // use host as default value in case no opts given
+	}
 	for _, o := range opt {
 		err := o(&opts)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	tunnelID := opts.TunnelID()
-	if tunnelID == "" {
+	if tunnelHost == "" {
 		return nil, fmt.Errorf("tunnel host is not defined")
 	}
 
@@ -48,7 +49,7 @@ func NewClient(instanceID string, offsetSync OffsetSync, opt ...Option) (*Client
 		out:        make(chan *Event),
 		stop:       make(chan struct{}),
 		done:       make(chan struct{}),
-		tunnelID:   tunnelID,
+		tunnelHost: tunnelHost,
 		instanceID: instanceID,
 		offsetSync: offsetSync,
 	}, nil
@@ -62,12 +63,12 @@ func (s *Client) Events() chan *Event {
 				close(s.done)
 			}()
 			lockTimeout := s.getLockTtl()
-			acquired, err := s.offsetSync.Acquire(s.instanceID, s.tunnelID, lockTimeout)
+			acquired, err := s.offsetSync.Acquire(s.instanceID, s.tunnelHost, lockTimeout)
 			if !acquired {
 				s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to acquire lock to process events: %w", errLockNotAcquired)})
 				zap.L().Info("stop reading events as failed to acquire lock to process events",
 					zap.String("instance_id", s.instanceID),
-					zap.String("tunnel_id", s.tunnelID),
+					zap.String("tunnel", s.tunnelHost),
 					zap.Error(err),
 				)
 				return

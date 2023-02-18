@@ -111,7 +111,7 @@ func (s *Client) readAndPublishEvents() {
 
 					sentOffset = currOffset
 
-					err = s.offsetSync.PutOffset(s.tunnelID, sentOffset)
+					err = s.offsetSync.PutOffset(s.opts.TunnelID, sentOffset)
 					if err != nil {
 						zap.L().Error("failed to keep store read event offset position", zap.Error(err))
 						return
@@ -145,13 +145,13 @@ func (s *Client) readAndPublishEvents() {
 				cancel()
 				zap.L().Debug("stop reading events as timeout to wait events is exceeded")
 			} else {
-				acquired, err := s.offsetSync.Acquire(s.instanceID, s.tunnelID, lockTimeout)
+				acquired, err := s.offsetSync.Acquire(s.instanceID, s.opts.TunnelID, lockTimeout)
 				if !acquired {
 					s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to acquire lock to process events: %w", errLockNotAcquired)})
 					cancel()
 					zap.L().Info("stop reading events as failed to acquire lock to process events",
 						zap.String("instance_id", s.instanceID),
-						zap.String("tunnel_id", s.tunnelID),
+						zap.String("tunnel_id", s.opts.TunnelID),
 						zap.Error(err),
 					)
 				}

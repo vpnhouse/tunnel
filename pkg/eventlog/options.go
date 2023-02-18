@@ -15,8 +15,6 @@ type options struct {
 	CA []byte
 	// Certificate related to the client in case mutual tls setup only
 	Cert tls.Certificate
-	// tunnel domain name or ip
-	TunnelHost string
 	// tunnel port (GRPC)
 	TunnelPort string
 	// authSecret to sign requests to the server both grpc and http
@@ -32,11 +30,8 @@ type options struct {
 	// > 0 the client stops listen events and close connection
 	// in case silence (idle) from the server during timeout
 	StopIdleTimeout time.Duration
-}
-
-// Use tunnel host as TunnnelID
-func (s *options) TunnelID() string {
-	return s.TunnelHost
+	// Optional tunnel id (used in tracking offset)
+	TunnelID string
 }
 
 type Option func(opts *options) error
@@ -74,9 +69,8 @@ func WithTLS(ca []byte, cert tls.Certificate) Option {
 	}
 }
 
-func WithTunnel(host string, port string) Option {
+func WithTunnelPort(port string) Option {
 	return func(opts *options) error {
-		opts.TunnelHost = host
 		opts.TunnelPort = port
 		return nil
 	}
@@ -85,14 +79,6 @@ func WithTunnel(host string, port string) Option {
 func WithNoSSL() Option {
 	return func(opts *options) error {
 		opts.NoSSL = true
-		return nil
-	}
-}
-
-func WithHost(host string, port string) Option {
-	return func(opts *options) error {
-		opts.TunnelHost = host
-		opts.TunnelPort = port
 		return nil
 	}
 }
