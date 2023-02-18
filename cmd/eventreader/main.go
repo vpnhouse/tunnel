@@ -53,7 +53,7 @@ func run_client(serverHost string, serverPort string, authSecret string) {
 		offsetSync,
 		eventlog.WithSelfSignedTLS(),
 		eventlog.WithNoSSL(),
-		eventlog.WithTunnelPort(serverPort),  // can be omitted
+		eventlog.WithTunnelPort(serverPort), // can be omitted
 		eventlog.WithAuthSecret(authSecret),
 		eventlog.WithStopIdleTimeout(time.Minute),
 	)
