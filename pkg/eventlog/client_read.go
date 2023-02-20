@@ -82,33 +82,36 @@ func (s *Client) readAndPublishEvents() {
 
 		defer func() {
 			ticker.Stop()
+			err := eventFetchedClient.CloseSend()
+			zap.L().Error("send read event position stopped", zap.Error(err))
 		}()
 
 		for {
 			select {
 			case <-ticker.C:
-				if sentOffset != currOffset {
-					err := eventFetchedClient.Send(&proto.EventFetchedRequest{
-						Position: &proto.EventLogPosition{
-							LogId:  currOffset.LogID,
-							Offset: currOffset.Offset,
-						},
-					})
-
-					if err != nil {
-						zap.L().Error("failed to send read event offset position", zap.Error(err))
-						return
-					}
-
-					err = s.offsetSync.PutOffset(s.opts.TunnelID, sentOffset)
-					if err != nil {
-						zap.L().Error("failed to keep store read event offset position", zap.Error(err))
-						return
-					}
-
-					sentOffset = currOffset
-
+				if sentOffset == currOffset {
+					continue
 				}
+				sentOffset = currOffset
+
+				err := eventFetchedClient.Send(&proto.EventFetchedRequest{
+					Position: &proto.EventLogPosition{
+						LogId:  currOffset.LogID,
+						Offset: currOffset.Offset,
+					},
+				})
+
+				if err != nil {
+					zap.L().Error("failed to send read event offset position", zap.Error(err))
+					return
+				}
+
+				err = s.offsetSync.PutOffset(s.opts.TunnelID, sentOffset)
+				if err != nil {
+					zap.L().Error("failed to keep store read event offset position", zap.Error(err))
+					return
+				}
+
 			case newOffset, ok := <-offsetChan:
 				if ok {
 					currOffset = newOffset
@@ -116,23 +119,25 @@ func (s *Client) readAndPublishEvents() {
 				}
 
 				// Report the latest offset back to the node prior exiting
-				if sentOffset != currOffset {
-					err := eventFetchedClient.Send(&proto.EventFetchedRequest{
-						Position: &proto.EventLogPosition{
-							LogId:  currOffset.LogID,
-							Offset: currOffset.Offset,
-						},
-					})
-					if err != nil {
-						zap.L().Error("failed to send read event offset position", zap.Error(err))
-					}
+				if sentOffset == currOffset {
+					return
 				}
 
-				zap.L().Error("send read event position intercepted", zap.Error(err))
-				err := eventFetchedClient.CloseSend()
+				err := eventFetchedClient.Send(&proto.EventFetchedRequest{
+					Position: &proto.EventLogPosition{
+						LogId:  currOffset.LogID,
+						Offset: currOffset.Offset,
+					},
+				})
 				if err != nil {
-					zap.L().Error("failed to stop send read event offset position", zap.Error(err))
+					zap.L().Error("failed to send read event offset position", zap.Error(err))
 				}
+
+				err = s.offsetSync.PutOffset(s.opts.TunnelID, sentOffset)
+				if err != nil {
+					zap.L().Error("failed to keep store read event offset position", zap.Error(err))
+				}
+
 				return
 			}
 		}
