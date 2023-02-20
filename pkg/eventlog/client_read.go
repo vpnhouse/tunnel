@@ -67,7 +67,7 @@ func (s *Client) readAndPublishEvents() {
 
 			select {
 			case <-time.After(time.Second):
-				s.publishOrDrop(&Event{Err: errors.New("timeout to send read event position offset to tunnel node")})
+				s.publishOrDrop(&Event{Err: errors.New("cannot handle read event offset position")})
 				return
 			case offsetChan <- offset:
 			}
