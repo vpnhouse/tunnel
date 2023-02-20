@@ -14,11 +14,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	waitOutputWriteTimeout     = time.Second * 5
-	minInputReadAttemptTimeout = time.Second * 10
-)
-
 var errOutputEventStucked = errors.New("output event stucked")
 var errLockNotAcquired = errors.New("lock not acquired")
 
@@ -32,7 +27,9 @@ func (s *Client) readAndPublishEvents() {
 		return
 	}
 
-	eventFetchedClient, err := s.eventFetchedClient(ctx)
+	// Sending offsets is not intercepted by context cancel as we have to report the latest
+	// offset on eventlog read cancelling
+	eventFetchedClient, err := s.eventFetchedClient(context.Background())
 	if err != nil {
 		cancel()
 		s.publishOrDrop(&Event{Err: err})
@@ -79,20 +76,11 @@ func (s *Client) readAndPublishEvents() {
 
 	// Loop to notify offset positions
 	go func() {
-		ticker := time.NewTicker(time.Second)
+		ticker := time.NewTicker(reportOffsetTimeout)
 		var sentOffset Offset
 		var currOffset Offset
 
 		defer func() {
-			if sentOffset != currOffset {
-				err := eventFetchedClient.Send(&proto.EventFetchedRequest{Position: &proto.EventLogPosition{
-					LogId:  currOffset.LogID,
-					Offset: currOffset.Offset,
-				}})
-				if err != nil {
-					zap.L().Error("failed to send read event offset position", zap.Error(err))
-				}
-			}
 			ticker.Stop()
 		}()
 
@@ -100,33 +88,52 @@ func (s *Client) readAndPublishEvents() {
 			select {
 			case <-ticker.C:
 				if sentOffset != currOffset {
-					err := eventFetchedClient.Send(&proto.EventFetchedRequest{Position: &proto.EventLogPosition{
-						LogId:  currOffset.LogID,
-						Offset: currOffset.Offset,
-					}})
+					err := eventFetchedClient.Send(&proto.EventFetchedRequest{
+						Position: &proto.EventLogPosition{
+							LogId:  currOffset.LogID,
+							Offset: currOffset.Offset,
+						},
+					})
+
 					if err != nil {
 						zap.L().Error("failed to send read event offset position", zap.Error(err))
 						return
 					}
-
-					sentOffset = currOffset
 
 					err = s.offsetSync.PutOffset(s.opts.TunnelID, sentOffset)
 					if err != nil {
 						zap.L().Error("failed to keep store read event offset position", zap.Error(err))
 						return
 					}
+
+					sentOffset = currOffset
+
 				}
 			case newOffset, ok := <-offsetChan:
-				if !ok {
-					zap.L().Error("send read event position intercepted", zap.Error(err))
-					err := eventFetchedClient.CloseSend()
-					if err != nil {
-						zap.L().Error("failed to stop send read event offset position", zap.Error(err))
-					}
-					return
+				if ok {
+					currOffset = newOffset
+					continue
 				}
-				currOffset = newOffset
+
+				// Report the latest offset back to the node prior exiting
+				if sentOffset != currOffset {
+					err := eventFetchedClient.Send(&proto.EventFetchedRequest{
+						Position: &proto.EventLogPosition{
+							LogId:  currOffset.LogID,
+							Offset: currOffset.Offset,
+						},
+					})
+					if err != nil {
+						zap.L().Error("failed to send read event offset position", zap.Error(err))
+					}
+				}
+
+				zap.L().Error("send read event position intercepted", zap.Error(err))
+				err := eventFetchedClient.CloseSend()
+				if err != nil {
+					zap.L().Error("failed to stop send read event offset position", zap.Error(err))
+				}
+				return
 			}
 		}
 	}()
@@ -191,14 +198,14 @@ func (s *Client) publishOrError(event *Event) error {
 }
 
 func (s *Client) getLockTtl() time.Duration {
-	return s.getStopIdleTimeout() + time.Minute
+	return s.getStopIdleTimeout() + lockTtl
 }
 
 func (s *Client) getStopIdleTimeout() time.Duration {
 	if s.opts.StopIdleTimeout > 0 {
 		return s.opts.StopIdleTimeout
 	}
-	return minInputReadAttemptTimeout
+	return 0
 }
 
 func parseEvent(evt *proto.FetchEventsResponse) (*proto.PeerInfo, Offset, error) {
