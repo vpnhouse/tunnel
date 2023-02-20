@@ -140,11 +140,12 @@ func (s *Client) readAndPublishEvents() {
 
 	hasStopIdleTimeout := s.opts.StopIdleTimeout > 0
 
-	ticker := time.NewTicker(s.getStopIdleTimeout())
+	ticker := time.NewTicker(s.getProlongateLockTimeout())
 	defer ticker.Stop()
 
 	lockTimeout := s.getLockTtl()
 
+	// min control loop
 	for {
 		select {
 		case <-ticker.C:
@@ -152,6 +153,7 @@ func (s *Client) readAndPublishEvents() {
 				cancel()
 				zap.L().Debug("stop reading events as timeout to wait events is exceeded")
 			} else {
+				// Prolongate lock
 				acquired, err := s.offsetSync.Acquire(s.instanceID, s.opts.TunnelID, lockTimeout)
 				if !acquired {
 					s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to acquire lock to process events: %w", errLockNotAcquired)})
@@ -198,14 +200,14 @@ func (s *Client) publishOrError(event *Event) error {
 }
 
 func (s *Client) getLockTtl() time.Duration {
-	return s.getStopIdleTimeout() + lockTtl
+	return s.getProlongateLockTimeout() + lockTtl
 }
 
-func (s *Client) getStopIdleTimeout() time.Duration {
-	if s.opts.StopIdleTimeout > 0 {
+func (s *Client) getProlongateLockTimeout() time.Duration {
+	if s.opts.StopIdleTimeout > defaultLockProlongateTimeout {
 		return s.opts.StopIdleTimeout
 	}
-	return 0
+	return defaultLockProlongateTimeout
 }
 
 func parseEvent(evt *proto.FetchEventsResponse) (*proto.PeerInfo, Offset, error) {
