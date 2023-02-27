@@ -35,7 +35,7 @@ type offsetSyncFile struct {
 }
 
 func NewOffsetSyncFile(directory string) (*offsetSyncFile, error) {
-	err := os.MkdirAll(directory, 777)
+	err := os.MkdirAll(directory, 0777)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure the direstory %s: %w", directory, err)
 	}

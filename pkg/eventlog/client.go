@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
 )
@@ -62,15 +63,22 @@ func (s *Client) Events() chan *Event {
 				close(s.out)
 				close(s.done)
 			}()
-			acquired, err := s.offsetSync.Acquire(s.instanceID, s.tunnelHost, s.getLockTtl())
+			lockTtl := s.getLockTtl()
+			acquired, err := s.offsetSync.Acquire(s.instanceID, s.tunnelHost, lockTtl)
 			if !acquired {
-				s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to acquire lock to process events: %w", errLockNotAcquired)})
-				zap.L().Info("stop reading events as failed to acquire lock to process events",
+				s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to acquire sync lock to process events: %w", errLockNotAcquired)})
+				zap.L().Info("stop reading events as failed to acquire sync lock to process events",
 					zap.String("instance_id", s.instanceID),
 					zap.String("tunnel", s.tunnelHost),
 					zap.Error(err),
 				)
 				return
+			} else {
+				zap.L().Debug("set sync lock",
+					zap.String("instance_id", s.instanceID),
+					zap.String("tunnel_id", s.opts.TunnelID),
+					zap.Stringer("ttl", human.Interval(lockTtl)),
+				)
 			}
 			err = s.connect()
 			if err != nil {

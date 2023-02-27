@@ -133,7 +133,7 @@ func (s *Client) fetchEventsClient(ctx context.Context) (proto.EventLogService_F
 			Offset: offset.Offset,
 		}
 	} else {
-		zap.L().Error("failed to get offset position. Start reading from the beginning of the active log")
+		zap.L().Info("failed to get offset position. Start reading from the beginning of the active log")
 	}
 
 	fetchEventsClient, err := s.client.FetchEvents(ctx, req, grpc.Header(&header))
@@ -141,7 +141,7 @@ func (s *Client) fetchEventsClient(ctx context.Context) (proto.EventLogService_F
 		if req.StartPosition == nil {
 			return nil, fmt.Errorf("failed to connect to the active log stream: %w", err)
 		}
-		if status, ok := status.FromError(err); !ok || status.Code() != codes.NotFound {
+		if status, ok := status.FromError(err); ok && status.Code() == codes.NotFound {
 			zap.L().Info("event log not found, use active event log", zap.String("log_id", req.StartPosition.LogId))
 			req.StartPosition = nil // nil position means read from the active log
 			fetchEventsClient, err = s.client.FetchEvents(ctx, req, grpc.Header(&header))
