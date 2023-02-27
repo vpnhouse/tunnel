@@ -154,6 +154,7 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 	}
 
 	evenlogPosition := options.Position
+	notPublishEventAtPosition := false
 
 	if options.ActiveLog {
 		evenlogPosition = EventlogPosition{
@@ -166,8 +167,11 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 				LogID:  em.storage.FirstLog(),
 				Offset: 0,
 			}
-		} else if !em.storage.HasLog(evenlogPosition.LogID) {
-			return nil, fmt.Errorf("no such log %s: %w", evenlogPosition.LogID, ErrNotFound)
+		} else {
+			if !em.storage.HasLog(evenlogPosition.LogID) {
+				return nil, fmt.Errorf("no such log %s: %w", evenlogPosition.LogID, ErrNotFound)
+			}
+			notPublishEventAtPosition = true // don't publish the event explicitly asked to start from
 		}
 	}
 
@@ -185,7 +189,7 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 	em.subscribers[sub] = struct{}{}
 
 	go func() {
-		err := em.tail(ctx, evenlogPosition, sub)
+		err := em.tail(ctx, evenlogPosition, notPublishEventAtPosition, sub)
 		select {
 		// dont block if nobody consumes the chan
 		case sub.errors <- err:
@@ -285,7 +289,7 @@ func (em *eventManager) teardown() {
 
 // tail sequentially reads a given log at given offset, and all the following files, if any.
 // tail does not validate given arguments expecting them to be verified by a caller.
-func (em *eventManager) tail(ctx context.Context, eventlogPosition EventlogPosition, sub *Subscription) error {
+func (em *eventManager) tail(ctx context.Context, eventlogPosition EventlogPosition, notPublishEventAtPosition bool, sub *Subscription) error {
 	zap.L().Debug("start tailing",
 		zap.String("log_id", eventlogPosition.LogID),
 		zap.Int64("offset", eventlogPosition.Offset),
@@ -352,6 +356,12 @@ func (em *eventManager) tail(ctx context.Context, eventlogPosition EventlogPosit
 			}
 
 			offset = nextOffset
+
+			if notPublishEventAtPosition {
+				// Skip the firstly read event is requested
+				notPublishEventAtPosition = false
+				continue
+			}
 
 			select {
 			case <-ctx.Done():

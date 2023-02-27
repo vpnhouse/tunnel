@@ -24,14 +24,14 @@ type options struct {
 	TunnelKey string
 	// indicate to use http request to tunnel api (used for debug purposes)
 	NoSSL bool
-	// use off
-	OffsetDirectory string
 	// Stop idle timeout
 	// > 0 the client stops listen events and close connection
 	// in case silence (idle) from the server during timeout
 	StopIdleTimeout time.Duration
 	// Optional tunnel id (used in tracking offset)
 	TunnelID string
+	// Enforce to start reading from active log disregarding to stored offset
+	ForceStartFromActiveLog bool
 }
 
 type Option func(opts *options) error
@@ -93,6 +93,14 @@ func WithAuthSecret(authSecret string) Option {
 func WithStopIdleTimeout(stopIdleTimeout time.Duration) Option {
 	return func(opts *options) error {
 		opts.StopIdleTimeout = stopIdleTimeout
+		return nil
+	}
+}
+
+
+func WithStartFromActiveLog() Option {
+	return func(opts *options) error {
+		opts.ForceStartFromActiveLog = true
 		return nil
 	}
 }

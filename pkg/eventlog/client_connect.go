@@ -14,10 +14,8 @@ import (
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 func (s *Client) connect() error {
@@ -138,17 +136,7 @@ func (s *Client) fetchEventsClient(ctx context.Context) (proto.EventLogService_F
 
 	fetchEventsClient, err := s.client.FetchEvents(ctx, req, grpc.Header(&header))
 	if err != nil {
-		if req.StartPosition == nil {
-			return nil, fmt.Errorf("failed to connect to the active log stream: %w", err)
-		}
-		if status, ok := status.FromError(err); ok && status.Code() == codes.NotFound {
-			zap.L().Info("event log not found, use active event log", zap.String("log_id", req.StartPosition.LogId))
-			req.StartPosition = nil // nil position means read from the active log
-			fetchEventsClient, err = s.client.FetchEvents(ctx, req, grpc.Header(&header))
-			if err != nil {
-				return nil, fmt.Errorf("failed to connect to the active log stream: %w", err)
-			}
-		}
+		return nil, err
 	}
 
 	tunnelKey := header.Get(tunnelAuthHeader)
