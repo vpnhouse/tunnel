@@ -186,7 +186,7 @@ func TestWritesOrder(t *testing.T) {
 	reads := 0
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 
 	go func() {
 		defer wg.Done()
@@ -237,7 +237,7 @@ func TestReadsCount(t *testing.T) {
 
 	rets := make([]int, concurrency)
 	for i := 0; i < concurrency; i++ {
-		sub, err := log.Subscribe(ctx, "", WithPosition(EventlogPosition{LogID: "", Offset: 0}))
+		sub, err := log.Subscribe(ctx, fmt.Sprint(i), WithPosition(EventlogPosition{LogID: "", Offset: 0}))
 		require.NoError(t, err)
 
 		wg.Add(1)

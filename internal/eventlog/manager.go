@@ -29,8 +29,9 @@ type eventManager struct {
 	cancel  context.CancelFunc
 	storage *fsStorage
 
-	// closes when shutdown is complete
-	unblockDone chan struct{}
+	// stop -> done pattern to shutdown
+	stop chan struct{}
+	done chan struct{}
 
 	// buffered chan for incoming events
 	incoming chan []byte
@@ -45,22 +46,20 @@ func New(cfg StorageConfig, fss ...afero.Fs) (*eventManager, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	m := &eventManager{
 		incoming:    make(chan []byte, 100),
-		unblockDone: make(chan struct{}),
+		stop:        make(chan struct{}),
+		done:        make(chan struct{}),
 		subscribers: map[string]*Subscription{},
 		storage:     storage,
-		cancel:      cancel,
 	}
 
-	go m.run(ctx)
+	go m.run()
 	return m, nil
 }
 
 // Push adds the event to the log.
 func (em *eventManager) Push(eventType EventType, data interface{}) error {
-
 	if em.stopped.Load() {
 		return ErrServiceStopped
 	}
@@ -134,6 +133,11 @@ func (s *EventlogPosition) validate() error {
 // Context cancellation leads to subscription destruction, as well as calls of
 // .Close() method.
 func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts ...SubscribeOption) (*Subscription, error) {
+
+	if em.stopped.Load() {
+		return nil, ErrServiceStopped
+	}
+
 	var options subscribeOptions
 	for _, opt := range opts {
 		err := opt(&options)
@@ -141,13 +145,6 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 			return nil, err
 		}
 	}
-
-	if em.stopped.Load() {
-		return nil, ErrServiceStopped
-	}
-
-	em.lock.Lock()
-	defer em.lock.Unlock()
 
 	evenlogPosition := options.Position
 
@@ -233,45 +230,37 @@ func (em *eventManager) Running() bool {
 }
 
 func (em *eventManager) Shutdown() error {
-
 	if em.stopped.Load() {
 		return fmt.Errorf("manager is not running")
 	}
 
-	em.lock.Lock()
-	em.cancel()
-	em.lock.Unlock()
+	close(em.stop)
 
-	<-em.unblockDone
+	<-em.done
 	return nil
 }
 
-func (em *eventManager) run(ctx context.Context) {
+func (em *eventManager) run() {
+	defer close(em.done)
 	for {
 		select {
 		case event := <-em.incoming:
 			em.storeEvent(event)
-
-		case <-ctx.Done():
-			zap.L().Info("got termination signal")
+		case <-em.stop:
+			zap.L().Info("event manager is stopping")
 			// stop receiving new messages
 			em.stopped.Store(true)
 
-			// sink the chan first, we have to store
-			// remaining events before we go down.
-		ffor:
+			// store remaining events before we go down.
 			for {
 				select {
 				case event := <-em.incoming:
 					em.storeEvent(event)
 				default:
-					//
-					break ffor
+					em.close()
+					return
 				}
 			}
-
-			em.teardown()
-			return
 		}
 	}
 }
@@ -279,24 +268,26 @@ func (em *eventManager) run(ctx context.Context) {
 // storeEvent writes the event in the underlying file
 func (em *eventManager) storeEvent(eventData []byte) {
 	if err := em.storage.Write(eventData); err != nil {
-		// TODO(nikonov): that's critical. What we gonna do?
+		zap.L().Error("failed to store event", zap.Error(err))
 	}
 }
 
-func (em *eventManager) teardown() {
+func (em *eventManager) close() {
 	em.lock.Lock()
-	defer em.lock.Unlock()
+	subscribers := make([]*Subscription, 0, len(em.subscribers))
+	for _, sub := range em.subscribers {
+		subscribers = append(subscribers, sub)
+	}
+	em.lock.Unlock()
 
-	for subscriberId, sub := range em.subscribers {
-		zap.L().Debug("closing the subscriber", zap.String("subscriber_id", subscriberId))
+	for _, sub := range subscribers {
+		zap.L().Debug("closing the subscriber", zap.String("subscriber_id", sub.subscriberID))
 		// wait for subscriber termination
 		<-sub.Close()
 	}
 
 	// .Sync and close the log file(s)
 	em.storage.Close()
-	// notify that we're done.
-	close(em.unblockDone)
 }
 
 // tail sequentially reads a given log at given offset, and all the following files, if any.
