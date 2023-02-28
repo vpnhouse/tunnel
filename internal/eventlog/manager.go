@@ -113,8 +113,9 @@ func (s *Subscription) Close() <-chan struct{} {
 // Zero offset means the beginning of the file.
 // Empty logID means the beginning of the whole journal.
 type EventlogPosition struct {
-	LogID  string
-	Offset int64
+	LogID               string
+	Offset              int64
+	SkipEventAtPosition bool // Skip event at position (i.e. not publish it)
 }
 
 func (s *EventlogPosition) validate() error {
@@ -154,7 +155,6 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 	}
 
 	evenlogPosition := options.Position
-	notPublishEventAtPosition := false
 
 	if options.ActiveLog {
 		evenlogPosition = EventlogPosition{
@@ -171,7 +171,7 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 			if !em.storage.HasLog(evenlogPosition.LogID) {
 				return nil, fmt.Errorf("no such log %s: %w", evenlogPosition.LogID, ErrNotFound)
 			}
-			notPublishEventAtPosition = true // don't publish the event explicitly asked to start from
+			evenlogPosition.SkipEventAtPosition = true // skip event at given position to avoid duplication
 		}
 	}
 
@@ -189,7 +189,7 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 	em.subscribers[sub] = struct{}{}
 
 	go func() {
-		err := em.tail(ctx, evenlogPosition, notPublishEventAtPosition, sub)
+		err := em.tail(ctx, evenlogPosition, sub)
 		select {
 		// dont block if nobody consumes the chan
 		case sub.errors <- err:
@@ -289,7 +289,7 @@ func (em *eventManager) teardown() {
 
 // tail sequentially reads a given log at given offset, and all the following files, if any.
 // tail does not validate given arguments expecting them to be verified by a caller.
-func (em *eventManager) tail(ctx context.Context, eventlogPosition EventlogPosition, notPublishEventAtPosition bool, sub *Subscription) error {
+func (em *eventManager) tail(ctx context.Context, eventlogPosition EventlogPosition, sub *Subscription) error {
 	zap.L().Debug("start tailing",
 		zap.String("log_id", eventlogPosition.LogID),
 		zap.Int64("offset", eventlogPosition.Offset),
@@ -305,6 +305,7 @@ func (em *eventManager) tail(ctx context.Context, eventlogPosition EventlogPosit
 
 	logID := eventlogPosition.LogID
 	offset := eventlogPosition.Offset
+	skipEventAtPosition := eventlogPosition.SkipEventAtPosition
 
 	for {
 		var err error
@@ -357,9 +358,9 @@ func (em *eventManager) tail(ctx context.Context, eventlogPosition EventlogPosit
 
 			offset = nextOffset
 
-			if notPublishEventAtPosition {
-				// Skip the firstly read event is requested
-				notPublishEventAtPosition = false
+			if skipEventAtPosition {
+				// Skip event (once)
+				skipEventAtPosition = false
 				continue
 			}
 
