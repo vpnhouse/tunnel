@@ -7,7 +7,6 @@ package eventlog
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -89,9 +88,9 @@ func TestSubscribeToInvalidOffset(t *testing.T) {
 	sub, err := log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: logID, Offset: 5}))
 	require.NoError(t, err)
 
-	// must immediately get an error
-	err = <-sub.Errors()
-	require.Error(t, err)
+	// must immediately see events chan is closed
+	_, ok := <-sub.Events()
+	require.False(t, ok)
 }
 
 func TestSubscribeToUnknownLog(t *testing.T) {
@@ -123,13 +122,16 @@ func TestSubscribeToOffset(t *testing.T) {
 	offset := int64(len(bs))
 
 	logID := log.storage.currentLog.uuid
-	sub, err := log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: logID, Offset: offset}))
+	sub, err := log.Subscribe(context.Background(), "1", WithPosition(EventlogPosition{LogID: logID, Offset: offset}))
 	require.NoError(t, err)
 	ev1 := <-sub.Events()
-	sub.Close()
+	err = log.Unsubscribe(context.Background(), "1")
+	require.NoError(t, err)
 	assert.Equal(t, PeerRemove, ev1.Type)
+	_, ok := <-sub.Events()
+	assert.False(t, ok, "events chan must be closed")
 
-	sub, err = log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: logID, Offset: 4 * offset}))
+	sub, err = log.Subscribe(context.Background(), "1", WithPosition(EventlogPosition{LogID: logID, Offset: 4 * offset}))
 	require.NoError(t, err)
 	ev2 := <-sub.Events()
 	sub.Close()
@@ -150,7 +152,7 @@ func TestMultipleReads(t *testing.T) {
 	wg.Add(reads)
 
 	for i := 0; i < reads; i++ {
-		sub, err := log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: logID, Offset: 0}))
+		sub, err := log.Subscribe(context.Background(), fmt.Sprint(i), WithPosition(EventlogPosition{LogID: logID, Offset: 0}))
 		if err != nil {
 			panic(err)
 		}
@@ -182,7 +184,6 @@ func TestWritesOrder(t *testing.T) {
 
 	const writes = 5000
 	reads := 0
-	errCnt := 0
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -199,16 +200,6 @@ func TestWritesOrder(t *testing.T) {
 		}
 	}()
 
-	var errArr []error
-	go func() {
-		defer wg.Done()
-		for err := range sub.Errors() {
-			t.Log("Error:", err)
-			errCnt++
-			errArr = append(errArr, err)
-		}
-	}()
-
 	for i := 0; i < writes; i++ {
 		err = log.Push(PeerAdd, "data")
 		require.NoError(t, err)
@@ -220,8 +211,6 @@ func TestWritesOrder(t *testing.T) {
 
 	wg.Wait()
 	assert.Equal(t, writes, reads)
-	assert.Equal(t, 1, len(errArr))
-	assert.True(t, errors.Is(errArr[0], context.Canceled))
 }
 
 func TestReadsCount(t *testing.T) {

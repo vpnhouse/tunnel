@@ -130,7 +130,7 @@ func (s *EventlogPosition) validate() error {
 }
 
 // Subscribe allocates and starts new subscription to a log.
-// The caller must consume channels given by .Events() and .Errors() methods.
+// The caller must consume channels given by .Events() method.
 // Context cancellation leads to subscription destruction, as well as calls of
 // .Close() method.
 func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts ...SubscribeOption) (*Subscription, error) {
@@ -185,9 +185,7 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 
 	go func() {
 		err := em.tail(ctx, evenlogPosition, options.SkipEventAtPosition, sub)
-		if err != nil {
-			zap.L().Info("subscription stopped", zap.String("subscriber_id", sub.subscriberID), zap.Error(err))
-		}
+		zap.L().Info("subscription stopped", zap.String("subscriber_id", sub.subscriberID), zap.Error(err))
 		em.deleteSubscription(sub)
 	}()
 
@@ -208,8 +206,11 @@ func (em *eventManager) Unsubscribe(ctx context.Context, subscriberID string) er
 		return nil
 	}
 
-	<-sub.Close()
-	em.deleteSubscription(sub)
+	select {
+	case <-time.After(time.Second):
+		zap.L().Error("close subscriber is timed out")
+	case <-sub.Close():
+	}
 	return nil
 }
 
