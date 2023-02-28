@@ -164,6 +164,9 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 		}
 	}
 
+	em.lock.Lock()
+	defer em.lock.Unlock()
+
 	if _, ok := em.subscribers[subscriberID]; ok {
 		return nil, fmt.Errorf("failed to subscribe %s: %w", subscriberID, ErrAlreadySubscribed)
 	}
