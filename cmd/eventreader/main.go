@@ -55,7 +55,7 @@ func run_client(serverHost string, serverPort string, authSecret string) {
 		eventlog.WithNoSSL(),
 		eventlog.WithTunnelPort(serverPort), // can be omitted
 		eventlog.WithAuthSecret(authSecret),
-		eventlog.WithStopIdleTimeout(10 * time.Second),
+		eventlog.WithStopIdleTimeout(10*time.Second),
 	)
 	if err != nil {
 		zap.L().Fatal("failed to create eventlog client", zap.Error(err))

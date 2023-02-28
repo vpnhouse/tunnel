@@ -97,7 +97,6 @@ func WithStopIdleTimeout(stopIdleTimeout time.Duration) Option {
 	}
 }
 
-
 func WithStartFromActiveLog() Option {
 	return func(opts *options) error {
 		opts.ForceStartFromActiveLog = true
