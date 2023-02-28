@@ -20,7 +20,7 @@ func TestOffsetEtcdLock(t *testing.T) {
 
 	require.NoError(t, err, "failed to create etcd client")
 
-	offset, err := NewOffsetSyncEtcd(client)
+	offset, err := NewEventlogSyncEtcd(client)
 	require.NoError(t, err, "failed to create etcd offset")
 
 	acquired, err := offset.Acquire("instance_1", "tunnel_1", 2*time.Second)

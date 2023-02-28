@@ -13,23 +13,23 @@ const (
 	redisTimeout = 5 * time.Second
 )
 
-type offsetSyncRedis struct {
+type eventlogSyncRedis struct {
 	redisClient redis.UniversalClient
 }
 
-func NewOffsetSyncRedis(redisClient redis.UniversalClient) (*offsetSyncRedis, error) {
+func NewEventlogSyncRedis(redisClient redis.UniversalClient) (*eventlogSyncRedis, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()
 	err := redisClient.Ping(ctx).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed connect to redis: %w", err)
 	}
-	return &offsetSyncRedis{
+	return &eventlogSyncRedis{
 		redisClient: redisClient,
 	}, nil
 }
 
-func (s *offsetSyncRedis) Acquire(instanceID string, tunnelID string, ttl time.Duration) (bool, error) {
+func (s *eventlogSyncRedis) Acquire(instanceID string, tunnelID string, ttl time.Duration) (bool, error) {
 	key := buildSyncKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()
@@ -63,7 +63,7 @@ func (s *offsetSyncRedis) Acquire(instanceID string, tunnelID string, ttl time.D
 	return acquired, nil
 }
 
-func (s *offsetSyncRedis) Release(instanceID string, tunnelID string) error {
+func (s *eventlogSyncRedis) Release(instanceID string, tunnelID string) error {
 	key := buildSyncKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()
@@ -88,38 +88,38 @@ func (s *offsetSyncRedis) Release(instanceID string, tunnelID string) error {
 	return nil
 }
 
-func (s *offsetSyncRedis) GetOffset(tunnelID string) (Offset, error) {
-	key := buildOffsetKey(tunnelID)
+func (s *eventlogSyncRedis) GetPosition(tunnelID string) (Position, error) {
+	key := buildPositionKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()
 
 	res, err := s.redisClient.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return Offset{}, nil
+			return Position{}, ErrPositionNotFound
 		}
-		return Offset{}, fmt.Errorf("failed to read and parse offset data: %w", err)
+		return Position{}, fmt.Errorf("failed to read and parse position data: %w", err)
 	}
 
-	return offsetFromJson(res)
+	return positionFromJson(res)
 }
 
-func (s *offsetSyncRedis) PutOffset(tunnelID string, offset Offset) error {
-	key := buildOffsetKey(tunnelID)
+func (s *eventlogSyncRedis) PutOffset(tunnelID string, position Position) error {
+	key := buildPositionKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()
 
-	val := offset.ToJson()
+	val := position.ToJson()
 	// Never be expired
 	err := s.redisClient.Set(ctx, key, val, offsetKeepTimeout).Err()
 	if err != nil {
-		return fmt.Errorf("failed to store offset data: %w", err)
+		return fmt.Errorf("failed to store position data: %w", err)
 	}
 	return nil
 }
 
-func (s *offsetSyncRedis) DeleteOffset(tunnelID string) error {
-	key := buildOffsetKey(tunnelID)
+func (s *eventlogSyncRedis) DeleteOffset(tunnelID string) error {
+	key := buildPositionKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()
 

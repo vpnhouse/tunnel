@@ -25,7 +25,7 @@ func TestOffsetAcquireLockTtlFileNoErrors(t *testing.T) {
 	setupLogger()
 
 	dir := os.TempDir()
-	offsetSync, err := NewOffsetSyncFile(dir)
+	offsetSync, err := NewEventlogSyncFile(dir)
 	require.NoError(t, err, "failed to create offset sync file")
 
 	instanceID1 := "instance_1"

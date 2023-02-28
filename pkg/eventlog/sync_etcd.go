@@ -12,20 +12,20 @@ const (
 	etcdTimeout = 5 * time.Second
 )
 
-type offsetSyncEtcd struct {
+type eventlogSyncEtcd struct {
 	client *clientv3.Client
 	kv     clientv3.KV
 }
 
-func NewOffsetSyncEtcd(client *clientv3.Client) (*offsetSyncEtcd, error) {
+func NewEventlogSyncEtcd(client *clientv3.Client) (*eventlogSyncEtcd, error) {
 	kv := clientv3.NewKV(client)
-	return &offsetSyncEtcd{
+	return &eventlogSyncEtcd{
 		client: client,
 		kv:     kv,
 	}, nil
 }
 
-func (s *offsetSyncEtcd) Acquire(instanceID string, tunnelID string, ttl time.Duration) (bool, error) {
+func (s *eventlogSyncEtcd) Acquire(instanceID string, tunnelID string, ttl time.Duration) (bool, error) {
 	key := buildSyncKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 	defer cancel()
@@ -54,7 +54,7 @@ func (s *offsetSyncEtcd) Acquire(instanceID string, tunnelID string, ttl time.Du
 	return resp.Succeeded, nil
 }
 
-func (s *offsetSyncEtcd) Release(instanceID string, tunnelID string) error {
+func (s *eventlogSyncEtcd) Release(instanceID string, tunnelID string) error {
 	key := buildSyncKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 	defer cancel()
@@ -73,29 +73,29 @@ func (s *offsetSyncEtcd) Release(instanceID string, tunnelID string) error {
 	return nil
 }
 
-func (s *offsetSyncEtcd) GetOffset(tunnelID string) (Offset, error) {
-	key := buildOffsetKey(tunnelID)
+func (s *eventlogSyncEtcd) GetPosition(tunnelID string) (Position, error) {
+	key := buildPositionKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 	defer cancel()
 
 	resp, err := s.kv.Get(ctx, key)
 	if err != nil {
-		return Offset{}, fmt.Errorf("failed to read and parse offset data: %w", err)
+		return Position{}, fmt.Errorf("failed to read and parse offset data: %w", err)
 	}
 
 	if len(resp.Kvs) == 0 {
-		return Offset{}, nil
+		return Position{}, ErrPositionNotFound
 	}
 
-	return offsetFromJsonBytes(resp.Kvs[0].Value)
+	return positionFromJsonBytes(resp.Kvs[0].Value)
 }
 
-func (s *offsetSyncEtcd) PutOffset(tunnelId string, offset Offset) error {
-	key := buildOffsetKey(tunnelId)
+func (s *eventlogSyncEtcd) PutOffset(tunnelId string, position Position) error {
+	key := buildPositionKey(tunnelId)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 	defer cancel()
 
-	val := offset.ToJson()
+	val := position.ToJson()
 	lease, err := s.client.Grant(ctx, int64(offsetKeepTimeout.Seconds()))
 	if err != nil {
 		return fmt.Errorf("failed to grant ttl lease offset data: %w", err)
@@ -107,8 +107,8 @@ func (s *offsetSyncEtcd) PutOffset(tunnelId string, offset Offset) error {
 	return nil
 }
 
-func (s *offsetSyncEtcd) DeleteOffset(tunnelId string) error {
-	key := buildOffsetKey(tunnelId)
+func (s *eventlogSyncEtcd) DeleteOffset(tunnelId string) error {
+	key := buildPositionKey(tunnelId)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 	defer cancel()
 

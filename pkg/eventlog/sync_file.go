@@ -30,22 +30,22 @@ func (s *lockState) Close() error {
 	return syscall.Unlink(s.File)
 }
 
-type offsetSyncFile struct {
+type eventlogSyncFile struct {
 	directory string
 }
 
-func NewOffsetSyncFile(directory string) (*offsetSyncFile, error) {
+func NewEventlogSyncFile(directory string) (*eventlogSyncFile, error) {
 	err := os.MkdirAll(directory, 0777)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure the direstory %s: %w", directory, err)
 	}
 
-	return &offsetSyncFile{
+	return &eventlogSyncFile{
 		directory: directory,
 	}, nil
 }
 
-func (s *offsetSyncFile) Acquire(instanceID string, tunnelID string, ttl time.Duration) (bool, error) {
+func (s *eventlogSyncFile) Acquire(instanceID string, tunnelID string, ttl time.Duration) (bool, error) {
 	lock, err := s.tryLock(tunnelID)
 	if err != nil {
 		if errors.Is(err, errLocked) {
@@ -80,7 +80,7 @@ func (s *offsetSyncFile) Acquire(instanceID string, tunnelID string, ttl time.Du
 	return true, nil
 }
 
-func (s *offsetSyncFile) Release(instanceID string, tunnelID string) error {
+func (s *eventlogSyncFile) Release(instanceID string, tunnelID string) error {
 	lock, err := s.tryLock(tunnelID)
 	if err != nil {
 		if errors.Is(err, errLocked) {
@@ -104,35 +104,35 @@ func (s *offsetSyncFile) Release(instanceID string, tunnelID string) error {
 	return os.Remove(file)
 }
 
-func (s *offsetSyncFile) GetOffset(tunnelID string) (Offset, error) {
-	offsetFile := s.buildOffsetFile(tunnelID)
-	stats, err := os.Stat(offsetFile)
+func (s *eventlogSyncFile) GetPosition(tunnelID string) (Position, error) {
+	posFile := s.buildPositionFile(tunnelID)
+	stats, err := os.Stat(posFile)
 	if errors.Is(err, os.ErrNotExist) {
-		return Offset{}, nil
+		return Position{}, ErrPositionNotFound
 	}
 	if time.Now().Sub(stats.ModTime()) > offsetKeepTimeout {
-		_ = os.RemoveAll(offsetFile)
+		_ = os.RemoveAll(posFile)
 	}
-	data, err := os.ReadFile(offsetFile)
+	data, err := os.ReadFile(posFile)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
-		return Offset{}, nil
+		return Position{}, ErrPositionNotFound
 	}
 
-	return offsetFromJson(string(data))
+	return positionFromJson(string(data))
 }
 
-func (s *offsetSyncFile) PutOffset(tunnelID string, offset Offset) error {
-	offsetFile := s.buildOffsetFile(tunnelID)
-	data := offset.ToJson()
-	return os.WriteFile(offsetFile, []byte(data), 0600)
+func (s *eventlogSyncFile) PutPosition(tunnelID string, position Position) error {
+	posFile := s.buildPositionFile(tunnelID)
+	data := position.ToJson()
+	return os.WriteFile(posFile, []byte(data), 0600)
 }
 
-func (s *offsetSyncFile) DeleteOffset(tunnelID string) error {
-	offsetFile := s.buildOffsetFile(tunnelID)
+func (s *eventlogSyncFile) DeletePosition(tunnelID string) error {
+	offsetFile := s.buildPositionFile(tunnelID)
 	return os.RemoveAll(offsetFile)
 }
 
-func (s *offsetSyncFile) lock(tunnelID string) (*lockState, error) {
+func (s *eventlogSyncFile) lock(tunnelID string) (*lockState, error) {
 	lockFile := s.buildSyncLockFile(tunnelID)
 
 	// Check and remove lock file in case timout is over
@@ -163,7 +163,7 @@ func (s *offsetSyncFile) lock(tunnelID string) (*lockState, error) {
 	}, nil
 }
 
-func (s *offsetSyncFile) tryLock(tunnelID string) (*lockState, error) {
+func (s *eventlogSyncFile) tryLock(tunnelID string) (*lockState, error) {
 	t := time.NewTimer(lockWaitTimeout)
 	defer t.Stop()
 	for {
@@ -184,14 +184,14 @@ func (s *offsetSyncFile) tryLock(tunnelID string) (*lockState, error) {
 	}
 }
 
-func (s *offsetSyncFile) buildSyncLockFile(value string) string {
-	return path.Join(s.directory, fmt.Sprintf("eventlogs.lock.%s", base64.RawStdEncoding.EncodeToString([]byte(value))))
+func (s *eventlogSyncFile) buildSyncLockFile(value string) string {
+	return path.Join(s.directory, fmt.Sprintf("eventlog.lock.%s", base64.RawStdEncoding.EncodeToString([]byte(value))))
 }
 
-func (s *offsetSyncFile) buildSyncFile(value string) string {
-	return path.Join(s.directory, fmt.Sprintf("eventlogs.sync.%s", base64.RawStdEncoding.EncodeToString([]byte(value))))
+func (s *eventlogSyncFile) buildSyncFile(value string) string {
+	return path.Join(s.directory, fmt.Sprintf("eventlog.sync.%s", base64.RawStdEncoding.EncodeToString([]byte(value))))
 }
 
-func (s *offsetSyncFile) buildOffsetFile(value string) string {
-	return path.Join(s.directory, fmt.Sprintf("eventlogs.offset.%s", base64.RawStdEncoding.EncodeToString([]byte(value))))
+func (s *eventlogSyncFile) buildPositionFile(value string) string {
+	return path.Join(s.directory, fmt.Sprintf("eventlog.position.%s", base64.RawStdEncoding.EncodeToString([]byte(value))))
 }

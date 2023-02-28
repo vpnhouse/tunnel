@@ -15,18 +15,18 @@ const (
 )
 
 type Client struct {
-	opts       options
-	client     proto.EventLogServiceClient
-	out        chan *Event
-	once       sync.Once
-	stop       chan struct{}
-	done       chan struct{}
-	offsetSync OffsetSync
-	tunnelHost string
-	instanceID string
+	opts         options
+	client       proto.EventLogServiceClient
+	out          chan *Event
+	once         sync.Once
+	stop         chan struct{}
+	done         chan struct{}
+	eventlogSync EventlogSync
+	tunnelHost   string
+	instanceID   string
 }
 
-func NewClient(instanceID string, tunnelHost string, offsetSync OffsetSync, opt ...Option) (*Client, error) {
+func NewClient(instanceID string, tunnelHost string, eventlogSync EventlogSync, opt ...Option) (*Client, error) {
 	opts := options{
 		TunnelPort: "8089",     // Default port
 		TunnelID:   tunnelHost, // use host as default value in case no opts given
@@ -46,13 +46,13 @@ func NewClient(instanceID string, tunnelHost string, offsetSync OffsetSync, opt 
 	}
 
 	return &Client{
-		opts:       opts,
-		out:        make(chan *Event),
-		stop:       make(chan struct{}),
-		done:       make(chan struct{}),
-		tunnelHost: tunnelHost,
-		instanceID: instanceID,
-		offsetSync: offsetSync,
+		opts:         opts,
+		out:          make(chan *Event),
+		stop:         make(chan struct{}),
+		done:         make(chan struct{}),
+		tunnelHost:   tunnelHost,
+		instanceID:   instanceID,
+		eventlogSync: eventlogSync,
 	}, nil
 }
 
@@ -64,7 +64,7 @@ func (s *Client) Events() chan *Event {
 				close(s.done)
 			}()
 			lockTtl := s.getLockTtl()
-			acquired, err := s.offsetSync.Acquire(s.instanceID, s.tunnelHost, lockTtl)
+			acquired, err := s.eventlogSync.Acquire(s.instanceID, s.tunnelHost, lockTtl)
 			if !acquired {
 				s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to acquire sync lock to process events: %w", ErrLockNotAcquired)})
 				zap.L().Info("stop reading events as failed to acquire sync lock to process events",

@@ -16,7 +16,7 @@ import (
 )
 
 type positionAck struct {
-	Position      Offset
+	Position      Position
 	ResetPosition bool
 }
 
@@ -134,9 +134,9 @@ func (s *Client) readAndPublishEvents() {
 				}
 
 				if currPos.ResetPosition {
-					err = s.offsetSync.DeleteOffset(s.opts.TunnelID)
+					err = s.eventlogSync.DeletePosition(s.opts.TunnelID)
 				} else {
-					err = s.offsetSync.PutOffset(s.opts.TunnelID, currPos.Position)
+					err = s.eventlogSync.PutPosition(s.opts.TunnelID, currPos.Position)
 				}
 				if err != nil {
 					zap.L().Error("failed to keep store read event offset position", zap.Error(err))
@@ -172,9 +172,9 @@ func (s *Client) readAndPublishEvents() {
 				}
 
 				if currPos.ResetPosition {
-					err = s.offsetSync.DeleteOffset(s.opts.TunnelID)
+					err = s.eventlogSync.DeletePosition(s.opts.TunnelID)
 				} else {
-					err = s.offsetSync.PutOffset(s.opts.TunnelID, currPos.Position)
+					err = s.eventlogSync.PutPosition(s.opts.TunnelID, currPos.Position)
 				}
 				if err != nil {
 					zap.L().Error("failed to keep store read event offset position", zap.Error(err))
@@ -189,7 +189,7 @@ func (s *Client) readAndPublishEvents() {
 	ticker := time.NewTicker(s.getProlongateLockTimeout())
 	defer func() {
 		ticker.Stop()
-		err := s.offsetSync.Release(s.instanceID, s.opts.TunnelID)
+		err := s.eventlogSync.Release(s.instanceID, s.opts.TunnelID)
 		if err != nil {
 			zap.L().Error("failed to release sync lock to process events",
 				zap.String("instance_id", s.instanceID),
@@ -215,7 +215,7 @@ func (s *Client) readAndPublishEvents() {
 				zap.L().Info("stop reading events as timeout to wait events is exceeded", zap.Stringer("timeout", human.Interval(s.opts.StopIdleTimeout)))
 			} else {
 				// Prolongate lock
-				acquired, err := s.offsetSync.Acquire(s.instanceID, s.opts.TunnelID, lockTimeout)
+				acquired, err := s.eventlogSync.Acquire(s.instanceID, s.opts.TunnelID, lockTimeout)
 				if !acquired {
 					s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to extend lock to process events: %w", ErrLockNotAcquired)})
 					cancel()
@@ -274,18 +274,18 @@ func (s *Client) getProlongateLockTimeout() time.Duration {
 	return defaultLockProlongateTimeout
 }
 
-func parseEvent(evt *proto.FetchEventsResponse) (*proto.PeerInfo, Offset, error) {
+func parseEvent(evt *proto.FetchEventsResponse) (*proto.PeerInfo, Position, error) {
 	if evt == nil {
-		return nil, Offset{}, nil
+		return nil, Position{}, nil
 	}
 
 	var peerInfo proto.PeerInfo
 	err := json.Unmarshal(evt.Data, &peerInfo)
 	if err != nil {
-		return nil, Offset{}, fmt.Errorf("failed to parse peer info json data: %w", err)
+		return nil, Position{}, fmt.Errorf("failed to parse peer info json data: %w", err)
 	}
 
-	offset := Offset{
+	offset := Position{
 		LogID:  evt.GetPosition().GetLogId(),
 		Offset: evt.GetPosition().GetOffset(),
 	}
