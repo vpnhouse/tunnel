@@ -51,7 +51,7 @@ func (storage *Storage) PutEventlogsSubscriber(subscriber *types.EventlogSubscri
 }
 
 func (storage *Storage) DeleteEventlogsSubscriber(subscriberID string) error {
-	query := `DELETE eventlog_subscribers WHERE subscriber_id = :subscriber_id`
+	query := `DELETE FROM eventlog_subscribers WHERE subscriber_id = :subscriber_id`
 	params := struct {
 		SubscriberID string `db:"subscriber_id"`
 	}{
