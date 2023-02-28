@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,10 +19,14 @@ import (
 	"go.uber.org/zap"
 )
 
+var ErrServiceStopped = errors.New("service stopped")
+var ErrNilEvent = errors.New("event is nil")
+
 type eventManager struct {
+	stopped atomic.Bool
+
 	lock    sync.Mutex
 	cancel  context.CancelFunc
-	running bool
 	storage *fsStorage
 
 	// closes when shutdown is complete
@@ -30,7 +35,7 @@ type eventManager struct {
 	// buffered chan for incoming events
 	incoming chan []byte
 	// subscribers track callers (see the Subscribe() method)
-	subscribers map[*Subscription]struct{}
+	subscribers map[string]*Subscription
 }
 
 // New initializes and starts the event log manager
@@ -44,10 +49,9 @@ func New(cfg StorageConfig, fss ...afero.Fs) (*eventManager, error) {
 	m := &eventManager{
 		incoming:    make(chan []byte, 100),
 		unblockDone: make(chan struct{}),
-		subscribers: map[*Subscription]struct{}{},
+		subscribers: map[string]*Subscription{},
 		storage:     storage,
 		cancel:      cancel,
-		running:     true,
 	}
 
 	go m.run(ctx)
@@ -56,18 +60,15 @@ func New(cfg StorageConfig, fss ...afero.Fs) (*eventManager, error) {
 
 // Push adds the event to the log.
 func (em *eventManager) Push(eventType EventType, data interface{}) error {
-	em.lock.Lock()
-	running := em.running
-	em.lock.Unlock()
 
-	if !running {
-		return fmt.Errorf("service is not running")
+	if em.stopped.Load() {
+		return ErrServiceStopped
 	}
 
 	// TODO(nikonov): actually, we CAN (un)marshal nil,
 	//  so should it be considered as API misuse?
 	if data == nil {
-		return fmt.Errorf("cannot push nil event")
+		return ErrNilEvent
 	}
 
 	// timestamp in seconds
@@ -88,7 +89,6 @@ type Subscription struct {
 	subscriberID string
 	cancel       context.CancelFunc
 	events       chan Event
-	errors       chan error
 
 	// notify closes when the subscriber done
 	stopChan chan struct{}
@@ -96,10 +96,6 @@ type Subscription struct {
 
 func (s *Subscription) Events() <-chan Event {
 	return s.events
-}
-
-func (s *Subscription) Errors() <-chan error {
-	return s.errors
 }
 
 // Close the subscriber.
@@ -146,12 +142,12 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 		}
 	}
 
+	if em.stopped.Load() {
+		return nil, ErrServiceStopped
+	}
+
 	em.lock.Lock()
 	defer em.lock.Unlock()
-
-	if !em.running {
-		return nil, fmt.Errorf("manager is not running")
-	}
 
 	evenlogPosition := options.Position
 
@@ -171,58 +167,77 @@ func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts
 		}
 	}
 
+	if _, ok := em.subscribers[subscriberID]; ok {
+		return nil, fmt.Errorf("failed to subscribe %s: %w", subscriberID, ErrAlreadySubscribed)
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	sub := &Subscription{
 		cancel:       cancel,
 		subscriberID: subscriberID,
 		events:       make(chan Event),
-		errors:       make(chan error),
 		stopChan:     make(chan struct{}),
 	}
 
 	// add ourselves to the subscribers map,
 	// will be removed in the goroutine right below
-	em.subscribers[sub] = struct{}{}
+	em.subscribers[subscriberID] = sub
 
 	go func() {
 		err := em.tail(ctx, evenlogPosition, options.SkipEventAtPosition, sub)
-		select {
-		// dont block if nobody consumes the chan
-		case sub.errors <- err:
-		default:
+		if err != nil {
+			zap.L().Info("subscription stopped", zap.String("subscriber_id", sub.subscriberID), zap.Error(err))
 		}
-
-		// since tail exited we can be sure that nobody
-		// operates the sub.events chan anymore.
-		close(sub.events)
-		close(sub.errors)
-
-		// finally tell em we're done here
-		close(sub.stopChan)
-
-		em.lock.Lock()
-		defer em.lock.Unlock()
-		delete(em.subscribers, sub)
+		em.deleteSubscription(sub)
 	}()
 
 	return sub, nil
 }
 
-func (em *eventManager) Running() bool {
+// Unsubscribe by id
+func (em *eventManager) Unsubscribe(ctx context.Context, subscriberID string) error {
+	if em.stopped.Load() {
+		return ErrServiceStopped
+	}
+
+	em.lock.Lock()
+	sub, ok := em.subscribers[subscriberID]
+	em.lock.Unlock()
+
+	if !ok {
+		return nil
+	}
+
+	<-sub.Close()
+	em.deleteSubscription(sub)
+	return nil
+}
+
+func (em *eventManager) deleteSubscription(sub *Subscription) {
+
+	// since tail exited we can be sure that nobody
+	// operates the sub.events chan anymore.
+	close(sub.events)
+
+	// finally tell em we're done here
+	close(sub.stopChan)
+
 	em.lock.Lock()
 	defer em.lock.Unlock()
+	delete(em.subscribers, sub.subscriberID)
+}
 
-	return em.running
+func (em *eventManager) Running() bool {
+	return !em.stopped.Load()
 }
 
 func (em *eventManager) Shutdown() error {
-	em.lock.Lock()
 
-	if !em.running {
+	if em.stopped.Load() {
 		return fmt.Errorf("manager is not running")
 	}
 
-	em.running = false
+	em.lock.Lock()
 	em.cancel()
 	em.lock.Unlock()
 
@@ -239,7 +254,7 @@ func (em *eventManager) run(ctx context.Context) {
 		case <-ctx.Done():
 			zap.L().Info("got termination signal")
 			// stop receiving new messages
-			em.running = false
+			em.stopped.Store(true)
 
 			// sink the chan first, we have to store
 			// remaining events before we go down.
@@ -271,8 +286,8 @@ func (em *eventManager) teardown() {
 	em.lock.Lock()
 	defer em.lock.Unlock()
 
-	for sub := range em.subscribers {
-		zap.L().Debug("closing the subscriber", zap.String("subscriber_id", sub.subscriberID))
+	for subscriberId, sub := range em.subscribers {
+		zap.L().Debug("closing the subscriber", zap.String("subscriber_id", subscriberId))
 		// wait for subscriber termination
 		<-sub.Close()
 	}

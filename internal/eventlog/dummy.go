@@ -24,6 +24,10 @@ func (d *dummyEventManager) Subscribe(ctx context.Context, subscriberId string, 
 	return nil, xerror.EInternalError("Attempt to receive events from dummy event manager", nil)
 }
 
+func (d *dummyEventManager) Unsubscribe(ctx context.Context, subscriberId string) error {
+	return nil
+}
+
 func (d *dummyEventManager) Running() bool {
 	return false
 }

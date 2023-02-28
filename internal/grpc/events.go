@@ -65,6 +65,11 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 		}
 	}
 
+	err = m.events.Unsubscribe(stream.Context(), subscriberId)
+	if err != nil {
+		return err
+	}
+
 	zap.L().Debug("start reading eventlogs",
 		zap.String("subscriber_id", subscriberId),
 		zap.String("log_id", eventlogPosition.LogID),
@@ -98,20 +103,16 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 		// note that we dont handle the request's context cancellation explicitly,
 		//  it will be done by the subscription's internals,
 		//  thus we care only about the errors chan.
-		case event := <-sub.Events():
+		case event, ok := <-sub.Events():
+			if !ok {
+				return status.Error(codes.Canceled, "stopped")
+			}
 			if types.has(event.Type) {
 				if err := stream.Send(event.IntoProto()); err != nil {
 					zap.L().Warn("failed to send an event",
 						zap.Error(err), zap.String("subscriber_id", subscriberId))
 				}
 			}
-		case err := <-sub.Errors():
-			if err == nil || errors.Is(err, context.Canceled) {
-				// peer gone and closed the subscription itself
-				return status.Error(codes.Canceled, err.Error())
-			}
-
-			return status.Error(codes.Aborted, err.Error())
 		}
 	}
 }

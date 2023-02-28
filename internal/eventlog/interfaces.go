@@ -12,6 +12,8 @@ import (
 )
 
 var ErrNotFound = errors.New("not found")
+var ErrSubscriptionStopped = errors.New("subscription stopped")
+var ErrAlreadySubscribed = errors.New("already subscribed")
 
 type EventPusher interface {
 	Push(eventType EventType, data interface{}) error
@@ -19,6 +21,7 @@ type EventPusher interface {
 
 type EventSubscriber interface {
 	Subscribe(ctx context.Context, subscriberId string, opts ...SubscribeOption) (*Subscription, error)
+	Unsubscribe(ctx context.Context, subscriberId string) error
 }
 
 type EventManager interface {
