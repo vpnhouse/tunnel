@@ -108,7 +108,7 @@ func (s *offsetSyncFile) GetOffset(tunnelID string) (Offset, error) {
 	offsetFile := s.buildOffsetFile(tunnelID)
 	stats, err := os.Stat(offsetFile)
 	if errors.Is(err, os.ErrNotExist) {
-		return Offset{}, err
+		return Offset{}, nil
 	}
 	if time.Now().Sub(stats.ModTime()) > offsetKeepTimeout {
 		_ = os.RemoveAll(offsetFile)
