@@ -36,6 +36,8 @@ message FetchEventsResponse {
 message EventFetchedRequest {
   // position to ack the server about read event
   EventLogPosition position = 1;
+  // Delete event log position for given subscriber
+  bool reset_eventlog_position = 2;
 }
 
 message EventFetchedResponse {

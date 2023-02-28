@@ -117,3 +117,15 @@ func (s *offsetSyncRedis) PutOffset(tunnelID string, offset Offset) error {
 	}
 	return nil
 }
+
+func (s *offsetSyncRedis) DeleteOffset(tunnelID string) error {
+	key := buildOffsetKey(tunnelID)
+	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
+	defer cancel()
+
+	err := s.redisClient.Del(ctx, key).Err()
+	if err != nil {
+		return fmt.Errorf("failed to delete offset data: %w", err)
+	}
+	return nil
+}

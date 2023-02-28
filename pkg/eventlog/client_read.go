@@ -15,8 +15,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var errOutputEventStucked = errors.New("output event stucked")
-var errLockNotAcquired = errors.New("lock not acquired")
+type positionAck struct {
+	Position      Offset
+	ResetPosition bool
+}
 
 func (s *Client) readAndPublishEvents() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -38,7 +40,7 @@ func (s *Client) readAndPublishEvents() {
 	}
 
 	done := make(chan struct{})
-	offsetChan := make(chan Offset)
+	positionAckChan := make(chan positionAck)
 
 	var lastReadSec atomic.Uint64
 	lastReadSec.Store(uint64(time.Now().Unix()))
@@ -46,7 +48,7 @@ func (s *Client) readAndPublishEvents() {
 	// Loop to read events from tunnel node
 	go func() {
 		defer func() {
-			close(offsetChan)
+			close(positionAckChan)
 			close(done)
 		}()
 		for {
@@ -57,9 +59,24 @@ func (s *Client) readAndPublishEvents() {
 			}
 
 			if err != nil {
-				if status, ok := status.FromError(err); !ok || status.Code() != codes.Canceled {
-					s.publishOrDrop(&Event{Err: err})
+				if status, ok := status.FromError(err); ok {
+					switch status.Code() {
+					case codes.Canceled:
+						return
+					case codes.NotFound:
+						// log is odd and not found
+						// so clear the currently saved position to be able start from active log
+						zap.L().Info("log offset not found, reset odd position and exit", zap.Error(err))
+						select {
+						case <-time.After(reportOffsetTimeout * 2):
+							s.publishOrDrop(&Event{Err: errors.New("cannot handle reset event position")})
+							return
+						case positionAckChan <- positionAck{ResetPosition: true}:
+						}
+						return
+					}
 				}
+				s.publishOrDrop(&Event{Err: err})
 				return
 			}
 
@@ -76,7 +93,7 @@ func (s *Client) readAndPublishEvents() {
 			case <-time.After(reportOffsetTimeout * 2):
 				s.publishOrDrop(&Event{Err: errors.New("cannot handle read event offset position")})
 				return
-			case offsetChan <- offset:
+			case positionAckChan <- positionAck{Position: offset}:
 			}
 		}
 	}()
@@ -84,8 +101,8 @@ func (s *Client) readAndPublishEvents() {
 	// Loop to notify offset positions
 	go func() {
 		ticker := time.NewTicker(reportOffsetTimeout)
-		var sentOffset Offset
-		var currOffset Offset
+		var sentPos positionAck
+		var currPos positionAck
 
 		defer func() {
 			ticker.Stop()
@@ -96,53 +113,72 @@ func (s *Client) readAndPublishEvents() {
 		for {
 			select {
 			case <-ticker.C:
-				if sentOffset == currOffset {
+				if sentPos == currPos {
 					continue
 				}
 
-				err := eventFetchedClient.Send(&proto.EventFetchedRequest{
-					Position: &proto.EventLogPosition{
-						LogId:  currOffset.LogID,
-						Offset: currOffset.Offset,
-					},
-				})
+				pos := &proto.EventFetchedRequest{}
+				if currPos.ResetPosition {
+					pos.ResetEventlogPosition = currPos.ResetPosition
+				} else {
+					pos.Position = &proto.EventLogPosition{
+						LogId:  currPos.Position.LogID,
+						Offset: currPos.Position.Offset,
+					}
+				}
 
+				err := eventFetchedClient.Send(pos)
 				if err != nil {
 					zap.L().Error("failed to send read event offset position", zap.Error(err))
 					return
 				}
 
-				err = s.offsetSync.PutOffset(s.opts.TunnelID, currOffset)
+				if currPos.ResetPosition {
+					err = s.offsetSync.DeleteOffset(s.opts.TunnelID)
+				} else {
+					err = s.offsetSync.PutOffset(s.opts.TunnelID, currPos.Position)
+				}
 				if err != nil {
 					zap.L().Error("failed to keep store read event offset position", zap.Error(err))
 					return
 				}
-				sentOffset = currOffset
+				sentPos = currPos
 
-			case newOffset, ok := <-offsetChan:
+			case newPos, ok := <-positionAckChan:
 				if ok {
-					currOffset = newOffset
+					currPos = newPos
 					continue
 				}
 
 				// Report the latest offset back to the node prior exiting
-				if sentOffset == currOffset {
+				if sentPos == currPos {
 					return
 				}
 
-				err := eventFetchedClient.Send(&proto.EventFetchedRequest{
-					Position: &proto.EventLogPosition{
-						LogId:  currOffset.LogID,
-						Offset: currOffset.Offset,
-					},
-				})
-				if err != nil {
-					zap.L().Error("failed to send read event offset position", zap.Error(err))
+				pos := &proto.EventFetchedRequest{}
+				if currPos.ResetPosition {
+					pos.ResetEventlogPosition = currPos.ResetPosition
+				} else {
+					pos.Position = &proto.EventLogPosition{
+						LogId:  currPos.Position.LogID,
+						Offset: currPos.Position.Offset,
+					}
 				}
 
-				err = s.offsetSync.PutOffset(s.opts.TunnelID, currOffset)
+				err := eventFetchedClient.Send(pos)
+				if err != nil {
+					zap.L().Error("failed to send read event offset position", zap.Error(err))
+					return
+				}
+
+				if currPos.ResetPosition {
+					err = s.offsetSync.DeleteOffset(s.opts.TunnelID)
+				} else {
+					err = s.offsetSync.PutOffset(s.opts.TunnelID, currPos.Position)
+				}
 				if err != nil {
 					zap.L().Error("failed to keep store read event offset position", zap.Error(err))
+					return
 				}
 
 				return
@@ -181,7 +217,7 @@ func (s *Client) readAndPublishEvents() {
 				// Prolongate lock
 				acquired, err := s.offsetSync.Acquire(s.instanceID, s.opts.TunnelID, lockTimeout)
 				if !acquired {
-					s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to extend lock to process events: %w", errLockNotAcquired)})
+					s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to extend lock to process events: %w", ErrLockNotAcquired)})
 					cancel()
 					zap.L().Info("stop reading events as failed to extend lock to process events",
 						zap.String("instance_id", s.instanceID),
@@ -207,14 +243,12 @@ func (s *Client) readAndPublishEvents() {
 }
 
 func (s *Client) publishOrDrop(event *Event) {
-	timer := time.NewTimer(waitOutputWriteTimeout)
-	defer timer.Stop()
 	select {
-	case <-timer.C:
-		if event.Err != nil {
-			zap.L().Error("error publish event", zap.Error(event.Err))
-		}
 	case s.out <- event:
+	default:
+		if event.Err != nil {
+			zap.L().Error("failed to publish event error", zap.Error(event.Err))
+		}
 	}
 }
 
@@ -223,7 +257,7 @@ func (s *Client) publishOrError(event *Event) error {
 	defer timer.Stop()
 	select {
 	case <-timer.C:
-		return errOutputEventStucked
+		return ErrOutputEventStucked
 	case s.out <- event:
 		return nil
 	}

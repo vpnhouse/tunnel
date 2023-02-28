@@ -106,3 +106,16 @@ func (s *offsetSyncEtcd) PutOffset(tunnelId string, offset Offset) error {
 	}
 	return nil
 }
+
+func (s *offsetSyncEtcd) DeleteOffset(tunnelId string) error {
+	key := buildOffsetKey(tunnelId)
+	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
+	defer cancel()
+
+	_, err := s.kv.Delete(ctx, key)
+	if err != nil {
+		return fmt.Errorf("failed to delete offset data: %w", err)
+	}
+
+	return nil
+}

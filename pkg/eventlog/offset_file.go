@@ -127,6 +127,11 @@ func (s *offsetSyncFile) PutOffset(tunnelID string, offset Offset) error {
 	return os.WriteFile(offsetFile, []byte(data), 0600)
 }
 
+func (s *offsetSyncFile) DeleteOffset(tunnelID string) error {
+	offsetFile := s.buildOffsetFile(tunnelID)
+	return os.RemoveAll(offsetFile)
+}
+
 func (s *offsetSyncFile) lock(tunnelID string) (*lockState, error) {
 	lockFile := s.buildSyncLockFile(tunnelID)
 

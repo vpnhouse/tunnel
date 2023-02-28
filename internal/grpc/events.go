@@ -128,7 +128,7 @@ func (m *eventServer) EventFetched(stream proto.EventLogService_EventFetchedServ
 	}
 
 	for {
-		sub, err := stream.Recv()
+		eventlogPos, err := stream.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				zap.L().Debug("event fetched notifications closed", zap.String("subscriber_id", subscriberId))
@@ -137,13 +137,18 @@ func (m *eventServer) EventFetched(stream proto.EventLogService_EventFetchedServ
 			}
 			break
 		}
-		err = m.storage.PutEventlogsSubscriber(&types.EventlogSubscriber{
-			SubscriberID: subscriberId,
-			LogID:        sub.GetPosition().GetLogId(),
-			Offset:       sub.GetPosition().GetOffset(),
-		})
+
+		if eventlogPos.Position == nil && eventlogPos.ResetEventlogPosition {
+			err = m.storage.DeleteEventlogsSubscriber(subscriberId)
+		} else {
+			err = m.storage.PutEventlogsSubscriber(&types.EventlogSubscriber{
+				SubscriberID: subscriberId,
+				LogID:        eventlogPos.GetPosition().GetLogId(),
+				Offset:       eventlogPos.GetPosition().GetOffset(),
+			})
+		}
 		if err != nil {
-			zap.L().Error("failed to store eventlogs subscriber", zap.Any("subscriber", sub), zap.Error(err))
+			zap.L().Error("failed to update eventlogs subscriber", zap.Any("subscriber_id", subscriberId), zap.Error(err))
 		}
 	}
 

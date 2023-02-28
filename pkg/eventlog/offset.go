@@ -28,6 +28,7 @@ type OffsetSync interface {
 
 	GetOffset(tunnelID string) (Offset, error)
 	PutOffset(tunnelID string, offset Offset) error
+	DeleteOffset(tunnelID string) error
 }
 
 func offsetFromJson(data string) (Offset, error) {
