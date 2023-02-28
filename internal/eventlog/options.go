@@ -1,8 +1,9 @@
 package eventlog
 
 type subscribeOptions struct {
-	ActiveLog bool
-	Position  EventlogPosition
+	ActiveLog           bool
+	Position            EventlogPosition
+	SkipEventAtPosition bool // Skip event at position (i.e. not publish it)
 }
 
 type SubscribeOption func(opts *subscribeOptions) error
@@ -23,6 +24,13 @@ func WithPosition(position EventlogPosition) SubscribeOption {
 			return err
 		}
 		opts.Position = position
+		return nil
+	}
+}
+
+func WithSkipEventAtPosition(skip bool) SubscribeOption {
+	return func(opts *subscribeOptions) error {
+		opts.SkipEventAtPosition = skip
 		return nil
 	}
 }

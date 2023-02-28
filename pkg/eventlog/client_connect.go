@@ -126,10 +126,11 @@ func (s *Client) fetchEventsClient(ctx context.Context) (proto.EventLogService_F
 
 	offset, err := s.offsetSync.GetOffset(s.tunnelHost)
 	if err == nil {
-		req.StartPosition = &proto.EventLogPosition{
+		req.Position = &proto.EventLogPosition{
 			LogId:  offset.LogID,
 			Offset: offset.Offset,
 		}
+		req.SkipEventAtPosition = offset.LogID != ""
 	} else {
 		zap.L().Info("failed to get offset position. Start reading from the beginning of the active log")
 	}

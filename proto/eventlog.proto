@@ -14,8 +14,12 @@ service EventLogService {
 }
 
 message FetchEventsRequest {
-  // Start position or empty Offset treats to stream out the events from the from the beginning 
-  EventLogPosition start_position = 1;
+  // Position to start event streaming 
+  // Empty data treats to stream out the events from the beginning
+  // In case position is not supplied, the events is streamed from the active (current log)
+  EventLogPosition position = 1;
+  // Skip event at given position to implement non inclusive start reading from the given position
+  bool skip_event_at_position = 2;
   // event_types contains the list of even types client interested in.
   // Empty list means all events. Optional.
   repeated EventType event_types = 3;

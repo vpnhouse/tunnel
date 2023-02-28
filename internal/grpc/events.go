@@ -50,11 +50,11 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 	}
 
 	eventlogPosition := eventlog.EventlogPosition{
-		LogID:  req.GetStartPosition().GetLogId(),
-		Offset: req.GetStartPosition().GetOffset(),
+		LogID:  req.GetPosition().GetLogId(),
+		Offset: req.GetPosition().GetOffset(),
 	}
 
-	if req.StartPosition == nil {
+	if req.Position == nil {
 		eventlogSubscriber, err := m.storage.GetEventlogsSubscriber(subscriberId)
 		if err != nil && !errors.Is(err, storage.ErrNotFound) {
 			zap.L().Error("failed to get eventlogs subscriber", zap.String("subscriber_id", subscriberId), zap.Error(err))
@@ -71,10 +71,15 @@ func (m *eventServer) FetchEvents(req *proto.FetchEventsRequest, stream proto.Ev
 		zap.Int64("offset", eventlogPosition.Offset),
 	)
 
-	sub, err := m.events.Subscribe(stream.Context(), subscriberId, eventlog.WithPosition(eventlogPosition))
+	sub, err := m.events.Subscribe(
+		stream.Context(),
+		subscriberId,
+		eventlog.WithPosition(eventlogPosition),
+		eventlog.WithSkipEventAtPosition(req.GetSkipEventAtPosition()),
+	)
 	if err != nil && errors.Is(err, eventlog.ErrNotFound) {
 		// Return not found error in case caller supply the position
-		if req.StartPosition != nil {
+		if req.Position != nil {
 			zap.L().Error("failed to detect start eventlogs position", zap.Error(err))
 			return status.Error(codes.NotFound, err.Error())
 		}
