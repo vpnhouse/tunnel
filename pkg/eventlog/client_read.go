@@ -80,8 +80,8 @@ func (s *Client) readAndPublishEvents() {
 				return
 			}
 
-			peerInfo, offset, err := parseEvent(evt)
-			zap.L().Debug("event", zap.Any("peer_info", peerInfo), zap.Any("offset", offset), zap.Error(err))
+			peerInfo, position, err := parseEvent(evt)
+			zap.L().Debug("event", zap.Any("peer_info", peerInfo), zap.Any("position", position), zap.Error(err))
 
 			err = s.publishOrError(&Event{PeerInfo: peerInfo, Err: err})
 			if err != nil {
@@ -91,9 +91,9 @@ func (s *Client) readAndPublishEvents() {
 
 			select {
 			case <-time.After(reportOffsetTimeout * 2):
-				s.publishOrDrop(&Event{Err: errors.New("cannot handle read event offset position")})
+				s.publishOrDrop(&Event{Err: errors.New("cannot handle read event position")})
 				return
-			case positionAckChan <- positionAck{Position: offset}:
+			case positionAckChan <- positionAck{Position: position}:
 			}
 		}
 	}()
