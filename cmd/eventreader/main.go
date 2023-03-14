@@ -73,8 +73,8 @@ func run_client(serverHost string, serverPort string, authSecret string) {
 				zap.L().Info("no events, exiting...")
 				return
 			}
-			if evt.Err != nil {
-				zap.L().Error("read event error", zap.Error(evt.Err))
+			if evt.Error != nil {
+				zap.L().Error("read event error", zap.Error(evt.Error))
 				return
 			}
 			zap.L().Info("event", zap.Any("event", *evt))

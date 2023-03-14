@@ -26,7 +26,7 @@ func (s *Client) readAndPublishEvents() {
 	fetchEventsClient, err := s.fetchEventsClient(ctx)
 	if err != nil {
 		cancel()
-		s.publishOrDrop(&Event{Err: err})
+		s.publishOrDrop(&Event{Error: err})
 		return
 	}
 
@@ -35,7 +35,7 @@ func (s *Client) readAndPublishEvents() {
 	eventFetchedClient, err := s.eventFetchedClient(context.Background())
 	if err != nil {
 		cancel()
-		s.publishOrDrop(&Event{Err: err})
+		s.publishOrDrop(&Event{Error: err})
 		return
 	}
 
@@ -69,21 +69,21 @@ func (s *Client) readAndPublishEvents() {
 						zap.L().Info("log offset not found, reset odd position and exit", zap.Error(err))
 						select {
 						case <-time.After(reportOffsetTimeout * 2):
-							s.publishOrDrop(&Event{Err: errors.New("cannot handle reset event position")})
+							s.publishOrDrop(&Event{Error: errors.New("cannot handle reset event position")})
 							return
 						case positionAckChan <- positionAck{ResetPosition: true}:
 						}
 						return
 					}
 				}
-				s.publishOrDrop(&Event{Err: err})
+				s.publishOrDrop(&Event{Error: err})
 				return
 			}
 
-			peerInfo, position, err := parseEvent(evt)
+			peerInfo, position, ts, err := parseEvent(evt)
 			zap.L().Debug("event", zap.Any("peer_info", peerInfo), zap.Any("position", position), zap.Error(err))
 
-			err = s.publishOrError(&Event{PeerInfo: peerInfo, Err: err})
+			err = s.publishOrError(&Event{Timestamp: ts, EventType: evt.EventType, PeerInfo: peerInfo, Error: err})
 			if err != nil {
 				zap.L().Error("failed to publish event", zap.Error(err))
 				return
@@ -91,7 +91,7 @@ func (s *Client) readAndPublishEvents() {
 
 			select {
 			case <-time.After(reportOffsetTimeout * 2):
-				s.publishOrDrop(&Event{Err: errors.New("cannot handle read event position")})
+				s.publishOrDrop(&Event{Error: errors.New("cannot handle read event position")})
 				return
 			case positionAckChan <- positionAck{Position: position}:
 			}
@@ -217,7 +217,7 @@ func (s *Client) readAndPublishEvents() {
 				// Prolongate lock
 				acquired, err := s.eventlogSync.Acquire(s.instanceID, s.opts.TunnelID, lockTimeout)
 				if !acquired {
-					s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to extend lock to process events: %w", ErrLockNotAcquired)})
+					s.publishOrDrop(&Event{Error: fmt.Errorf("stop reading events as failed to extend lock to process events: %w", ErrLockNotAcquired)})
 					cancel()
 					zap.L().Info("stop reading events as failed to extend lock to process events",
 						zap.String("instance_id", s.instanceID),
@@ -246,8 +246,8 @@ func (s *Client) publishOrDrop(event *Event) {
 	select {
 	case s.out <- event:
 	default:
-		if event.Err != nil {
-			zap.L().Error("failed to publish event error", zap.Error(event.Err))
+		if event.Error != nil {
+			zap.L().Error("failed to publish event error", zap.Error(event.Error))
 		}
 	}
 }
@@ -274,15 +274,15 @@ func (s *Client) getProlongateLockTimeout() time.Duration {
 	return defaultLockProlongateTimeout
 }
 
-func parseEvent(evt *proto.FetchEventsResponse) (*proto.PeerInfo, Position, error) {
+func parseEvent(evt *proto.FetchEventsResponse) (*proto.PeerInfo, Position, int64, error) {
 	if evt == nil {
-		return nil, Position{}, nil
+		return nil, Position{}, 0, nil
 	}
 
 	var peerInfo proto.PeerInfo
 	err := json.Unmarshal(evt.Data, &peerInfo)
 	if err != nil {
-		return nil, Position{}, fmt.Errorf("failed to parse peer info json data: %w", err)
+		return nil, Position{}, 0, fmt.Errorf("failed to parse peer info json data: %w", err)
 	}
 
 	offset := Position{
@@ -290,5 +290,5 @@ func parseEvent(evt *proto.FetchEventsResponse) (*proto.PeerInfo, Position, erro
 		Offset: evt.GetPosition().GetOffset(),
 	}
 
-	return &peerInfo, offset, nil
+	return &peerInfo, offset, evt.Timestamp.IntoTime().Unix(), nil
 }

@@ -5,6 +5,8 @@ import (
 )
 
 type Event struct {
-	*proto.PeerInfo
-	Err error
+	Timestamp int64
+	EventType proto.EventType
+	PeerInfo  *proto.PeerInfo
+	Error     error
 }

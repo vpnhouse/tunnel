@@ -66,7 +66,7 @@ func (s *Client) Events() chan *Event {
 			lockTtl := s.getLockTtl()
 			acquired, err := s.eventlogSync.Acquire(s.instanceID, s.tunnelHost, lockTtl)
 			if !acquired {
-				s.publishOrDrop(&Event{Err: fmt.Errorf("stop reading events as failed to acquire sync lock to process events: %w", ErrLockNotAcquired)})
+				s.publishOrDrop(&Event{Error: fmt.Errorf("stop reading events as failed to acquire sync lock to process events: %w", ErrLockNotAcquired)})
 				zap.L().Info("stop reading events as failed to acquire sync lock to process events",
 					zap.String("instance_id", s.instanceID),
 					zap.String("tunnel", s.tunnelHost),
@@ -82,7 +82,7 @@ func (s *Client) Events() chan *Event {
 			}
 			err = s.connect()
 			if err != nil {
-				s.publishOrDrop(&Event{Err: err})
+				s.publishOrDrop(&Event{Error: err})
 				return
 			}
 			s.readAndPublishEvents()
