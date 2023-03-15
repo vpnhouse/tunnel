@@ -104,7 +104,7 @@ func (s *eventlogSyncRedis) GetPosition(tunnelID string) (Position, error) {
 	return positionFromJson(res)
 }
 
-func (s *eventlogSyncRedis) PutOffset(tunnelID string, position Position) error {
+func (s *eventlogSyncRedis) PutPosition(tunnelID string, position Position) error {
 	key := buildPositionKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()
@@ -118,7 +118,7 @@ func (s *eventlogSyncRedis) PutOffset(tunnelID string, position Position) error 
 	return nil
 }
 
-func (s *eventlogSyncRedis) DeleteOffset(tunnelID string) error {
+func (s *eventlogSyncRedis) DeletePosition(tunnelID string) error {
 	key := buildPositionKey(tunnelID)
 	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()

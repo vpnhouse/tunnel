@@ -90,7 +90,7 @@ func (s *eventlogSyncEtcd) GetPosition(tunnelID string) (Position, error) {
 	return positionFromJsonBytes(resp.Kvs[0].Value)
 }
 
-func (s *eventlogSyncEtcd) PutOffset(tunnelId string, position Position) error {
+func (s *eventlogSyncEtcd) PutPosition(tunnelId string, position Position) error {
 	key := buildPositionKey(tunnelId)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 	defer cancel()
@@ -107,7 +107,7 @@ func (s *eventlogSyncEtcd) PutOffset(tunnelId string, position Position) error {
 	return nil
 }
 
-func (s *eventlogSyncEtcd) DeleteOffset(tunnelId string) error {
+func (s *eventlogSyncEtcd) DeletePosition(tunnelId string) error {
 	key := buildPositionKey(tunnelId)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 	defer cancel()

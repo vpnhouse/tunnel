@@ -21,11 +21,11 @@ func setupLogger() {
 	zap.ReplaceGlobals(logger)
 }
 
-func TestOffsetAcquireLockTtlFileNoErrors(t *testing.T) {
+func TestEventlogSyncFileAcquireLockTtl(t *testing.T) {
 	setupLogger()
 
 	dir := os.TempDir()
-	offsetSync, err := NewEventlogSyncFile(dir)
+	eventSync, err := NewEventlogSyncFile(dir)
 	require.NoError(t, err, "failed to create offset sync file")
 
 	instanceID1 := "instance_1"
@@ -40,7 +40,7 @@ func TestOffsetAcquireLockTtlFileNoErrors(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 100; i++ {
-			acquired, err := offsetSync.Acquire(instanceID1, tunnelID1, time.Second)
+			acquired, err := eventSync.Acquire(instanceID1, tunnelID1, time.Second)
 			require.NoError(t, err, "failed to acquire offset sync lock du to error: %s", instanceID1)
 			if acquired {
 				acquired1++
@@ -51,7 +51,7 @@ func TestOffsetAcquireLockTtlFileNoErrors(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 100; i++ {
-			acquired, err := offsetSync.Acquire(instanceID2, tunnelID1, time.Second)
+			acquired, err := eventSync.Acquire(instanceID2, tunnelID1, time.Second)
 			require.NoError(t, err, "failed to acquire offset sync lock due to error: %s", instanceID2)
 			if acquired {
 				acquired2++
@@ -68,13 +68,13 @@ func TestOffsetAcquireLockTtlFileNoErrors(t *testing.T) {
 	time.Sleep(time.Second)
 	t.Log("stop waiting")
 
-	acquired, err := offsetSync.Acquire(instanceID2, tunnelID1, time.Second)
+	acquired, err := eventSync.Acquire(instanceID2, tunnelID1, time.Second)
 	require.NoError(t, err, "failed to acquire offset sync lock due to error: %s", instanceID2)
 	require.True(t, acquired, "failed to acquire offset sync lock: %s", instanceID2)
 
-	err = offsetSync.Release(instanceID1, tunnelID1)
+	err = eventSync.Release(instanceID1, tunnelID1)
 	require.NoError(t, err, "failed to release offset sync lock due to error: %s", instanceID1)
 
-	err = offsetSync.Release(instanceID2, tunnelID1)
+	err = eventSync.Release(instanceID2, tunnelID1)
 	require.NoError(t, err, "failed to release offset sync lock due to error: %s", instanceID1)
 }
