@@ -21,7 +21,6 @@ require (
 	github.com/miekg/dns v1.1.46
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
 	github.com/prometheus/client_golang v1.12.1
-	github.com/redis/go-redis/v9 v9.0.2
 	github.com/rubenv/sql-migrate v1.0.0
 	github.com/slok/go-http-metrics v0.10.0
 	github.com/spf13/afero v1.8.0
@@ -55,7 +54,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.9.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dnstap/golang-dnstap v0.4.0 // indirect
 	github.com/farsightsec/golang-framestream v0.3.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
