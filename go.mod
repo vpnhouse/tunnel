@@ -20,6 +20,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/miekg/dns v1.1.46
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
+	github.com/oschwald/maxminddb-golang v1.8.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/rubenv/sql-migrate v1.0.0
 	github.com/slok/go-http-metrics v0.10.0
