@@ -13,13 +13,13 @@ import (
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	mgmtAPI "github.com/vpnhouse/api/go/server/tunnel_mgmt"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
-	"github.com/vpnhouse/tunnel/internal/federation_keys"
 	"github.com/vpnhouse/tunnel/internal/frontend"
 	"github.com/vpnhouse/tunnel/internal/manager"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
+	"github.com/vpnhouse/tunnel/pkg/keystore"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 )
@@ -30,7 +30,7 @@ type TunnelAPI struct {
 	adminJWT   *auth.JWTMaster
 	authorizer *authorizer.JWTAuthorizer
 	storage    *storage.Storage
-	keystore   federation_keys.Keystore
+	keystore   keystore.Keystore
 	ippool     *ipam.IPAM
 	running    bool
 }
@@ -41,7 +41,7 @@ func NewTunnelHandlers(
 	adminJWT *auth.JWTMaster,
 	authorizer *authorizer.JWTAuthorizer,
 	storage *storage.Storage,
-	keystore federation_keys.Keystore,
+	keystore keystore.Keystore,
 	ip4am *ipam.IPAM,
 ) *TunnelAPI {
 	instance := &TunnelAPI{
