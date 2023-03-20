@@ -14,7 +14,6 @@ import (
 	sentryio "github.com/getsentry/sentry-go"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
-	"github.com/vpnhouse/tunnel/internal/federation_keys"
 	"github.com/vpnhouse/tunnel/internal/grpc"
 	"github.com/vpnhouse/tunnel/internal/httpapi"
 	"github.com/vpnhouse/tunnel/internal/ipdiscover"
@@ -26,6 +25,7 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/control"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
+	"github.com/vpnhouse/tunnel/pkg/keystore"
 	"github.com/vpnhouse/tunnel/pkg/rapidoc"
 	"github.com/vpnhouse/tunnel/pkg/sentry"
 	"github.com/vpnhouse/tunnel/pkg/version"
@@ -118,15 +118,15 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("manager", sessionManager)
 
-	var keystore federation_keys.Keystore = federation_keys.DenyAllKeystore{}
+	var keyStore keystore.Keystore = keystore.DenyAllKeystore{}
 	if runtime.Features.WithFederation() {
-		if k, err := federation_keys.NewFsKeystore(runtime.Settings.ManagementKeystore); err == nil {
-			keystore = k
+		if k, err := keystore.NewFsKeystore(runtime.Settings.ManagementKeystore); err == nil {
+			keyStore = k
 		}
 	}
 
 	// Prepare tunneling HTTP API
-	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keystore, ipv4am)
+	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am)
 
 	xHttpAddr := runtime.Settings.HTTP.ListenAddr
 	xhttpOpts := []xhttp.Option{xhttp.WithLogger()}
