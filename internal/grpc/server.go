@@ -14,15 +14,16 @@ import (
 	"sync/atomic"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/vpnhouse/tunnel/internal/eventlog"
-	"github.com/vpnhouse/tunnel/internal/federation_keys"
-	"github.com/vpnhouse/tunnel/internal/storage"
-	"github.com/vpnhouse/tunnel/pkg/tlsutils"
-	"github.com/vpnhouse/tunnel/pkg/xnet"
-	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/storage"
+	"github.com/vpnhouse/tunnel/pkg/keystore"
+	"github.com/vpnhouse/tunnel/pkg/tlsutils"
+	"github.com/vpnhouse/tunnel/pkg/xnet"
+	"github.com/vpnhouse/tunnel/proto"
 )
 
 type Config struct {
@@ -55,7 +56,7 @@ type grpcServer struct {
 
 	server    *grpc.Server
 	ca        string
-	keystore  federation_keys.Keystore
+	keystore  keystore.Keystore
 	tunnelKey string
 }
 
@@ -75,7 +76,7 @@ func (g *grpcServer) Shutdown() error {
 }
 
 // New creates and starts gRPC services.
-func New(config Config, eventLog eventlog.EventManager, keystore federation_keys.Keystore, storage *storage.Storage) (*grpcServer, error) {
+func New(config Config, eventLog eventlog.EventManager, keystore keystore.Keystore, storage *storage.Storage) (*grpcServer, error) {
 	var withTls grpc.ServerOption
 	var ca string
 	var err error

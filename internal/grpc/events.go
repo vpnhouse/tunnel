@@ -9,27 +9,28 @@ import (
 	"errors"
 	"io"
 
-	"github.com/vpnhouse/tunnel/internal/eventlog"
-	"github.com/vpnhouse/tunnel/internal/federation_keys"
-	"github.com/vpnhouse/tunnel/internal/storage"
-	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/storage"
+	"github.com/vpnhouse/tunnel/internal/types"
+	"github.com/vpnhouse/tunnel/pkg/keystore"
+	"github.com/vpnhouse/tunnel/proto"
 )
 
 type eventServer struct {
 	proto.EventLogServiceServer
 	events    eventlog.EventManager
-	keystore  federation_keys.Keystore
+	keystore  keystore.Keystore
 	tunnelKey string
 	storage   *storage.Storage
 }
 
-func newEventServer(events eventlog.EventManager, keystore federation_keys.Keystore, tunnelKey string, storage *storage.Storage) proto.EventLogServiceServer {
+func newEventServer(events eventlog.EventManager, keystore keystore.Keystore, tunnelKey string, storage *storage.Storage) proto.EventLogServiceServer {
 	return &eventServer{
 		events:    events,
 		keystore:  keystore,
