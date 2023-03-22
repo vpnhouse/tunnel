@@ -157,6 +157,8 @@ func (s *runtimePeerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wire
 			continue
 		}
 
+		zap.L().Debug("last peer endpoint", zap.Stringer("endpoint", wgPeer.Endpoint))
+
 		existedPeers[*peer.WireguardPublicKey] = struct{}{}
 
 		// Update peer stats and add peer to the update peers list for futher processing
