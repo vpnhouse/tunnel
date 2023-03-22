@@ -172,6 +172,13 @@ func WithIPAddresses(ips ...net.IP) SignGenOption {
 	}
 }
 
+func WithDNSNames(dnsNames ...string) SignGenOption {
+	return func(opts *SignGenOptions) error {
+		opts.templateCert.DNSNames = dnsNames
+		return nil
+	}
+}
+
 func WithLocalIPAddresses() SignGenOption {
 	return func(opts *SignGenOptions) error {
 		opts.templateCert.IPAddresses = append(opts.templateCert.IPAddresses, net.IPv4(127, 0, 0, 1), net.IPv6loopback)

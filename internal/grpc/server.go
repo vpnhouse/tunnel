@@ -44,8 +44,9 @@ type TlsConfig struct {
 }
 
 type TlsSelfSignConfig struct {
-	TunnelKey  string   `yaml:"tunnel_key"`
-	AllowedIPs []string `yaml:"allowed_ips,omitempty"`
+	TunnelKey    string   `yaml:"tunnel_key"`
+	AllowedIPs   []string `yaml:"allowed_ips,omitempty"`
+	AllowedNames []string `yaml:"allowed_names,omitempty"`
 	// Storage directory is used to keep load self signed certs
 	Dir string `yaml:"dir,omitempty"`
 }
@@ -252,6 +253,7 @@ func loadOrGenerateServerSign(tlsSelfSignConfig *TlsSelfSignConfig, signCA *tlsu
 		tlsutils.WithRsaSigner(4096),
 		tlsutils.WithIPAddresses(allowedIPs...),
 		tlsutils.WithLocalIPAddresses(),
+		tlsutils.WithDNSNames(tlsSelfSignConfig.AllowedNames...),
 	}
 
 	sign, err = tlsutils.GenerateSign(opts...)
