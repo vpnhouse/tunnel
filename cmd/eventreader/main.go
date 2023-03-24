@@ -38,11 +38,11 @@ func main() {
 		serverPort = defaultServerPort
 	}
 
-	run_client(serverHost, serverPort, authSecret)
+	runСlient(serverHost, serverPort, authSecret)
 	time.Sleep(time.Second)
 }
 
-func run_client(serverHost string, serverPort string, authSecret string) {
+func runСlient(serverHost string, serverPort string, authSecret string) {
 	offsetSync, err := eventlog.NewEventlogSyncFile("./offsets")
 	if err != nil {
 		zap.L().Error("failed to create offset sync", zap.Error(err))
