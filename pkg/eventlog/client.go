@@ -28,8 +28,12 @@ type Client struct {
 
 func NewClient(instanceID string, tunnelHost string, eventlogSync EventlogSync, opt ...Option) (*Client, error) {
 	opts := options{
-		TunnelPort: "8089",     // Default port
-		TunnelID:   tunnelHost, // use host as default value in case no opts given
+		TunnelPort:             "8089",     // Default port
+		TunnelID:               tunnelHost, // use host as default value in case no opts given
+		LockTtl:                defaultLockTtl,
+		LockProlongateTimeout:  defaultLockProlongateTimeout,
+		ReportPositionInterval: defaultReportPositionInterval,
+		WaitOutputWriteTimeout: defaultWaitOutputWriteTimeout,
 	}
 	for _, o := range opt {
 		err := o(&opts)

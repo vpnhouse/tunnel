@@ -5,9 +5,8 @@ import (
 )
 
 const (
-	reportOffsetTimeout          = 5 * time.Second
-	lockTtl                      = time.Minute
-	defaultLockProlongateTimeout = 30 * time.Second
-
-	waitOutputWriteTimeout = time.Second
+	defaultLockTtl                = time.Minute
+	defaultReportPositionInterval = 5 * time.Second
+	defaultLockProlongateTimeout  = 30 * time.Second
+	defaultWaitOutputWriteTimeout = 5 * time.Second
 )

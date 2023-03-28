@@ -32,6 +32,19 @@ type options struct {
 	TunnelID string
 	// Enforce to start reading from active log disregarding to stored offset
 	ForceStartFromActiveLog bool
+
+	// lock ttl timeout (note all client instances mut use same lock ttl)
+	// default: time.Minute
+	LockTtl time.Duration
+	// Extra timeout to prolongate lock ttl
+	// default: 30 * time.Second
+	LockProlongateTimeout time.Duration
+	// report position interval
+	// default 5 * time.Second
+	ReportPositionInterval time.Duration
+	// Wait timeout to output the collected event
+	// default 5 * time.Second
+	WaitOutputWriteTimeout time.Duration
 }
 
 type Option func(opts *options) error
@@ -100,6 +113,34 @@ func WithStopIdleTimeout(stopIdleTimeout time.Duration) Option {
 func WithStartFromActiveLog() Option {
 	return func(opts *options) error {
 		opts.ForceStartFromActiveLog = true
+		return nil
+	}
+}
+
+func WithLockTtl(lockTtl time.Duration) Option {
+	return func(opts *options) error {
+		opts.LockTtl = lockTtl
+		return nil
+	}
+}
+
+func WithLockProlongateTimeout(lockProlongateTimeout time.Duration) Option {
+	return func(opts *options) error {
+		opts.LockProlongateTimeout = lockProlongateTimeout
+		return nil
+	}
+}
+
+func WithReportPositionInterval(reportPositionInterval time.Duration) Option {
+	return func(opts *options) error {
+		opts.ReportPositionInterval = reportPositionInterval
+		return nil
+	}
+}
+
+func WithWaitOutputWriteTimeout(waitOutputWriteTimeout time.Duration) Option {
+	return func(opts *options) error {
+		opts.WaitOutputWriteTimeout = waitOutputWriteTimeout
 		return nil
 	}
 }

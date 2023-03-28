@@ -68,7 +68,7 @@ func (s *Client) readAndPublishEvents() {
 						// so clear the currently saved position to be able start from active log
 						zap.L().Info("log offset not found, reset odd position and exit", zap.Error(err))
 						select {
-						case <-time.After(reportOffsetTimeout * 2):
+						case <-time.After(s.opts.ReportPositionInterval * 2):
 							s.publishOrDrop(&Event{Error: errors.New("cannot handle reset event position")})
 							return
 						case positionAckChan <- positionAck{ResetPosition: true}:
@@ -90,7 +90,7 @@ func (s *Client) readAndPublishEvents() {
 			}
 
 			select {
-			case <-time.After(reportOffsetTimeout * 2):
+			case <-time.After(s.opts.ReportPositionInterval * 2):
 				s.publishOrDrop(&Event{Error: errors.New("cannot handle read event position")})
 				return
 			case positionAckChan <- positionAck{Position: position}:
@@ -100,7 +100,7 @@ func (s *Client) readAndPublishEvents() {
 
 	// Loop to notify offset positions
 	go func() {
-		ticker := time.NewTicker(reportOffsetTimeout)
+		ticker := time.NewTicker(s.opts.ReportPositionInterval)
 		var sentPos positionAck
 		var currPos positionAck
 
@@ -253,7 +253,7 @@ func (s *Client) publishOrDrop(event *Event) {
 }
 
 func (s *Client) publishOrError(event *Event) error {
-	timer := time.NewTimer(waitOutputWriteTimeout)
+	timer := time.NewTimer(s.opts.WaitOutputWriteTimeout)
 	defer timer.Stop()
 	select {
 	case <-timer.C:
@@ -264,7 +264,7 @@ func (s *Client) publishOrError(event *Event) error {
 }
 
 func (s *Client) getLockTtl() time.Duration {
-	return s.getProlongateLockTimeout() + lockTtl
+	return s.getProlongateLockTimeout() + s.opts.LockTtl
 }
 
 func (s *Client) getProlongateLockTimeout() time.Duration {
