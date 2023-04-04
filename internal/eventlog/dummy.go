@@ -11,27 +11,27 @@ import (
 )
 
 func NewDummy() *dummyEventManager {
-	return &dummyEventManager{
-		running: true,
-	}
+	return &dummyEventManager{}
 }
 
 type dummyEventManager struct {
-	running bool
 }
 
-func (d *dummyEventManager) Push(_ uint32, _ int64, _ interface{}) error {
+func (d *dummyEventManager) Push(_ EventType, _ interface{}) error {
 	return nil
 }
-func (d *dummyEventManager) Subscribe(_ context.Context, _ SubscriptionOpts) (*Subscription, error) {
+func (d *dummyEventManager) Subscribe(ctx context.Context, subscriberId string, opts ...SubscribeOption) (*Subscription, error) {
 	return nil, xerror.EInternalError("Attempt to receive events from dummy event manager", nil)
 }
 
+func (d *dummyEventManager) Unsubscribe(ctx context.Context, subscriberId string) error {
+	return nil
+}
+
 func (d *dummyEventManager) Running() bool {
-	return d.running
+	return false
 }
 
 func (d *dummyEventManager) Shutdown() error {
-	d.running = false
 	return nil
 }

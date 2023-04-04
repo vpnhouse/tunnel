@@ -6,16 +6,22 @@ package eventlog
 
 import (
 	"context"
+	"errors"
 
 	"github.com/vpnhouse/tunnel/pkg/control"
 )
 
+var ErrNotFound = errors.New("not found")
+var ErrSubscriptionStopped = errors.New("subscription stopped")
+var ErrAlreadySubscribed = errors.New("already subscribed")
+
 type EventPusher interface {
-	Push(eventType uint32, timestamp int64, data interface{}) error
+	Push(eventType EventType, data interface{}) error
 }
 
 type EventSubscriber interface {
-	Subscribe(ctx context.Context, opts SubscriptionOpts) (*Subscription, error)
+	Subscribe(ctx context.Context, subscriberId string, opts ...SubscribeOption) (*Subscription, error)
+	Unsubscribe(ctx context.Context, subscriberId string) error
 }
 
 type EventManager interface {

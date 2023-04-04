@@ -5,6 +5,19 @@ option go_package = "github.com/vpnhouse/tunnel/proto";
 
 import "timestamp.proto";
 
+// PeerInfo describes the peer interacting with the tunnel node
+message PeerInfo {
+  string userID = 1;
+  string installationID = 2;
+  string sessionID = 3;
+  Timestamp created = 5;
+  Timestamp updated = 6;
+  Timestamp expires = 7;
+  uint64 bytesTx = 8;
+  uint64 bytesRx = 9;
+  Timestamp activity = 10;
+  string label = 11;
+}
 
 // EventType defines types to use with the eventlog package
 enum EventType {
@@ -17,15 +30,8 @@ enum EventType {
   PeerFirstConnect = 5;
 }
 
-// PeerInfo describes the peer interacting with the tunnel node
-message PeerInfo {
-  string userID = 1;
-  string installationID = 2;
-  string sessionID = 3;
-  Timestamp created = 5;
-  Timestamp updated = 6;
-  Timestamp expires = 7;
-  uint64 bytesTx = 8;
-  uint64 bytesRx = 9;
-  Timestamp activity = 10;
+// Position in the evenlog to start/resume the events
+message EventLogPosition {
+  string log_id = 1;
+  int64 offset = 2;
 }

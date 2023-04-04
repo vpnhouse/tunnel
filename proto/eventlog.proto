@@ -3,31 +3,42 @@ syntax = "proto3";
 package proto;
 option go_package = "github.com/vpnhouse/tunnel/proto";
 
+import "events.proto";
+import "timestamp.proto";
 
 service EventLogService {
   // FetchEvents streams back events to a caller
   rpc FetchEvents (FetchEventsRequest) returns (stream FetchEventsResponse) {}
+  // [Optional] EventFetched steams up the notifiactions about fetched events
+  rpc EventFetched (stream EventFetchedRequest) returns (EventFetchedResponse) {}
 }
 
-
 message FetchEventsRequest {
-  // Empty logID means the beginning of the whole journal.
-  string logID = 1;
-  // Zero offset means the beginning of the file.
-  int64 offset = 2;
-  // Labels gives a server some idea who called the method.
-  // More like a debug/tracing tool. Optional.
-  map<string, string> labels = 3;
-  // EventTypes contains the list of events client interested in.
+  // Position to start event streaming 
+  // Empty data treats to stream out the events from the beginning
+  // In case position is not supplied, the events is streamed from the active (current log)
+  EventLogPosition position = 1;
+  // Skip event at given position to implement non inclusive start reading from the given position
+  bool skip_event_at_position = 2;
+  // event_types contains the list of even types client interested in.
   // Empty list means all events. Optional.
-  repeated uint32 eventTypes = 4;
+  repeated EventType event_types = 3;
 }
 
 // FetchEventsResponse is a mirror of eventlog.Event struct.
 message FetchEventsResponse {
-  uint32 eventType = 1;
-  int64 timestamp = 2;
-  string logID = 3;
-  int64 offset = 4;
-  bytes data = 5;
+  EventType event_type = 1;
+  Timestamp timestamp = 2;
+  EventLogPosition position = 3;
+  bytes data = 4;
+}
+
+message EventFetchedRequest {
+  // position to ack the server about read event
+  EventLogPosition position = 1;
+  // Delete event log position for given subscriber
+  bool reset_eventlog_position = 2;
+}
+
+message EventFetchedResponse {
 }

@@ -32,7 +32,7 @@ func TestSinglePush(t *testing.T) {
 
 	data := "foo bar 123"
 	ts := time.Now().Unix()
-	err := log.Push(1, ts, data)
+	err := log.Push(PeerAdd, data)
 	require.NoError(t, err)
 
 	err = log.Shutdown()
@@ -46,7 +46,7 @@ func TestSinglePush(t *testing.T) {
 
 	event, _, err := readEvent(last, 0, lastLogName)
 	require.NoError(t, err)
-	assert.Equal(t, uint32(1), event.Type)
+	assert.Equal(t, PeerAdd, event.Type)
 	assert.Equal(t, ts, event.Timestamp)
 
 	var s string
@@ -57,21 +57,16 @@ func TestSinglePush(t *testing.T) {
 func TestReadBack(t *testing.T) {
 	l := newTestInstance(StorageConfig{Dir: "/", Size: 100})
 
-	err := l.Push(42, 1928, "hello world")
+	err := l.Push(PeerAdd, "hello world")
 	require.NoError(t, err)
 
-	sub, err := l.Subscribe(context.Background(), SubscriptionOpts{
-		Offset: 0,
-		LogID:  "",
-		Labels: map[string]string{"client": "test1"},
-	})
+	sub, err := l.Subscribe(context.Background(), "", WithPosition(EventlogPosition{Offset: 0, LogID: ""}))
 	require.NoError(t, err)
 
 	event := <-sub.Events()
 	l.Shutdown()
 
-	assert.Equal(t, uint32(42), event.Type)
-	assert.Equal(t, int64(1928), event.Timestamp)
+	assert.Equal(t, PeerAdd, event.Type)
 	var s string
 	json.Unmarshal(event.Data, &s)
 	assert.Equal(t, "hello world", s)
@@ -80,9 +75,8 @@ func TestReadBack(t *testing.T) {
 func TestSubscribeToInvalidOffset(t *testing.T) {
 	log := newTestInstance(StorageConfig{Dir: "/", Size: 100, MaxFiles: 5})
 
-	ts := time.Now().Unix()
 	for i := 0; i < 10; i++ {
-		err := log.Push(42, ts, "hello world")
+		err := log.Push(PeerAdd, "hello world")
 		require.NoError(t, err)
 	}
 
@@ -91,47 +85,57 @@ func TestSubscribeToInvalidOffset(t *testing.T) {
 	log.storage.lock.Unlock()
 
 	// assume we know the logID somehow
-	sub, err := log.Subscribe(context.Background(), SubscriptionOpts{LogID: logID, Offset: 5})
+	sub, err := log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: logID, Offset: 5}))
 	require.NoError(t, err)
 
-	// must immediately get an error
-	err = <-sub.Errors()
-	require.Error(t, err)
+	// must immediately see events chan is closed
+	_, ok := <-sub.Events()
+	require.False(t, ok)
 }
 
 func TestSubscribeToUnknownLog(t *testing.T) {
 	log := newTestInstance(StorageConfig{Dir: "/", Size: 10_000})
 
-	_, err := log.Subscribe(context.Background(), SubscriptionOpts{LogID: uuid.New().String(), Offset: 0})
+	_, err := log.Subscribe(context.Background(), "", WithPosition(EventlogPosition{LogID: uuid.New().String(), Offset: 0}))
 	require.Error(t, err)
 }
 
 func TestSubscribeToOffset(t *testing.T) {
 	log := newTestInstance(StorageConfig{Dir: "/", Size: 10_000})
 
-	ts := time.Now().Unix()
-	for i := 0; i < 10; i++ {
-		err := log.Push(uint32(i+1), ts, "hello world")
-		require.NoError(t, err)
-	}
+	err := log.Push(PeerAdd, "hello world")
+	require.NoError(t, err)
+	err = log.Push(PeerRemove, "hello world")
+	require.NoError(t, err)
+	err = log.Push(PeerTraffic, "hello world")
+	require.NoError(t, err)
+	err = log.Push(PeerFirstConnect, "hello world")
+	require.NoError(t, err)
+	err = log.Push(PeerUpdate, "hello world")
+	require.NoError(t, err)
 
-	<-time.After(2 * time.Millisecond)
+	time.Sleep(2 * time.Millisecond)
 
-	bs, err := marshalEvent(42, ts, "hello world")
+	bs, err := marshalEvent(PeerAdd, time.Now().UTC().Unix(), "hello world")
+	require.NoError(t, err)
+
 	offset := int64(len(bs))
 
 	logID := log.storage.currentLog.uuid
-	sub, err := log.Subscribe(context.Background(), SubscriptionOpts{LogID: logID, Offset: offset})
+	sub, err := log.Subscribe(context.Background(), "1", WithPosition(EventlogPosition{LogID: logID, Offset: offset}))
 	require.NoError(t, err)
 	ev1 := <-sub.Events()
-	sub.Close()
-	assert.Equal(t, uint32(2), ev1.Type)
+	err = log.Unsubscribe(context.Background(), "1")
+	require.NoError(t, err)
+	assert.Equal(t, PeerRemove, ev1.Type)
+	_, ok := <-sub.Events()
+	assert.False(t, ok, "events chan must be closed")
 
-	sub, err = log.Subscribe(context.Background(), SubscriptionOpts{LogID: logID, Offset: 5 * offset})
+	sub, err = log.Subscribe(context.Background(), "1", WithPosition(EventlogPosition{LogID: logID, Offset: 4 * offset}))
 	require.NoError(t, err)
 	ev2 := <-sub.Events()
 	sub.Close()
-	assert.Equal(t, uint32(6), ev2.Type)
+	assert.Equal(t, PeerUpdate, ev2.Type)
 }
 
 func TestMultipleReads(t *testing.T) {
@@ -139,7 +143,7 @@ func TestMultipleReads(t *testing.T) {
 	logID := log.storage.currentLog.uuid
 
 	ts := time.Now().Unix()
-	_ = log.Push(42, ts, "data here")
+	_ = log.Push(PeerAdd, "data here")
 
 	const reads = 10
 	events := make([]Event, reads)
@@ -148,7 +152,7 @@ func TestMultipleReads(t *testing.T) {
 	wg.Add(reads)
 
 	for i := 0; i < reads; i++ {
-		sub, err := log.Subscribe(context.Background(), SubscriptionOpts{LogID: logID, Offset: 0})
+		sub, err := log.Subscribe(context.Background(), fmt.Sprint(i), WithPosition(EventlogPosition{LogID: logID, Offset: 0}))
 		if err != nil {
 			panic(err)
 		}
@@ -164,41 +168,48 @@ func TestMultipleReads(t *testing.T) {
 	_ = log.Shutdown()
 
 	for i := 0; i < reads; i++ {
-		assert.Equal(t, uint32(42), events[i].Type)
+		assert.Equal(t, PeerAdd, events[i].Type)
 		assert.Equal(t, ts, events[i].Timestamp)
 	}
 }
 
 func TestWritesOrder(t *testing.T) {
 	// note: will trigger 5 rotations with a log size = 25k bytes
-	log := newTestInstance(StorageConfig{Dir: "/", Size: 25_000, MaxFiles: 3})
+	log := newTestInstance(StorageConfig{Dir: "/", Size: 25_000, MaxFiles: 4})
+
+	ctx := context.Background()
+
+	sub, err := log.Subscribe(ctx, "", WithPosition(EventlogPosition{LogID: "", Offset: 0}))
+	require.NoError(t, err)
 
 	const writes = 5000
 	reads := 0
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+	var wg sync.WaitGroup
+	wg.Add(1)
 
-	sub, err := log.Subscribe(ctx, SubscriptionOpts{LogID: "", Offset: 0})
-	require.NoError(t, err)
-
-	readDone := make(chan struct{})
 	go func() {
+		defer wg.Done()
+		prevTimestamp := int64(0)
 		for event := range sub.Events() {
-			reads++
-			if event.Timestamp != int64(reads) {
-				panic(fmt.Sprintf("order mismatch: event=%d vs reads=%d\n", event.Timestamp, reads))
+			if event.Timestamp < prevTimestamp {
+				panic(fmt.Sprintf("order mismatch: event=%d reads=%d\n", event.Timestamp, reads))
 			}
+			prevTimestamp = event.Timestamp
+			reads++
 		}
-		readDone <- struct{}{}
 	}()
 
 	for i := 0; i < writes; i++ {
-		err = log.Push(42, int64(i+1), "data")
+		err = log.Push(PeerAdd, "data")
 		require.NoError(t, err)
 	}
 
-	<-readDone
+	time.Sleep(time.Second)
+
+	log.Shutdown()
+
+	wg.Wait()
 	assert.Equal(t, writes, reads)
 }
 
@@ -215,7 +226,7 @@ func TestReadsCount(t *testing.T) {
 		go func(k int) {
 			defer wg.Done()
 			for i := 0; i < batch; i++ {
-				err := log.Push(42, int64(k*concurrency+i+1), "data")
+				err := log.Push(PeerAdd, "data")
 				require.NoError(t, err)
 			}
 		}(i)
@@ -226,7 +237,7 @@ func TestReadsCount(t *testing.T) {
 
 	rets := make([]int, concurrency)
 	for i := 0; i < concurrency; i++ {
-		sub, err := log.Subscribe(ctx, SubscriptionOpts{LogID: "", Offset: 0})
+		sub, err := log.Subscribe(ctx, fmt.Sprint(i), WithPosition(EventlogPosition{LogID: "", Offset: 0}))
 		require.NoError(t, err)
 
 		wg.Add(1)

@@ -93,7 +93,8 @@ func TestBitOps(t *testing.T) {
 }
 
 func TestReadEvent(t *testing.T) {
-	bs, err := marshalEvent(42, 1101, "my string")
+	ts := time.Now().UTC().Unix()
+	bs, err := marshalEvent(PeerAdd, ts, "my string")
 	require.NoError(t, err)
 
 	var offset int64 = 100
@@ -101,8 +102,8 @@ func TestReadEvent(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, offset+int64(len(bs)), next)
-	assert.Equal(t, uint32(42), event.Type)
-	assert.Equal(t, int64(1101), event.Timestamp)
+	assert.Equal(t, PeerAdd, event.Type)
+	assert.Equal(t, ts, event.Timestamp)
 	assert.Equal(t, "log_id", event.LogID)
 	assert.Equal(t, offset, event.Offset)
 	var body string
@@ -111,7 +112,8 @@ func TestReadEvent(t *testing.T) {
 }
 
 func TestReadEvent_EOF(t *testing.T) {
-	bs, err := marshalEvent(42, 1101, "my string")
+	ts := time.Now().UTC().Unix()
+	bs, err := marshalEvent(PeerAdd, ts, "my string")
 	require.NoError(t, err)
 
 	r := bytes.NewBuffer(bs)
@@ -126,14 +128,15 @@ func TestReadEvent_EOF(t *testing.T) {
 func TestReadEventHeaderBody(t *testing.T) {
 	body := "my string"
 	expectedBodySize := len(body) + 2 + 1
-	bs, err := marshalEvent(42, 1101, body)
+	ts := time.Now().UTC().Unix()
+	bs, err := marshalEvent(PeerAdd, ts, body)
 	require.NoError(t, err)
 
 	r := bytes.NewBuffer(bs)
 	header, err := readEventHeader(r)
 	require.NoError(t, err)
-	assert.Equal(t, uint32(42), header.eventType)
-	assert.Equal(t, int64(1101), header.timestamp)
+	assert.Equal(t, int32(PeerAdd), header.eventType)
+	assert.Equal(t, ts, header.timestamp)
 	assert.Equal(t, uint16(expectedBodySize), header.bodySize)
 
 	b, err := readEventBody(r, header)
@@ -147,7 +150,6 @@ func TestReadEventHeaderBody(t *testing.T) {
 func BenchmarkMarshalEvent(b *testing.B) {
 	b.ReportAllocs()
 
-	typ := uint32(42)
 	ts := time.Now().Unix()
 	data := map[string]interface{}{
 		"id":   1234,
@@ -155,7 +157,7 @@ func BenchmarkMarshalEvent(b *testing.B) {
 		"foo":  "bar",
 	}
 	for i := 0; i < b.N; i++ {
-		_, _ = marshalEvent(typ, ts, data)
+		_, _ = marshalEvent(PeerAdd, ts, data)
 	}
 }
 

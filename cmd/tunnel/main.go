@@ -7,6 +7,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -187,28 +188,31 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		rapidoc.RegisterHandlers(xHttpServer.Router())
 	}
 
-	// Startup HTTP API
-	if err := xHttpServer.Run(xHttpAddr); err != nil {
-		return err
-	}
-	runtime.Services.RegisterService("httpServer", xHttpServer)
-	if runtime.HttpRouter == nil {
-		runtime.HttpRouter = xHttpServer.Router()
-	}
-
 	runtime.ExternalStats.Run()
 	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
 
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
-			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog)
+			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog, keyStore, dataStorage)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to create grpc server: %w", err)
 			}
+			grpcServices.RegisterHandlers(xHttpServer.Router())
 			runtime.Services.RegisterService("grpcServices", grpcServices)
+			zap.L().Info("gRPC is up and running", zap.String("addr", runtime.Settings.GRPC.Addr))
 		} else {
-			zap.L().Info("initServices: skipping gRPC init - no configuration given")
+			zap.L().Info("skipping gRPC init - no configuration given")
 		}
+	}
+
+	// Startup HTTP API
+	if err := xHttpServer.Run(xHttpAddr); err != nil {
+		return err
+	}
+
+	runtime.Services.RegisterService("httpServer", xHttpServer)
+	if runtime.HttpRouter == nil {
+		runtime.HttpRouter = xHttpServer.Router()
 	}
 
 	// note: during the test we DO NOT override the DNS settings for peers.

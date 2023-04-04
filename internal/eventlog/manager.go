@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,19 +19,24 @@ import (
 	"go.uber.org/zap"
 )
 
+var ErrServiceStopped = errors.New("service stopped")
+var ErrNilEvent = errors.New("event is nil")
+
 type eventManager struct {
+	stopped atomic.Bool
+
 	lock    sync.Mutex
 	cancel  context.CancelFunc
-	running bool
 	storage *fsStorage
 
-	// closes when shutdown is complete
-	unblockDone chan struct{}
+	// stop -> done pattern to shutdown
+	stop chan struct{}
+	done chan struct{}
 
 	// buffered chan for incoming events
 	incoming chan []byte
 	// subscribers track callers (see the Subscribe() method)
-	subscribers map[*Subscription]struct{}
+	subscribers map[string]*Subscription
 }
 
 // New initializes and starts the event log manager
@@ -40,39 +46,32 @@ func New(cfg StorageConfig, fss ...afero.Fs) (*eventManager, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	m := &eventManager{
 		incoming:    make(chan []byte, 100),
-		unblockDone: make(chan struct{}),
-		subscribers: map[*Subscription]struct{}{},
+		stop:        make(chan struct{}),
+		done:        make(chan struct{}),
+		subscribers: map[string]*Subscription{},
 		storage:     storage,
-		cancel:      cancel,
-		running:     true,
 	}
 
-	go m.run(ctx)
+	go m.run()
 	return m, nil
 }
 
 // Push adds the event to the log.
-func (em *eventManager) Push(eventType uint32, timestamp int64, data interface{}) error {
-	em.lock.Lock()
-	running := em.running
-	em.lock.Unlock()
-
-	if !running {
-		return fmt.Errorf("service is not running")
+func (em *eventManager) Push(eventType EventType, data interface{}) error {
+	if em.stopped.Load() {
+		return ErrServiceStopped
 	}
 
 	// TODO(nikonov): actually, we CAN (un)marshal nil,
 	//  so should it be considered as API misuse?
 	if data == nil {
-		return fmt.Errorf("cannot push nil event")
+		return ErrNilEvent
 	}
-	if timestamp == 0 {
-		// TODO(nikonov): or UnixNano?
-		timestamp = time.Now().Unix()
-	}
+
+	// timestamp in seconds
+	timestamp := time.Now().UTC().Unix()
 
 	// marshal event here, this way we block the caller, not the
 	// processEvent method, which, in turn, will block the whole queue.
@@ -86,10 +85,9 @@ func (em *eventManager) Push(eventType uint32, timestamp int64, data interface{}
 }
 
 type Subscription struct {
-	labels map[string]string
-	cancel context.CancelFunc
-	events chan Event
-	errors chan error
+	subscriberID string
+	cancel       context.CancelFunc
+	events       chan Event
 
 	// notify closes when the subscriber done
 	stopChan chan struct{}
@@ -99,10 +97,6 @@ func (s *Subscription) Events() <-chan Event {
 	return s.events
 }
 
-func (s *Subscription) Errors() <-chan error {
-	return s.errors
-}
-
 // Close the subscriber.
 // Might be called multiple times.
 func (s *Subscription) Close() <-chan struct{} {
@@ -110,16 +104,15 @@ func (s *Subscription) Close() <-chan struct{} {
 	return s.stopChan
 }
 
-// SubscriptionOpts describe where we want to start reading the log.
+// EventlogPosition describe where we want to start reading the log.
 // Zero offset means the beginning of the file.
 // Empty logID means the beginning of the whole journal.
-type SubscriptionOpts struct {
+type EventlogPosition struct {
 	LogID  string
 	Offset int64
-	Labels map[string]string
 }
 
-func (s SubscriptionOpts) validate() error {
+func (s *EventlogPosition) validate() error {
 	if s.Offset < 0 {
 		return fmt.Errorf("negative offset is not supported")
 	}
@@ -136,112 +129,141 @@ func (s SubscriptionOpts) validate() error {
 }
 
 // Subscribe allocates and starts new subscription to a log.
-// The caller must consume channels given by .Events() and .Errors() methods.
+// The caller must consume channels given by .Events() method.
 // Context cancellation leads to subscription destruction, as well as calls of
 // .Close() method.
-func (em *eventManager) Subscribe(ctx context.Context, opts SubscriptionOpts) (*Subscription, error) {
-	if err := opts.validate(); err != nil {
-		return nil, err
+func (em *eventManager) Subscribe(ctx context.Context, subscriberID string, opts ...SubscribeOption) (*Subscription, error) {
+
+	if em.stopped.Load() {
+		return nil, ErrServiceStopped
+	}
+
+	var options subscribeOptions
+	for _, opt := range opts {
+		err := opt(&options)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	evenlogPosition := options.Position
+
+	if options.ActiveLog {
+		evenlogPosition = EventlogPosition{
+			LogID:  em.storage.CurrentLog(),
+			Offset: 0,
+		}
+	} else {
+		if len(evenlogPosition.LogID) == 0 {
+			evenlogPosition = EventlogPosition{
+				LogID:  em.storage.FirstLog(),
+				Offset: 0,
+			}
+		} else if !em.storage.HasLog(evenlogPosition.LogID) {
+			return nil, fmt.Errorf("no such log %s: %w", evenlogPosition.LogID, ErrNotFound)
+		}
 	}
 
 	em.lock.Lock()
 	defer em.lock.Unlock()
 
-	if !em.running {
-		return nil, fmt.Errorf("manager is not running")
-	}
-
-	if len(opts.LogID) == 0 {
-		opts.LogID = em.storage.FirstLog()
-	} else if !em.storage.HasLog(opts.LogID) {
-		return nil, fmt.Errorf("unknown log file `%s`", opts.LogID)
+	if _, ok := em.subscribers[subscriberID]; ok {
+		return nil, fmt.Errorf("failed to subscribe %s: %w", subscriberID, ErrAlreadySubscribed)
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	sub := &Subscription{
-		cancel:   cancel,
-		labels:   opts.Labels,
-		events:   make(chan Event),
-		errors:   make(chan error),
-		stopChan: make(chan struct{}),
+		cancel:       cancel,
+		subscriberID: subscriberID,
+		events:       make(chan Event),
+		stopChan:     make(chan struct{}),
 	}
 
 	// add ourselves to the subscribers map,
 	// will be removed in the goroutine right below
-	em.subscribers[sub] = struct{}{}
+	em.subscribers[subscriberID] = sub
 
 	go func() {
-		err := em.tail(ctx, opts.LogID, opts.Offset, sub.events)
-		select {
-		// dont block if nobody consumes the chan
-		case sub.errors <- err:
-		default:
-		}
-
-		// since tail exited we can be sure that nobody
-		// operates the sub.events chan anymore.
-		close(sub.events)
-		close(sub.errors)
-
-		// finally tell em we're done here
-		close(sub.stopChan)
-
-		em.lock.Lock()
-		defer em.lock.Unlock()
-		delete(em.subscribers, sub)
+		err := em.tail(ctx, evenlogPosition, options.SkipEventAtPosition, sub)
+		zap.L().Info("subscription stopped", zap.String("subscriber_id", sub.subscriberID), zap.Error(err))
+		em.deleteSubscription(sub)
 	}()
 
 	return sub, nil
 }
 
-func (em *eventManager) Running() bool {
-	em.lock.Lock()
-	defer em.lock.Unlock()
-
-	return em.running
-}
-
-func (em *eventManager) Shutdown() error {
-	em.lock.Lock()
-
-	if !em.running {
-		return fmt.Errorf("manager is not running")
+// Unsubscribe by id
+func (em *eventManager) Unsubscribe(ctx context.Context, subscriberID string) error {
+	if em.stopped.Load() {
+		return ErrServiceStopped
 	}
 
-	em.running = false
-	em.cancel()
+	em.lock.Lock()
+	sub, ok := em.subscribers[subscriberID]
 	em.lock.Unlock()
 
-	<-em.unblockDone
+	if !ok {
+		return nil
+	}
+
+	select {
+	case <-time.After(time.Second):
+		zap.L().Error("close subscriber is timed out")
+	case <-sub.Close():
+	}
 	return nil
 }
 
-func (em *eventManager) run(ctx context.Context) {
+func (em *eventManager) deleteSubscription(sub *Subscription) {
+
+	// since tail exited we can be sure that nobody
+	// operates the sub.events chan anymore.
+	close(sub.events)
+
+	// finally tell em we're done here
+	close(sub.stopChan)
+
+	em.lock.Lock()
+	defer em.lock.Unlock()
+	delete(em.subscribers, sub.subscriberID)
+}
+
+func (em *eventManager) Running() bool {
+	return !em.stopped.Load()
+}
+
+func (em *eventManager) Shutdown() error {
+	if em.stopped.Load() {
+		return fmt.Errorf("manager is not running")
+	}
+
+	close(em.stop)
+
+	<-em.done
+	return nil
+}
+
+func (em *eventManager) run() {
+	defer close(em.done)
 	for {
 		select {
 		case event := <-em.incoming:
 			em.storeEvent(event)
-
-		case <-ctx.Done():
-			zap.L().Info("got termination signal")
+		case <-em.stop:
+			zap.L().Info("event manager is stopping")
 			// stop receiving new messages
-			em.running = false
+			em.stopped.Store(true)
 
-			// sink the chan first, we have to store
-			// remaining events before we go down.
-		ffor:
+			// store remaining events before we go down.
 			for {
 				select {
 				case event := <-em.incoming:
 					em.storeEvent(event)
 				default:
-					//
-					break ffor
+					em.close()
+					return
 				}
 			}
-
-			em.teardown()
-			return
 		}
 	}
 }
@@ -249,30 +271,36 @@ func (em *eventManager) run(ctx context.Context) {
 // storeEvent writes the event in the underlying file
 func (em *eventManager) storeEvent(eventData []byte) {
 	if err := em.storage.Write(eventData); err != nil {
-		// TODO(nikonov): that's critical. What we gonna do?
+		zap.L().Error("failed to store event", zap.Error(err))
 	}
 }
 
-func (em *eventManager) teardown() {
+func (em *eventManager) close() {
 	em.lock.Lock()
-	defer em.lock.Unlock()
+	subscribers := make([]*Subscription, 0, len(em.subscribers))
+	for _, sub := range em.subscribers {
+		subscribers = append(subscribers, sub)
+	}
+	em.lock.Unlock()
 
-	for sub := range em.subscribers {
-		zap.L().Debug("closing the subscriber", zap.Any("labels", sub.labels))
+	for _, sub := range subscribers {
+		zap.L().Debug("closing the subscriber", zap.String("subscriber_id", sub.subscriberID))
 		// wait for subscriber termination
 		<-sub.Close()
 	}
 
 	// .Sync and close the log file(s)
 	em.storage.Close()
-	// notify that we're done.
-	close(em.unblockDone)
 }
 
 // tail sequentially reads a given log at given offset, and all the following files, if any.
 // tail does not validate given arguments expecting them to be verified by a caller.
-func (em *eventManager) tail(ctx context.Context, logID string, offset int64, data chan<- Event) error {
-	zap.L().Debug("start tailing", zap.String("log_id", logID), zap.Int64("offset", offset))
+func (em *eventManager) tail(ctx context.Context, eventlogPosition EventlogPosition, skipEventAtPosition bool, sub *Subscription) error {
+	zap.L().Debug("start tailing",
+		zap.String("log_id", eventlogPosition.LogID),
+		zap.Int64("offset", eventlogPosition.Offset),
+		zap.String("subscriber_id", sub.subscriberID),
+	)
 
 	var reader io.ReadCloser
 	defer func() {
@@ -280,6 +308,9 @@ func (em *eventManager) tail(ctx context.Context, logID string, offset int64, da
 			_ = reader.Close()
 		}
 	}()
+
+	logID := eventlogPosition.LogID
+	offset := eventlogPosition.Offset
 
 	for {
 		var err error
@@ -332,10 +363,16 @@ func (em *eventManager) tail(ctx context.Context, logID string, offset int64, da
 
 			offset = nextOffset
 
+			if skipEventAtPosition {
+				// Skip event (once)
+				skipEventAtPosition = false
+				continue
+			}
+
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
-			case data <- event:
+			case sub.events <- event:
 			}
 		}
 	}
