@@ -34,7 +34,7 @@ A basic, self-contained management service for WireGuard with a self-serve web U
 
 ### Requirements
 
-* A host with a kernel that supports WireGuard (all modern kernels).
+* Linux kernel >= 5.6.
 
 * A host with [Docker installed &rarr;](https://docs.docker.com/engine/install/ubuntu/#installation-methods).
 
