@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/statutils"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
@@ -38,26 +39,59 @@ func (s *peerChangeSummary) Set(t peerChangeType) {
 	*s = peerChangeSummary(int(*s) | int(t))
 }
 
+type runtimePeerSession struct {
+	ActivityID      uuid.UUID // id describing the session
+	Seconds         int64     // session seconds
+	UpstreamDelta   int64     // delta in bytes between previous and current Upstream
+	DownstreamDelta int64     // delta in bytes between previous and current Downstream
+}
+
 // Keeps accumulated peer counters updated for certian wireguard peer
 type runtimePeerStat struct {
-	Updated         int64 // timestamp in seconds
+	Updated         int64 // timestamp in seconds (when session is updated)
 	Upstream        int64 // bytes
 	UpstreamSpeed   int64 // bytes per second
 	Downstream      int64 // bytes
 	DownstreamSpeed int64 // bytes per second
 
+	sessions           []*runtimePeerSession
 	upstreamSpeedAvg   *statutils.AvgValue
 	downstreamSpeedAvg *statutils.AvgValue
 }
 
-func newRuntimePeerStat() *runtimePeerStat {
+func newRuntimePeerStat(updated int64, upstream int64, downstream int64) *runtimePeerStat {
 	return &runtimePeerStat{
+		Updated:            updated,
+		Upstream:           upstream,
+		Downstream:         downstream,
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
 	}
 }
 
-func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64) {
+func (s *runtimePeerStat) currentSession() *runtimePeerSession {
+	if len(s.sessions) == 0 {
+		return s.newSession()
+	}
+	return s.sessions[len(s.sessions)-1]
+}
+
+func (s *runtimePeerStat) newSession() *runtimePeerSession {
+	if len(s.sessions) > 0 {
+		sess := s.sessions[len(s.sessions)-1]
+		if sess.DownstreamDelta == 0 && sess.UpstreamDelta == 0 {
+			sess.Seconds = 0
+			return sess
+		}
+	}
+	sess := &runtimePeerSession{
+		ActivityID: uuid.New(),
+	}
+	s.sessions = append(s.sessions, sess)
+	return sess
+}
+
+func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64, resetInterval time.Duration) {
 	ts := now.Unix()
 	defer func() {
 		s.Upstream = upstream
@@ -65,11 +99,23 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 		s.Updated = ts
 	}()
 
+	var seconds int64
 	if ts <= s.Updated || s.Updated == 0 {
-		return
+		seconds = 0
+		s.Upstream = upstream
+		s.Downstream = downstream
+	} else {
+		seconds = ts - s.Updated
 	}
 
-	seconds := ts - s.Updated
+	sess := s.currentSession()
+	if seconds > int64(resetInterval.Seconds())+1 {
+		sess = s.newSession()
+	}
+	sess.Seconds += seconds
+	sess.UpstreamDelta += upstream - s.Upstream
+	sess.DownstreamDelta += downstream - s.Downstream
+
 	if seconds == 0 {
 		return
 	}
@@ -81,6 +127,14 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 	if downstream >= s.Downstream {
 		s.DownstreamSpeed = s.downstreamSpeedAvg.Push((downstream - s.Downstream) / seconds)
 	}
+}
+
+func (s *runtimePeerStat) Sessions() []*runtimePeerSession {
+	return s.sessions
+}
+
+func (s *runtimePeerStat) Reset() {
+	s.sessions = nil
 }
 
 type updatePeerStatsResults struct {
@@ -95,6 +149,8 @@ type updatePeerStatsResults struct {
 }
 
 type runtimePeerStatsService struct {
+	ResetInterval time.Duration
+
 	lock sync.Mutex
 	// {peer public key} -> peerStats
 	stats map[string]*runtimePeerStat
@@ -115,7 +171,7 @@ func (s *runtimePeerStatsService) GetRuntimePeerStat(peer *types.PeerInfo) runti
 	return *stat
 }
 
-func (s *runtimePeerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
+func (s *runtimePeerStatsService) UpdatePeersStats(now time.Time, peers []*types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
 	s.once.Do(s.init)
 
 	s.lock.Lock()
@@ -126,8 +182,6 @@ func (s *runtimePeerStatsService) UpdatePeersStats(peers []*types.PeerInfo, wire
 		ExpiredPeers:        make([]*types.PeerInfo, 0, len(peers)),
 		FirstConnectedPeers: make([]*types.PeerInfo, 0, len(peers)),
 	}
-
-	now := time.Now()
 
 	existedPeers := make(map[string]struct{}, len(peers))
 
@@ -233,7 +287,19 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 
 	stat, ok := s.stats[*peer.WireguardPublicKey]
 	if !ok {
-		stat = newRuntimePeerStat()
+		var updated int64
+		if peer.Updated != nil {
+			updated = peer.Updated.Time.Unix()
+		}
+		var upstream int64
+		if peer.Upstream != nil {
+			upstream = *peer.Upstream
+		}
+		var downstream int64
+		if peer.Downstream != nil {
+			downstream = *peer.Downstream
+		}
+		stat = newRuntimePeerStat(updated, upstream, downstream)
 		s.stats[*peer.WireguardPublicKey] = stat
 	}
 
@@ -262,7 +328,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		zap.Int64("change_downstream", wgPeer.TransmitBytes-stat.Downstream),
 	)
 
-	stat.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes)
+	stat.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes, s.ResetInterval)
 
 	return changeSum
 }

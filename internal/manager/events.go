@@ -13,10 +13,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	DefaultSentEventInterval = time.Minute
-)
-
 type trafficState struct {
 	UpstreamBytesChange   int64
 	DownstreamBytesChange int64
@@ -46,9 +42,8 @@ type peerTrafficUpdateEventSender struct {
 func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog eventlog.EventManager, peers []*types.PeerInfo) *peerTrafficUpdateEventSender {
 	maxUpstreamBytes := int64(0)
 	maxDownstreamBytes := int64(0)
-	sendInterval := DefaultSentEventInterval
+	sendInterval := runtime.Settings.GetSentEventInterval().Value()
 	if runtime.Settings != nil && runtime.Settings.PeerStatistics != nil {
-		sendInterval = runtime.Settings.PeerStatistics.TrafficChangeSendEventInterval.Value()
 		maxUpstreamBytes = runtime.Settings.PeerStatistics.MaxUpstreamTrafficChange.Value()
 		maxDownstreamBytes = runtime.Settings.PeerStatistics.MaxDownstreamTrafficChange.Value()
 	}

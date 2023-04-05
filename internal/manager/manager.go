@@ -107,6 +107,9 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 		done:               make(chan struct{}),
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
+		statsService: runtimePeerStatsService{
+			ResetInterval: runtime.Settings.GetSentEventInterval().Value(),
+		},
 	}
 
 	manager.restorePeers()

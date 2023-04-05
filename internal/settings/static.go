@@ -136,6 +136,13 @@ func (s *Config) GetUpdateStatisticsInterval() human.Interval {
 	return s.PeerStatistics.UpdateStatisticsInterval
 }
 
+func (s *Config) GetSentEventInterval() human.Interval {
+	if s == nil || s.PeerStatistics == nil {
+		human.MustParseInterval(DefaultTrafficChangeSendEventInterval)
+	}
+	return s.PeerStatistics.TrafficChangeSendEventInterval
+}
+
 type HttpConfig struct {
 	// ListenAddr for HTTP server, default: ":80"
 	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`

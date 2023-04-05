@@ -7,6 +7,7 @@ package storage
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
@@ -97,9 +98,8 @@ func (storage *Storage) CreatePeer(peer types.PeerInfo) (int64, error) {
 }
 
 // Update only statistics related peer details
-func (storage *Storage) UpdatePeerStats(peer *types.PeerInfo) error {
-	now := xtime.Now()
-	peer.Updated = &now
+func (storage *Storage) UpdatePeerStats(now time.Time, peer *types.PeerInfo) error {
+	peer.Updated = &xtime.Time{Time: now}
 	query := "UPDATE peers SET updated=:updated, activity=:activity, upstream=:upstream, downstream=:downstream WHERE id=:id"
 	_, err := storage.db.NamedExec(query, peer)
 	if err != nil {
