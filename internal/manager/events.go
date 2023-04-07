@@ -23,6 +23,11 @@ func (s *trafficState) Reset() {
 	s.DownstreamBytesChange = 0
 }
 
+type PeerTraffic struct {
+	Downstream int64
+	Upstream   int64
+}
+
 type peerTrafficUpdateEventSender struct {
 	eventLog           eventlog.EventManager
 	maxUpstreamBytes   int64
@@ -34,7 +39,7 @@ type peerTrafficUpdateEventSender struct {
 	lock  sync.Mutex
 	state trafficState
 	// All peers (prev)
-	peers map[string]*types.PeerInfo
+	peerTraffic map[string]*PeerTraffic
 	// peers candidates for sending
 	updatedPeers map[string]*types.PeerInfo
 }
@@ -48,12 +53,23 @@ func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog ev
 		maxDownstreamBytes = runtime.Settings.PeerStatistics.MaxDownstreamTrafficChange.Value()
 	}
 
-	peersMap := make(map[string]*types.PeerInfo, len(peers))
+	peerTraffic := make(map[string]*PeerTraffic, len(peers))
 	for _, peer := range peers {
 		if peer.WireguardPublicKey == nil {
 			continue
 		}
-		peersMap[*peer.WireguardPublicKey] = peer
+		var downstream int64
+		if peer.Downstream != nil {
+			downstream = *peer.Downstream
+		}
+		var upstream int64
+		if peer.Upstream != nil {
+			upstream = *peer.Upstream
+		}
+		peerTraffic[*peer.WireguardPublicKey] = &PeerTraffic{
+			Downstream: downstream,
+			Upstream:   upstream,
+		}
 	}
 
 	sender := &peerTrafficUpdateEventSender{
@@ -61,7 +77,7 @@ func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog ev
 		maxDownstreamBytes: maxDownstreamBytes,
 		sendInterval:       sendInterval,
 		eventLog:           eventLog,
-		peers:              peersMap,
+		peerTraffic:        peerTraffic,
 		updatedPeers:       make(map[string]*types.PeerInfo, len(peers)),
 	}
 
@@ -76,7 +92,18 @@ func (s *peerTrafficUpdateEventSender) Add(peer *types.PeerInfo) {
 	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.peers[*peer.WireguardPublicKey] = peer
+	var downstream int64
+	if peer.Downstream != nil {
+		downstream = *peer.Downstream
+	}
+	var upstream int64
+	if peer.Upstream != nil {
+		upstream = *peer.Upstream
+	}
+	s.peerTraffic[*peer.WireguardPublicKey] = &PeerTraffic{
+		Downstream: downstream,
+		Upstream:   upstream,
+	}
 }
 
 func (s *peerTrafficUpdateEventSender) Remove(peer *types.PeerInfo) {
@@ -85,8 +112,8 @@ func (s *peerTrafficUpdateEventSender) Remove(peer *types.PeerInfo) {
 	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	if _, ok := s.peers[*peer.WireguardPublicKey]; ok {
-		delete(s.peers, *peer.WireguardPublicKey)
+	if _, ok := s.peerTraffic[*peer.WireguardPublicKey]; ok {
+		delete(s.peerTraffic, *peer.WireguardPublicKey)
 	}
 }
 
@@ -95,20 +122,21 @@ func (s *peerTrafficUpdateEventSender) Send(peers []*types.PeerInfo) {
 	defer s.lock.Unlock()
 
 	for _, peer := range peers {
-		oldPeer, ok := s.peers[*peer.WireguardPublicKey]
+		oldPeerTraffic, ok := s.peerTraffic[*peer.WireguardPublicKey]
 		if !ok {
 			// We should never be here but for the sake of simplitity
 			// assume the peer gone and simply do nothing
 			continue
 		}
-		if peer.Upstream != nil && oldPeer.Upstream != nil {
-			s.state.UpstreamBytesChange += *peer.Upstream - *oldPeer.Upstream
+		if peer.Upstream != nil {
+			s.state.UpstreamBytesChange += *peer.Upstream - oldPeerTraffic.Upstream
+			oldPeerTraffic.Upstream = *peer.Upstream
 		}
-		if peer.Downstream != nil && oldPeer.Downstream != nil {
-			s.state.DownstreamBytesChange += *peer.Downstream - *oldPeer.Downstream
+		if peer.Downstream != nil {
+			s.state.DownstreamBytesChange += *peer.Downstream - oldPeerTraffic.Downstream
+			oldPeerTraffic.Downstream = *peer.Downstream
 		}
 		s.updatedPeers[*peer.WireguardPublicKey] = peer
-		s.peers[*peer.WireguardPublicKey] = peer
 	}
 
 	// Check upstream or downstream exceeds the limits

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vpnhouse/tunnel/internal/types"
+	"github.com/vpnhouse/tunnel/pkg/geoip"
 	"github.com/vpnhouse/tunnel/pkg/statutils"
 	"github.com/vpnhouse/tunnel/pkg/xtime"
 	"go.uber.org/zap"
@@ -48,22 +49,24 @@ type runtimePeerSession struct {
 
 // Keeps accumulated peer counters updated for certian wireguard peer
 type runtimePeerStat struct {
-	Updated         int64 // timestamp in seconds (when session is updated)
-	Upstream        int64 // bytes
-	UpstreamSpeed   int64 // bytes per second
-	Downstream      int64 // bytes
-	DownstreamSpeed int64 // bytes per second
+	Updated         int64  // timestamp in seconds (when session is updated)
+	Upstream        int64  // bytes
+	UpstreamSpeed   int64  // bytes per second
+	Downstream      int64  // bytes
+	DownstreamSpeed int64  // bytes per second
+	Country         string // user country
 
 	sessions           []*runtimePeerSession
 	upstreamSpeedAvg   *statutils.AvgValue
 	downstreamSpeedAvg *statutils.AvgValue
 }
 
-func newRuntimePeerStat(updated int64, upstream int64, downstream int64) *runtimePeerStat {
+func newRuntimePeerStat(updated int64, upstream int64, downstream int64, country string) *runtimePeerStat {
 	return &runtimePeerStat{
 		Updated:            updated,
 		Upstream:           upstream,
 		Downstream:         downstream,
+		Country:            country,
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
 	}
@@ -91,12 +94,13 @@ func (s *runtimePeerStat) newSession() *runtimePeerSession {
 	return sess
 }
 
-func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64, resetInterval time.Duration) {
+func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64, country string, resetInterval time.Duration) {
 	ts := now.Unix()
 	defer func() {
 		s.Upstream = upstream
 		s.Downstream = downstream
 		s.Updated = ts
+		s.Country = country
 	}()
 
 	var seconds int64
@@ -150,6 +154,7 @@ type updatePeerStatsResults struct {
 
 type runtimePeerStatsService struct {
 	ResetInterval time.Duration
+	Geo           *geoip.Instance
 
 	lock sync.Mutex
 	// {peer public key} -> peerStats
@@ -285,6 +290,15 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		}
 	}
 
+	var country string
+	if s.Geo != nil {
+		var err error
+		country, err = s.Geo.GetCountry(wgPeer.Endpoint.IP)
+		if err != nil {
+			zap.L().Error("failed to detect country", zap.Stringp("peer", peer.Label))
+		}
+	}
+
 	stat, ok := s.stats[*peer.WireguardPublicKey]
 	if !ok {
 		var updated int64
@@ -299,7 +313,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		if peer.Downstream != nil {
 			downstream = *peer.Downstream
 		}
-		stat = newRuntimePeerStat(updated, upstream, downstream)
+		stat = newRuntimePeerStat(updated, upstream, downstream, country)
 		s.stats[*peer.WireguardPublicKey] = stat
 	}
 
@@ -328,7 +342,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		zap.Int64("change_downstream", wgPeer.TransmitBytes-stat.Downstream),
 	)
 
-	stat.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes, s.ResetInterval)
+	stat.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes, country, s.ResetInterval)
 
 	return changeSum
 }
