@@ -37,8 +37,9 @@ type peerTrafficUpdateEventSender struct {
 	done               chan struct{}
 	statsService       *runtimePeerStatsService
 
-	lock  sync.Mutex
-	state trafficState
+	needSendChan chan struct{}
+	lock         sync.Mutex
+	state        trafficState
 	// All peers (prev)
 	peerTraffic map[string]*PeerTraffic
 	// peers candidates for sending
@@ -81,6 +82,7 @@ func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog ev
 		peerTraffic:        peerTraffic,
 		updatedPeers:       make(map[string]*types.PeerInfo, len(peers)),
 		statsService:       statsService,
+		needSendChan:       make(chan struct{}, 1),
 	}
 
 	go sender.run()
@@ -142,14 +144,25 @@ func (s *peerTrafficUpdateEventSender) Send(peers []*types.PeerInfo) {
 	}
 
 	// Check upstream or downstream exceeds the limits
+	needSend := false
 	if s.maxUpstreamBytes > 0 && s.state.UpstreamBytesChange > s.maxUpstreamBytes {
-		s.sendUpdates()
+		needSend = true
 	} else if s.maxDownstreamBytes > 0 && s.state.DownstreamBytesChange > s.maxDownstreamBytes {
-		s.sendUpdates()
+		needSend = true
+	}
+
+	if needSend {
+		select {
+		case s.needSendChan <- struct{}{}:
+		default:
+		}
 	}
 }
 
 func (s *peerTrafficUpdateEventSender) sendUpdates() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	if len(s.updatedPeers) == 0 {
 		return
 	}
@@ -198,10 +211,9 @@ func (s *peerTrafficUpdateEventSender) run() {
 			zap.L().Info("Shutting down sending peer traffic updates")
 			return
 		case <-sendPeerTicker.C:
-			s.lock.Lock()
-			s.sendUpdates()
-			s.lock.Unlock()
+		case <-s.needSendChan:
 		}
+		s.sendUpdates()
 	}
 }
 
