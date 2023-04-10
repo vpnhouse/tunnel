@@ -98,7 +98,7 @@ func (s *runtimePeerStat) newSession() *runtimePeerSession {
 	return sess
 }
 
-func (s *runtimePeerStat) UpdateSessionLocked(upstream int64, downstream int64, seconds int64, country string, resetInterval time.Duration) {
+func (s *runtimePeerStat) UpdateSession(upstream int64, downstream int64, seconds int64, country string, resetInterval time.Duration) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	sess := s.currentSession()
@@ -141,7 +141,7 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 		seconds = ts - s.Updated
 	}
 
-	s.UpdateSessionLocked(upstream, downstream, seconds, country, resetInterval)
+	s.UpdateSession(upstream, downstream, seconds, country, resetInterval)
 
 	if seconds == 0 {
 		return

@@ -191,6 +191,7 @@ func intoProto(peer *types.PeerInfo, sess *runtimePeerSession) *proto.PeerInfo {
 	p.BytesTx = uint64(*peer.Downstream)
 	p.BytesDeltaTx = uint64(sess.DownstreamDelta)
 	p.Seconds = uint64(sess.Seconds)
+	p.ActivityID = sess.ActivityID.String()
 	p.Country = sess.Country
 	return p
 }

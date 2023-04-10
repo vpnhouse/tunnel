@@ -67,6 +67,7 @@ type Config struct {
 	DNSFilter          *xdns.Config                `yaml:"dns_filter"`
 	PortRestrictions   *ipam.PortRestrictionConfig `yaml:"ports,omitempty"`
 	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
+	GeoDBPath          string                      `yaml:"geo_db_path,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.

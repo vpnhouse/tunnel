@@ -15,6 +15,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
+	"github.com/vpnhouse/tunnel/pkg/geoip"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/statutils"
 	"go.uber.org/zap"
@@ -93,9 +94,10 @@ type Manager struct {
 	statistic atomic.Value // *CachedStatistics
 }
 
-func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
+func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager, geoClient *geoip.Instance) (*Manager, error) {
 	statsService := &runtimePeerStatsService{
 		ResetInterval: runtime.Settings.GetSentEventInterval().Value(),
+		Geo:           geoClient,
 	}
 	peerTrafficSender := NewPeerTrafficUpdateEventSender(runtime, eventLog, statsService, nil)
 
