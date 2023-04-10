@@ -44,32 +44,36 @@ type runtimePeerSession struct {
 	ActivityID      uuid.UUID // id describing the session
 	Seconds         int64     // session seconds
 	UpstreamDelta   int64     // delta in bytes between previous and current Upstream
+	Upstream        int64     // current Upstream value in bytes
 	DownstreamDelta int64     // delta in bytes between previous and current Downstream
+	Downstream      int64     // current Downstream value in bytes
+	Country         string    // user country
 }
 
 // Keeps accumulated peer counters updated for certian wireguard peer
 type runtimePeerStat struct {
-	Updated         int64  // timestamp in seconds (when session is updated)
-	Upstream        int64  // bytes
-	UpstreamSpeed   int64  // bytes per second
-	Downstream      int64  // bytes
-	DownstreamSpeed int64  // bytes per second
-	Country         string // user country
+	Updated         int64 // timestamp in seconds (when session is updated)
+	Upstream        int64 // bytes
+	UpstreamSpeed   int64 // bytes per second
+	Downstream      int64 // bytes
+	DownstreamSpeed int64 // bytes per second
 
-	sessions           []*runtimePeerSession
 	upstreamSpeedAvg   *statutils.AvgValue
 	downstreamSpeedAvg *statutils.AvgValue
+
+	lock     sync.Mutex
+	sessions []*runtimePeerSession
 }
 
-func newRuntimePeerStat(updated int64, upstream int64, downstream int64, country string) *runtimePeerStat {
+func newRuntimePeerStat(updated int64, upstream int64, downstream int64) *runtimePeerStat {
 	return &runtimePeerStat{
 		Updated:            updated,
 		Upstream:           upstream,
 		Downstream:         downstream,
-		Country:            country,
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
 	}
+
 }
 
 func (s *runtimePeerStat) currentSession() *runtimePeerSession {
@@ -94,13 +98,35 @@ func (s *runtimePeerStat) newSession() *runtimePeerSession {
 	return sess
 }
 
+func (s *runtimePeerStat) UpdateSessionLocked(upstream int64, downstream int64, seconds int64, country string, resetInterval time.Duration) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	sess := s.currentSession()
+	if seconds > int64(resetInterval.Seconds())+1 {
+		sess = s.newSession()
+	}
+	sess.Seconds += seconds
+	sess.UpstreamDelta += upstream - s.Upstream
+	sess.Upstream = upstream
+	sess.DownstreamDelta += downstream - s.Downstream
+	sess.Downstream = downstream
+	sess.Country = country
+}
+
+func (s *runtimePeerStat) GetSessionsAndReset() []*runtimePeerSession {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	sessions := s.sessions
+	s.sessions = make([]*runtimePeerSession, 0, len(sessions))
+	return sessions
+}
+
 func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64, country string, resetInterval time.Duration) {
 	ts := now.Unix()
 	defer func() {
 		s.Upstream = upstream
 		s.Downstream = downstream
 		s.Updated = ts
-		s.Country = country
 	}()
 
 	var seconds int64
@@ -112,13 +138,7 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 		seconds = ts - s.Updated
 	}
 
-	sess := s.currentSession()
-	if seconds > int64(resetInterval.Seconds())+1 {
-		sess = s.newSession()
-	}
-	sess.Seconds += seconds
-	sess.UpstreamDelta += upstream - s.Upstream
-	sess.DownstreamDelta += downstream - s.Downstream
+	s.UpdateSessionLocked(upstream, downstream, seconds, country, resetInterval)
 
 	if seconds == 0 {
 		return
@@ -131,14 +151,6 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 	if downstream >= s.Downstream {
 		s.DownstreamSpeed = s.downstreamSpeedAvg.Push((downstream - s.Downstream) / seconds)
 	}
-}
-
-func (s *runtimePeerStat) Sessions() []*runtimePeerSession {
-	return s.sessions
-}
-
-func (s *runtimePeerStat) Reset() {
-	s.sessions = nil
 }
 
 type updatePeerStatsResults struct {
@@ -166,14 +178,15 @@ func (s *runtimePeerStatsService) init() {
 	s.stats = make(map[string]*runtimePeerStat, 1000)
 }
 
-func (s *runtimePeerStatsService) GetRuntimePeerStat(peer *types.PeerInfo) runtimePeerStat {
+func (s *runtimePeerStatsService) GetRuntimePeerStat(peer *types.PeerInfo) *runtimePeerStat {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	stat, ok := s.stats[*peer.WireguardPublicKey]
-	if !ok || stat == nil {
-		return runtimePeerStat{}
-	}
-	return *stat
+	return s.stats[*peer.WireguardPublicKey]
+}
+
+func (s *runtimePeerStatsService) GetRuntimePeerSessionsAndReset(peer *types.PeerInfo) []*runtimePeerSession {
+	stats := s.GetRuntimePeerStat(peer)
+	return stats.GetSessionsAndReset()
 }
 
 func (s *runtimePeerStatsService) UpdatePeersStats(now time.Time, peers []*types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
@@ -313,7 +326,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		if peer.Downstream != nil {
 			downstream = *peer.Downstream
 		}
-		stat = newRuntimePeerStat(updated, upstream, downstream, country)
+		stat = newRuntimePeerStat(updated, upstream, downstream)
 		s.stats[*peer.WireguardPublicKey] = stat
 	}
 

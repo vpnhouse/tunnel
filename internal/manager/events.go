@@ -35,6 +35,7 @@ type peerTrafficUpdateEventSender struct {
 	sendInterval       time.Duration
 	stop               chan struct{}
 	done               chan struct{}
+	statsService       *runtimePeerStatsService
 
 	lock  sync.Mutex
 	state trafficState
@@ -44,7 +45,7 @@ type peerTrafficUpdateEventSender struct {
 	updatedPeers map[string]*types.PeerInfo
 }
 
-func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog eventlog.EventManager, peers []*types.PeerInfo) *peerTrafficUpdateEventSender {
+func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog eventlog.EventManager, statsService *runtimePeerStatsService, peers []*types.PeerInfo) *peerTrafficUpdateEventSender {
 	maxUpstreamBytes := int64(0)
 	maxDownstreamBytes := int64(0)
 	sendInterval := runtime.Settings.GetSentEventInterval().Value()
@@ -79,6 +80,7 @@ func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog ev
 		eventLog:           eventLog,
 		peerTraffic:        peerTraffic,
 		updatedPeers:       make(map[string]*types.PeerInfo, len(peers)),
+		statsService:       statsService,
 	}
 
 	go sender.run()
@@ -152,9 +154,11 @@ func (s *peerTrafficUpdateEventSender) sendUpdates() {
 		return
 	}
 	for _, peer := range s.updatedPeers {
-		err := s.eventLog.Push(eventlog.PeerTraffic, peer.IntoProto())
-		if err != nil {
-			zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerTraffic)))
+		for _, sess := range s.statsService.GetRuntimePeerSessionsAndReset(peer) {
+			err := s.eventLog.Push(eventlog.PeerTraffic, intoProto(peer, sess))
+			if err != nil {
+				zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerTraffic)))
+			}
 		}
 	}
 	zap.L().Info(
@@ -165,6 +169,17 @@ func (s *peerTrafficUpdateEventSender) sendUpdates() {
 	)
 	s.updatedPeers = make(map[string]*types.PeerInfo, len(s.updatedPeers))
 	s.state.Reset()
+}
+
+func intoProto(peer *types.PeerInfo, sess *runtimePeerSession) *proto.PeerInfo {
+	p := peer.IntoProto()
+	p.BytesRx = uint64(sess.Upstream)
+	p.BytesDeltaRx = uint64(sess.UpstreamDelta)
+	p.BytesTx = uint64(*peer.Downstream)
+	p.BytesDeltaTx = uint64(sess.DownstreamDelta)
+	p.Seconds = uint64(sess.Seconds)
+	p.Country = sess.Country
+	return p
 }
 
 func (s *peerTrafficUpdateEventSender) run() {
