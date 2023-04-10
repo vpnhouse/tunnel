@@ -117,7 +117,10 @@ func (s *runtimePeerStat) GetSessionsAndReset() []*runtimePeerSession {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	sessions := s.sessions
-	s.sessions = make([]*runtimePeerSession, 0, len(sessions))
+	if len(s.sessions) > 0 {
+		// Keep the very last session in place for discontinuous updates
+		s.sessions = s.sessions[len(s.sessions)-1:]
+	}
 	return sessions
 }
 
