@@ -104,7 +104,14 @@ func (s *runtimePeerStat) UpdateSession(upstream int64, downstream int64, second
 	} else {
 		sess = s.currentSession()
 	}
-	zap.L().Debug("")
+	zap.L().Debug("SESSION",
+		zap.Int64("upstream", upstream),
+		zap.Int64("session.upstream", sess.Upstream),
+		zap.Int64("delta.upstream", upstream-sess.Upstream),
+		zap.Int64("downstream", downstream),
+		zap.Int64("delta.downstream", downstream-sess.Downstream),
+		zap.Int64("seconds", seconds),
+	)
 	sess.Seconds += seconds
 	sess.UpstreamDelta += upstream - sess.Upstream
 	sess.Upstream = upstream
