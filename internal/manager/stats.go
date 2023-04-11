@@ -135,8 +135,6 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 	var seconds int64
 	if ts <= s.Updated || s.Updated == 0 {
 		seconds = 0
-		s.Upstream = upstream
-		s.Downstream = downstream
 	} else {
 		seconds = ts - s.Updated
 	}
@@ -321,15 +319,8 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		if peer.Updated != nil {
 			updated = peer.Updated.Time.Unix()
 		}
-		var upstream int64
-		if peer.Upstream != nil {
-			upstream = *peer.Upstream
-		}
-		var downstream int64
-		if peer.Downstream != nil {
-			downstream = *peer.Downstream
-		}
-		stat = newRuntimePeerStat(updated, upstream, downstream)
+		// Upstream and Upstream never be nil
+		stat = newRuntimePeerStat(updated, *peer.Upstream, *peer.Downstream)
 		s.stats[*peer.WireguardPublicKey] = stat
 	}
 
