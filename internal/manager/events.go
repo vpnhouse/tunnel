@@ -167,8 +167,8 @@ func (s *peerTrafficUpdateEventSender) sendUpdates() {
 		return
 	}
 	for _, peer := range s.updatedPeers {
-		for _, sess := range s.statsService.GetRuntimePeerSessionsAndReset(peer) {
-			err := s.eventLog.Push(eventlog.PeerTraffic, intoProto(peer, sess))
+		for _, sess := range s.statsService.GetSessions(peer) {
+			err := s.eventLog.Push(eventlog.PeerTraffic, intoProto(peer, &sess))
 			if err != nil {
 				zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerTraffic)))
 			}
@@ -184,7 +184,7 @@ func (s *peerTrafficUpdateEventSender) sendUpdates() {
 	s.state.Reset()
 }
 
-func intoProto(peer *types.PeerInfo, sess *runtimePeerSession) *proto.PeerInfo {
+func intoProto(peer *types.PeerInfo, sess *Session) *proto.PeerInfo {
 	p := peer.IntoProto()
 	p.BytesRx = uint64(sess.Upstream)
 	p.BytesDeltaRx = uint64(sess.UpstreamDelta)

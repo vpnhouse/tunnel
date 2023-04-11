@@ -51,6 +51,16 @@ type runtimePeerSession struct {
 	Country         string    // user country
 }
 
+type Session struct {
+	ActivityID      uuid.UUID // id describing the session
+	Seconds         int64     // session seconds
+	UpstreamDelta   int64     // delta in bytes between previous and current Upstream
+	Upstream        int64     // current Upstream value in bytes
+	DownstreamDelta int64     // delta in bytes between previous and current Downstream
+	Downstream      int64     // current Downstream value in bytes
+	Country         string    // user country
+}
+
 // Keeps accumulated peer counters updated for certian wireguard peer
 type runtimePeerStat struct {
 	Updated         int64  // timestamp in seconds (when session is updated)
@@ -62,22 +72,24 @@ type runtimePeerStat struct {
 
 	upstreamSpeedAvg   *statutils.AvgValue
 	downstreamSpeedAvg *statutils.AvgValue
+	startUpstream      int64 // bytes
+	startDownstream    int64 // bytes
 
 	lock     sync.Mutex
 	sessions []*runtimePeerSession
 }
 
-func newRuntimePeerStat(updated int64, upstream int64, downstream int64, country string) *runtimePeerStat {
+func newRuntimePeerStat(updated int64, startUpstream int64, startDownstream int64, country string) *runtimePeerStat {
 	zap.L().Debug("PEER_STAT",
 		zap.Int64("updated", updated),
-		zap.Int64("upstream", upstream),
-		zap.Int64("downstream", downstream),
+		zap.Int64("start_upstream", startUpstream),
+		zap.Int64("start_downstream", startDownstream),
 		zap.String("country", country),
 	)
 	return &runtimePeerStat{
 		Updated:            updated,
-		Upstream:           upstream,
-		Downstream:         downstream,
+		startUpstream:      startUpstream,
+		startDownstream:    startDownstream,
 		Country:            country,
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
@@ -134,14 +146,28 @@ func (s *runtimePeerStat) UpdateSession(upstream int64, downstream int64, second
 	sess.Country = country
 }
 
-func (s *runtimePeerStat) GetSessionsAndReset() []*runtimePeerSession {
+func (s *runtimePeerStat) GetSessions() []Session {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	sessions := s.sessions
-	if len(s.sessions) > 0 {
-		// Keep the very last session in place for discontinuous updates
-		s.sessions = s.sessions[len(s.sessions)-1:]
+	if len(s.sessions) == 0 {
+		return nil
 	}
+	sessions := make([]Session, 0, len(s.sessions))
+	for _, sess := range s.sessions {
+		sessions = append(sessions, Session{
+			ActivityID:      sess.ActivityID,
+			Seconds:         sess.Seconds,
+			UpstreamDelta:   sess.UpstreamDelta,
+			Upstream:        s.startUpstream + sess.Upstream,
+			DownstreamDelta: sess.DownstreamDelta,
+			Downstream:      s.startDownstream + sess.Downstream,
+			Country:         sess.Country,
+		})
+	}
+	s.sessions = s.sessions[len(s.sessions)-1:]
+	s.sessions[0].Seconds = 0
+	s.sessions[0].UpstreamDelta = 0
+	s.sessions[0].DownstreamDelta = 0
 	return sessions
 }
 
@@ -218,9 +244,9 @@ func (s *runtimePeerStatsService) GetRuntimePeerStat(peer *types.PeerInfo) *runt
 	return s.stats[*peer.WireguardPublicKey]
 }
 
-func (s *runtimePeerStatsService) GetRuntimePeerSessionsAndReset(peer *types.PeerInfo) []*runtimePeerSession {
+func (s *runtimePeerStatsService) GetSessions(peer *types.PeerInfo) []Session {
 	stats := s.GetRuntimePeerStat(peer)
-	return stats.GetSessionsAndReset()
+	return stats.GetSessions()
 }
 
 func (s *runtimePeerStatsService) UpdatePeersStats(now time.Time, peers []*types.PeerInfo, wireguardPeers map[string]wgtypes.Peer) updatePeerStatsResults {
@@ -349,16 +375,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		s.stats[*peer.WireguardPublicKey] = stat
 	}
 
-	if wgPeer.ReceiveBytes > 0 || wgPeer.TransmitBytes > 0 {
-		zap.L().Debug(
-			"TRAFFIC",
-			zap.Stringp("label", peer.Label),
-			zap.Int64("wg_upstream", wgPeer.ReceiveBytes),
-			zap.Int64("wg_downstream", wgPeer.TransmitBytes),
-		)
-	}
-
-	if wgPeer.ReceiveBytes > 0 {
+	if wgPeer.ReceiveBytes > stat.Upstream {
 		// Upstream never be nil
 		*peer.Upstream += wgPeer.ReceiveBytes - stat.Upstream
 		changeSum.Set(peerChangeTraffic)
