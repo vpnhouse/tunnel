@@ -305,7 +305,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 	}
 
 	var country string
-	if s.Geo != nil {
+	if s.Geo != nil && wgPeer.Endpoint != nil {
 		var err error
 		country, err = s.Geo.GetCountry(wgPeer.Endpoint.IP)
 		if err != nil {
