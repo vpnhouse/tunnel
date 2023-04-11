@@ -85,21 +85,12 @@ func (s *runtimePeerStat) currentSession() *runtimePeerSession {
 }
 
 func (s *runtimePeerStat) newSession() *runtimePeerSession {
-	if len(s.sessions) > 0 {
-		sess := s.sessions[len(s.sessions)-1]
-		if sess.DownstreamDelta == 0 && sess.UpstreamDelta == 0 {
-			sess.Seconds = 0
-			return sess
-		}
-	}
-
 	sess := &runtimePeerSession{
 		ActivityID: uuid.New(),
 		Upstream:   s.Upstream,
 		Downstream: s.Downstream,
 		Country:    s.Country,
 	}
-
 	s.sessions = append(s.sessions, sess)
 	return sess
 }
@@ -113,10 +104,11 @@ func (s *runtimePeerStat) UpdateSession(upstream int64, downstream int64, second
 	} else {
 		sess = s.currentSession()
 	}
+	zap.L().Debug("")
 	sess.Seconds += seconds
-	sess.UpstreamDelta += upstream - s.Upstream
+	sess.UpstreamDelta += upstream - sess.Upstream
 	sess.Upstream = upstream
-	sess.DownstreamDelta += downstream - s.Downstream
+	sess.DownstreamDelta += downstream - sess.Downstream
 	sess.Downstream = downstream
 	sess.Country = country
 }
