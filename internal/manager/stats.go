@@ -66,11 +66,18 @@ type runtimePeerStat struct {
 	sessions []*runtimePeerSession
 }
 
-func newRuntimePeerStat(updated int64, upstream int64, downstream int64) *runtimePeerStat {
+func newRuntimePeerStat(updated int64, upstream int64, downstream int64, country string) *runtimePeerStat {
+	zap.L().Debug("PEER_STAT",
+		zap.Int64("updated", updated),
+		zap.Int64("upstream", upstream),
+		zap.Int64("downstream", downstream),
+		zap.String("country", country),
+	)
 	return &runtimePeerStat{
 		Updated:            updated,
 		Upstream:           upstream,
 		Downstream:         downstream,
+		Country:            country,
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
 	}
@@ -85,6 +92,13 @@ func (s *runtimePeerStat) currentSession() *runtimePeerSession {
 }
 
 func (s *runtimePeerStat) newSession() *runtimePeerSession {
+	if len(s.sessions) > 0 {
+		sess := s.sessions[len(s.sessions)-1]
+		if sess.Downstream == 0 && sess.Upstream == 0 {
+			sess.Seconds = 0
+			return sess
+		}
+	}
 	sess := &runtimePeerSession{
 		ActivityID: uuid.New(),
 		Upstream:   s.Upstream,
@@ -319,7 +333,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 			updated = peer.Updated.Time.Unix()
 		}
 		// Upstream and Upstream never be nil
-		stat = newRuntimePeerStat(updated, *peer.Upstream, *peer.Downstream)
+		stat = newRuntimePeerStat(updated, *peer.Upstream, *peer.Downstream, country)
 		s.stats[*peer.WireguardPublicKey] = stat
 	}
 
