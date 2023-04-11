@@ -107,6 +107,7 @@ func (s *runtimePeerStat) newSession() *runtimePeerSession {
 	if len(s.sessions) > 0 {
 		sess := s.sessions[len(s.sessions)-1]
 		if sess.DownstreamDelta == 0 && sess.UpstreamDelta == 0 {
+			sess.ActivityID = uuid.New()
 			sess.Seconds = 0
 			return sess
 		}
