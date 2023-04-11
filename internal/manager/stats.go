@@ -81,7 +81,6 @@ func newRuntimePeerStat(updated int64, upstream int64, downstream int64, country
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
 	}
-
 }
 
 func (s *runtimePeerStat) currentSession() *runtimePeerSession {
@@ -94,7 +93,7 @@ func (s *runtimePeerStat) currentSession() *runtimePeerSession {
 func (s *runtimePeerStat) newSession() *runtimePeerSession {
 	if len(s.sessions) > 0 {
 		sess := s.sessions[len(s.sessions)-1]
-		if sess.Downstream == 0 && sess.Upstream == 0 {
+		if sess.DownstreamDelta == 0 && sess.UpstreamDelta == 0 {
 			sess.Seconds = 0
 			return sess
 		}
@@ -147,6 +146,12 @@ func (s *runtimePeerStat) GetSessionsAndReset() []*runtimePeerSession {
 
 func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64, country string, resetInterval time.Duration) {
 	ts := now.Unix()
+	if upstream < s.Upstream {
+		upstream = s.Upstream
+	}
+	if downstream < s.Downstream {
+		downstream = s.Downstream
+	}
 	defer func() {
 		s.Upstream = upstream
 		s.Downstream = downstream
@@ -174,6 +179,11 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 	if downstream >= s.Downstream {
 		s.DownstreamSpeed = s.downstreamSpeedAvg.Push((downstream - s.Downstream) / seconds)
 	}
+}
+
+func (s *runtimePeerStat) UpdateSpeedNoTraffic() {
+	s.UpstreamSpeed = s.upstreamSpeedAvg.Push(0)
+	s.DownstreamSpeed = s.downstreamSpeedAvg.Push(0)
 }
 
 type updatePeerStatsResults struct {
@@ -364,7 +374,11 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		)
 	}
 
-	stat.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes, country, s.ResetInterval)
+	if changeSum.Has(peerChangeTraffic) {
+		stat.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes, country, s.ResetInterval)
+	} else {
+		stat.UpdateSpeedNoTraffic()
+	}
 
 	return changeSum
 }
