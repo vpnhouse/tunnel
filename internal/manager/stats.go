@@ -251,13 +251,6 @@ func (s *runtimePeerStatsService) UpdatePeersStats(now time.Time, peers []*types
 		if peer.Activity != nil {
 			results.NumPeersWithHadshakes++
 			lastActiveDeltaHours := now.Sub(peer.Activity.Time).Hours()
-			zap.L().Debug(
-				"peer data",
-				zap.Stringp("label", peer.Label),
-				zap.String("activity", peer.Activity.Time.Format(time.RFC3339)),
-				zap.Bool("is_active_last_hour", lastActiveDeltaHours < 1),
-				zap.Bool("is_active_last_day", lastActiveDeltaHours < 24),
-			)
 			if lastActiveDeltaHours < 1 {
 				results.NumPeersActiveLastHour++
 			}
@@ -336,18 +329,20 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		changeSum.Set(peerChangeTraffic)
 	}
 
-	zap.L().Debug(
-		"update",
-		zap.Stringp("label", peer.Label),
-		zap.Int64("wg_upstream", wgPeer.ReceiveBytes),
-		zap.Int64("stats_upstream", stat.Upstream),
-		zap.Int64("peer_upstream", *peer.Upstream),
-		zap.Int64("change_upstream", wgPeer.ReceiveBytes-stat.Upstream),
-		zap.Int64("wg_downstream", wgPeer.TransmitBytes),
-		zap.Int64("stats_downstream", stat.Downstream),
-		zap.Int64("peer_downstream", *peer.Downstream),
-		zap.Int64("change_downstream", wgPeer.TransmitBytes-stat.Downstream),
-	)
+	if wgPeer.TransmitBytes-stat.Downstream > 0 || wgPeer.ReceiveBytes-stat.Upstream > 0 {
+		zap.L().Debug(
+			"update",
+			zap.Stringp("label", peer.Label),
+			zap.Int64("wg_upstream", wgPeer.ReceiveBytes),
+			zap.Int64("stats_upstream", stat.Upstream),
+			zap.Int64("peer_upstream", *peer.Upstream),
+			zap.Int64("change_upstream", wgPeer.ReceiveBytes-stat.Upstream),
+			zap.Int64("wg_downstream", wgPeer.TransmitBytes),
+			zap.Int64("stats_downstream", stat.Downstream),
+			zap.Int64("peer_downstream", *peer.Downstream),
+			zap.Int64("change_downstream", wgPeer.TransmitBytes-stat.Downstream),
+		)
+	}
 
 	stat.Update(now, wgPeer.ReceiveBytes, wgPeer.TransmitBytes, country, s.ResetInterval)
 
