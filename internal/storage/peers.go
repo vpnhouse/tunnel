@@ -28,8 +28,6 @@ func (storage *Storage) SearchPeers(filter *types.PeerInfo) ([]*types.PeerInfo, 
 		return nil, xerror.EStorageError("can't get peer select query", err, zapFilter)
 	}
 
-	zap.L().Debug("search peers", zapFilter, zap.String("query", query))
-
 	rows, err := storage.db.NamedQuery(query, filter)
 	if err != nil {
 		return nil, xerror.EStorageError("can't lookup peers", err, zapFilter)
