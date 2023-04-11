@@ -126,7 +126,7 @@ func (s *runtimePeerStat) UpdateSession(upstream int64, downstream int64, second
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	var sess *runtimePeerSession
-	if seconds > int64(resetInterval.Seconds())+1 {
+	if seconds > int64(resetInterval.Seconds() * 2) {
 		sess = s.newSession()
 	} else {
 		sess = s.currentSession()
