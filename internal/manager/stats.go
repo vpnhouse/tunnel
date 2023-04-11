@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -334,6 +335,7 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		if err != nil {
 			zap.L().Error("failed to detect country", zap.Stringp("peer", peer.Label))
 		}
+		country = strings.ToLower(country)
 	}
 
 	stat, ok := s.stats[*peer.WireguardPublicKey]
@@ -347,7 +349,16 @@ func (s *runtimePeerStatsService) updateRuntimePeerStatFromWireguardPeer(now tim
 		s.stats[*peer.WireguardPublicKey] = stat
 	}
 
-	if wgPeer.ReceiveBytes > stat.Upstream {
+	if wgPeer.ReceiveBytes > 0 || wgPeer.TransmitBytes > 0 {
+		zap.L().Debug(
+			"TRAFFIC",
+			zap.Stringp("label", peer.Label),
+			zap.Int64("wg_upstream", wgPeer.ReceiveBytes),
+			zap.Int64("wg_downstream", wgPeer.TransmitBytes),
+		)
+	}
+
+	if wgPeer.ReceiveBytes > 0 {
 		// Upstream never be nil
 		*peer.Upstream += wgPeer.ReceiveBytes - stat.Upstream
 		changeSum.Set(peerChangeTraffic)
