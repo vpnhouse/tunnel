@@ -194,7 +194,7 @@ func intoProto(peer *types.PeerInfo, sess *runtimePeerSession) *proto.PeerInfo {
 	p.ActivityID = sess.ActivityID.String()
 	p.Country = sess.Country
 	peerStr := fmt.Sprintf("id=%s, sec=%d, rx=%d(+%d)[%d], tx=%d(+%d)[%d]",
-		p.ActivityID, p.Seconds, p.BytesRx, *peer.Upstream, p.BytesDeltaRx, p.BytesTx, *peer.Downstream, p.BytesDeltaTx)
+		p.ActivityID, p.Seconds, p.BytesRx, p.BytesDeltaRx, *peer.Upstream, p.BytesTx, p.BytesDeltaTx, *peer.Downstream)
 	zap.L().Debug("traffic change", zap.String("peer", peerStr))
 	return p
 }

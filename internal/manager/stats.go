@@ -52,11 +52,12 @@ type runtimePeerSession struct {
 
 // Keeps accumulated peer counters updated for certian wireguard peer
 type runtimePeerStat struct {
-	Updated         int64 // timestamp in seconds (when session is updated)
-	Upstream        int64 // bytes
-	UpstreamSpeed   int64 // bytes per second
-	Downstream      int64 // bytes
-	DownstreamSpeed int64 // bytes per second
+	Updated         int64  // timestamp in seconds (when session is updated)
+	Upstream        int64  // bytes
+	UpstreamSpeed   int64  // bytes per second
+	Downstream      int64  // bytes
+	DownstreamSpeed int64  // bytes per second
+	Country         string // user country
 
 	upstreamSpeedAvg   *statutils.AvgValue
 	downstreamSpeedAvg *statutils.AvgValue
@@ -91,9 +92,14 @@ func (s *runtimePeerStat) newSession() *runtimePeerSession {
 			return sess
 		}
 	}
+
 	sess := &runtimePeerSession{
 		ActivityID: uuid.New(),
+		Upstream:   s.Upstream,
+		Downstream: s.Downstream,
+		Country:    s.Country,
 	}
+
 	s.sessions = append(s.sessions, sess)
 	return sess
 }
@@ -101,9 +107,11 @@ func (s *runtimePeerStat) newSession() *runtimePeerSession {
 func (s *runtimePeerStat) UpdateSession(upstream int64, downstream int64, seconds int64, country string, resetInterval time.Duration) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	sess := s.currentSession()
+	var sess *runtimePeerSession
 	if seconds > int64(resetInterval.Seconds())+1 {
 		sess = s.newSession()
+	} else {
+		sess = s.currentSession()
 	}
 	sess.Seconds += seconds
 	sess.UpstreamDelta += upstream - s.Upstream
@@ -130,6 +138,7 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 		s.Upstream = upstream
 		s.Downstream = downstream
 		s.Updated = ts
+		s.Country = country
 	}()
 
 	var seconds int64
