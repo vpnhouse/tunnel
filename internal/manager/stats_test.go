@@ -10,7 +10,7 @@ import (
 func TestPeerSessions(t *testing.T) {
 	ts := time.Date(2023, 03, 01, 10, 0, 0, 0, time.UTC)
 	updateInterval := 5 * time.Minute
-	stat := newRuntimePeerStat(ts.Unix(), 0, 0)
+	stat := newRuntimePeerStat(ts.Unix(), 0, 0, "")
 
 	ts = ts.Add(time.Minute)
 	stat.Update(ts, 1, 1, "", updateInterval)
