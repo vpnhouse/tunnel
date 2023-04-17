@@ -38,11 +38,11 @@ func main() {
 		serverPort = defaultServerPort
 	}
 
-	runСlient(serverHost, serverPort, authSecret)
+	runClient(serverHost, serverPort, authSecret)
 	time.Sleep(time.Second)
 }
 
-func runСlient(serverHost string, serverPort string, authSecret string) {
+func runClient(serverHost string, serverPort string, authSecret string) {
 	offsetSync, err := eventlog.NewEventlogSyncFile("./offsets")
 	if err != nil {
 		zap.L().Error("failed to create offset sync", zap.Error(err))
@@ -52,7 +52,7 @@ func runСlient(serverHost string, serverPort string, authSecret string) {
 		serverHost,
 		offsetSync,
 		eventlog.WithSelfSignedTLS(),
-		eventlog.WithNoSSL(),
+		//eventlog.WithNoSSL(),
 		eventlog.WithTunnelPort(serverPort), // can be omitted
 		eventlog.WithAuthSecret(authSecret),
 		eventlog.WithStopIdleTimeout(10*time.Second),
