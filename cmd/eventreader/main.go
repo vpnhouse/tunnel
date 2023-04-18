@@ -51,7 +51,7 @@ func runClient(serverHost string, serverPort string, authSecret string) {
 		"test",
 		serverHost,
 		offsetSync,
-		eventlog.WithSelfSignedTLS(),
+		//eventlog.WithSelfSignedTLS(),
 		//eventlog.WithNoSSL(),
 		eventlog.WithTunnelPort(serverPort), // can be omitted
 		eventlog.WithAuthSecret(authSecret),

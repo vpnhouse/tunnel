@@ -83,6 +83,8 @@ func NewPeerTrafficUpdateEventSender(runtime *runtime.TunnelRuntime, eventLog ev
 		updatedPeers:       make(map[string]*types.PeerInfo, len(peers)),
 		statsService:       statsService,
 		needSendChan:       make(chan struct{}, 1),
+		stop:               make(chan struct{}),
+		done:               make(chan struct{}),
 	}
 
 	go sender.run()
