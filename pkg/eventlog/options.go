@@ -1,9 +1,6 @@
 package eventlog
 
 import (
-	"crypto/tls"
-	"fmt"
-	"io/ioutil"
 	"time"
 )
 
