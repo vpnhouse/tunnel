@@ -88,17 +88,31 @@ func (s *Client) connectSelfSignedTLS() error {
 }
 
 func (s *Client) connectTLS() error {
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(s.opts.CA) {
-		return errors.New("failed to add CA's certificate")
+	tunnelHost := net.JoinHostPort(s.tunnelHost, s.opts.TunnelPort)
+	conn, err := net.Dial("tcp", tunnelHost)
+	if err != nil {
+		return fmt.Errorf("failed to dial %s: %s", tunnelHost, err)
+	}
+	defer conn.Close()
+
+	config := &tls.Config{ServerName: s.tunnelHost, InsecureSkipVerify: false}
+	tlsConn := tls.Client(conn, config)
+	if err := tlsConn.Handshake(); err != nil {
+		return fmt.Errorf("failed TLS handshake: %s", err)
+	}
+	defer tlsConn.Close()
+
+	tlsCert := tls.Certificate{}
+	for _, cert := range tlsConn.ConnectionState().PeerCertificates {
+		tlsCert.Certificate = append(tlsCert.Certificate, cert.Raw)
 	}
 
-	config := &tls.Config{
-		Certificates: []tls.Certificate{s.opts.Cert},
-		RootCAs:      certPool,
+	tlsConfig := &tls.Config{
+		ServerName:   s.tunnelHost,
+		Certificates: []tls.Certificate{tlsCert},
 	}
 
-	creds := credentials.NewTLS(config)
+	creds := credentials.NewTLS(tlsConfig)
 
 	return s.connectWithCreds(creds)
 }
