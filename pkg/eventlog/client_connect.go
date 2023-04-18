@@ -89,6 +89,7 @@ func (s *Client) connectSelfSignedTLS() error {
 
 func (s *Client) connectTLS() error {
 	tunnelHost := net.JoinHostPort(s.tunnelHost, s.opts.TunnelPort)
+
 	conn, err := net.Dial("tcp", tunnelHost)
 	if err != nil {
 		return fmt.Errorf("failed to dial %s: %s", tunnelHost, err)
@@ -113,6 +114,8 @@ func (s *Client) connectTLS() error {
 	}
 
 	creds := credentials.NewTLS(tlsConfig)
+
+	zap.L().Info("handshake tls succeed", zap.String("tunnel", tunnelHost), zap.Int("certificates", len(tlsConn.ConnectionState().PeerCertificates)))
 
 	return s.connectWithCreds(creds)
 }
