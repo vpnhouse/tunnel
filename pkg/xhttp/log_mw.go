@@ -5,6 +5,9 @@
 package xhttp
 
 import (
+	"bufio"
+	"errors"
+	"net"
 	"net/http"
 	"time"
 
@@ -36,4 +39,12 @@ func requestLogger(next http.Handler) http.Handler {
 			zap.Duration("t", time.Since(start)),
 		)
 	})
+}
+
+func (w recorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("hijack not supported")
+	}
+	return h.Hijack()
 }
