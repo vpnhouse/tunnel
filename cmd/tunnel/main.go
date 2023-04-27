@@ -193,6 +193,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.Settings.Rapidoc {
 		rapidoc.RegisterHandlers(xHttpServer.Router())
 	}
+	iproseServer.RegisterHandlers(xHttpServer.Router())
 
 	// Startup HTTP API
 	if err := xHttpServer.Run(xHttpAddr); err != nil {

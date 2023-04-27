@@ -52,7 +52,7 @@ docker/all: docker/build docker/push
 
 docker/build:
 	@echo "+ $@ $(DOCKER_IMAGE)"
-	docker build $(DOCKER_BUILD_ARGS) --tag $(DOCKER_IMAGE) .
+	DOCKER_BUILDKIT=1 docker build --ssh default $(DOCKER_BUILD_ARGS) --tag $(DOCKER_IMAGE) .
 
 docker/push:
 	@echo "+ $@ $(DOCKER_IMAGE)"
