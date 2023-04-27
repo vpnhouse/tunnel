@@ -1,6 +1,9 @@
 package iprose
 
-import "github.com/vpnhouse/iprose-go/pkg/server"
+import (
+	"github.com/go-chi/chi/v5"
+	"github.com/vpnhouse/iprose-go/pkg/server"
+)
 
 type Instance struct {
 	iprose *server.IPRoseServer
@@ -20,6 +23,12 @@ func New() (*Instance, error) {
 	return &Instance{
 		iprose: iprose,
 	}, nil
+}
+
+func (instance *Instance) RegisterHandlers(r chi.Router) {
+	for _, hndlr := range instance.iprose.Handlers() {
+		r.HandleFunc(hndlr.Pattern, hndlr.Func)
+	}
 }
 
 func (instance *Instance) Shutdown() error {

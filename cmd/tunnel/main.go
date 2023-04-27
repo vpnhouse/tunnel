@@ -194,6 +194,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.Settings.Rapidoc {
 		rapidoc.RegisterHandlers(xHttpServer.Router())
 	}
+	iproseServer.RegisterHandlers(xHttpServer.Router())
 
 	runtime.ExternalStats.Run()
 	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
