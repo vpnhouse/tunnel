@@ -17,6 +17,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/grpc"
 	"github.com/vpnhouse/tunnel/internal/httpapi"
 	"github.com/vpnhouse/tunnel/internal/ipdiscover"
+	"github.com/vpnhouse/tunnel/internal/iprose"
 	"github.com/vpnhouse/tunnel/internal/manager"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
@@ -124,6 +125,12 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			keyStore = k
 		}
 	}
+
+	iproseServer, err := iprose.New()
+	if err != nil {
+		return err
+	}
+	runtime.Services.RegisterService("iprose", iproseServer)
 
 	// Prepare tunneling HTTP API
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am)
