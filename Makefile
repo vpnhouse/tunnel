@@ -26,6 +26,11 @@ GO_VERSION_PATH = github.com/vpnhouse/tunnel/pkg/version
 GO_LDFLAGS = -w -s -X $(GO_VERSION_PATH).tag=$(GIT_TAG) -X $(GO_VERSION_PATH).commit=$(GIT_COMMIT) -X $(GO_VERSION_PATH).feature=$(FEATURE_SET)
 DOCKER_BUILD_ARGS = --progress=plain --platform=linux/amd64 --build-arg FEATURE_SET=$(FEATURE_SET) --file ./Dockerfile
 DESCRIPTION = tunnel $(GIT_TAG)-$(GIT_COMMIT) branch=$(GIT_BRANCH) features=$(FEATURE_SET)
+GO_FLAGS=-trimpath
+
+ifeq ($(FEATURE_SET),enterprise)
+    GO_FLAGS+=-tags iprose
+endif
 
 run:
 	@echo "+ $@ $(DESCRIPTION)"
@@ -37,7 +42,7 @@ build/all: build/frontend build/app
 
 build/app:
 	@echo "+ $@ $(DESCRIPTION)"
-	go build -ldflags="$(GO_LDFLAGS)" -trimpath -o tunnel-node ./cmd/tunnel/main.go
+	go build -ldflags="$(GO_LDFLAGS)" $(GO_FLAGS) -o tunnel-node ./cmd/tunnel/main.go
 
 build/frontend:
 	@echo "+ $@ $(DESCRIPTION)"
