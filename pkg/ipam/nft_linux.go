@@ -70,7 +70,6 @@ func newNetfilter(subnet *xnet.IPNet) netFilter {
 func (nft *netfilterWrapper) init() error {
 	zap.L().Debug("init table")
 
-	nft.c.FlushRuleset()
 	nft.enableMasquerade()
 	nft.initTable(nfIsolationTable, nfIsolationChain)
 	nft.initPortfilterTable(nfPortfilterTable, nfPortfilterChain)
@@ -89,6 +88,7 @@ func (nft *netfilterWrapper) enableMasquerade() {
 		Name:   nftPrefix + "nat",
 		Family: nftables.TableFamilyIPv4,
 	})
+	nft.c.FlushTable(nat)
 	postrouting := nft.c.AddChain(&nftables.Chain{
 		Name:     nftPrefix + "postrouting",
 		Table:    nat,
@@ -135,6 +135,7 @@ func (nft *netfilterWrapper) enableMasquerade() {
 
 func (nft *netfilterWrapper) initTable(table *nftables.Table, chain *nftables.Chain) {
 	nft.c.AddTable(table)
+	nft.c.FlushTable(table)
 	nft.c.AddChain(chain)
 	nft.c.AddRule(&nftables.Rule{
 		Table: table,
