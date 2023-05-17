@@ -10,9 +10,12 @@ WORKDIR /app
 RUN npm install && npm run build
 
 from toolset as gomodules
+RUN apk add openssh-client
 COPY go.mod /build/
+COPY .gitconfig /root/
 WORKDIR /build
-RUN go mod download
+RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+RUN --mount=type=ssh GOPRIVATE=github.com/vpnhouse go mod download
 
 FROM gomodules as builder
 

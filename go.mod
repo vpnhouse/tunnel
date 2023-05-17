@@ -28,9 +28,10 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vpnhouse/api v0.0.0-20230116104647-6e8abecfee64
+	github.com/vpnhouse/iprose-go v0.0.1-rc1
 	go.etcd.io/etcd/client/v3 v3.5.2
 	go.uber.org/multierr v1.6.0
-	go.uber.org/zap v1.20.0
+	go.uber.org/zap v1.24.0
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
 	google.golang.org/grpc v1.44.0
@@ -58,6 +59,9 @@ require (
 	github.com/dnstap/golang-dnstap v0.4.0 // indirect
 	github.com/farsightsec/golang-framestream v0.3.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
+	github.com/gobwas/httphead v0.1.0 // indirect
+	github.com/gobwas/pool v0.2.1 // indirect
+	github.com/gobwas/ws v1.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -80,6 +84,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
