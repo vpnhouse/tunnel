@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/iprose-go/pkg/server"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
@@ -16,12 +17,14 @@ import (
 
 type Instance struct {
 	iprose     *server.IPRoseServer
+	runtime    *runtime.TunnelRuntime
 	authorizer *authorizer.JWTAuthorizer
 }
 
-func New(authorizer *authorizer.JWTAuthorizer) (*Instance, error) {
+func New(runtime *runtime.TunnelRuntime, authorizer *authorizer.JWTAuthorizer) (*Instance, error) {
 	instance := &Instance{
 		authorizer: authorizer,
+		runtime:    runtime,
 	}
 	var err error
 	instance.iprose, err = server.New(
@@ -39,6 +42,10 @@ func New(authorizer *authorizer.JWTAuthorizer) (*Instance, error) {
 }
 
 func (instance *Instance) Authenticate(r *http.Request) error {
+	if instance.runtime.Settings.IPRoseNoAuth {
+		return nil
+	}
+
 	// Extract JWT
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
