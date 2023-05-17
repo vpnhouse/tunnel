@@ -67,6 +67,7 @@ type Config struct {
 	DNSFilter          *xdns.Config                `yaml:"dns_filter"`
 	PortRestrictions   *ipam.PortRestrictionConfig `yaml:"ports,omitempty"`
 	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
+	GeoDBPath          string                      `yaml:"geo_db_path,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
@@ -134,6 +135,13 @@ func (s *Config) GetUpdateStatisticsInterval() human.Interval {
 		return human.MustParseInterval(DefaultUpdateStatisticsInterval)
 	}
 	return s.PeerStatistics.UpdateStatisticsInterval
+}
+
+func (s *Config) GetSentEventInterval() human.Interval {
+	if s == nil || s.PeerStatistics == nil {
+		human.MustParseInterval(DefaultTrafficChangeSendEventInterval)
+	}
+	return s.PeerStatistics.TrafficChangeSendEventInterval
 }
 
 type HttpConfig struct {

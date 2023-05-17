@@ -15,6 +15,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
+	"github.com/vpnhouse/tunnel/pkg/geoip"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/statutils"
 	"go.uber.org/zap"
@@ -81,7 +82,7 @@ type Manager struct {
 	wireguard         *wireguard.Wireguard
 	ip4am             *ipam.IPAM
 	eventLog          eventlog.EventManager
-	statsService      runtimePeerStatsService
+	statsService      *runtimePeerStatsService
 	peerTrafficSender *peerTrafficUpdateEventSender
 	running           atomic.Value
 	stop              chan struct{}
@@ -93,8 +94,12 @@ type Manager struct {
 	statistic atomic.Value // *CachedStatistics
 }
 
-func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager) (*Manager, error) {
-	peerTrafficSender := NewPeerTrafficUpdateEventSender(runtime, eventLog, nil)
+func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager, geoClient *geoip.Instance) (*Manager, error) {
+	statsService := &runtimePeerStatsService{
+		ResetInterval: runtime.Settings.GetSentEventInterval().Value(),
+		Geo:           geoClient,
+	}
+	peerTrafficSender := NewPeerTrafficUpdateEventSender(runtime, eventLog, statsService, nil)
 
 	manager := &Manager{
 		runtime:            runtime,
@@ -107,6 +112,7 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 		done:               make(chan struct{}),
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
+		statsService:       statsService,
 	}
 
 	manager.restorePeers()
@@ -148,6 +154,6 @@ func (manager *Manager) GetCachedStatistics() *CachedStatistics {
 	return manager.statistic.Load().(*CachedStatistics)
 }
 
-func (manager *Manager) GetRuntimePeerStat(peer *types.PeerInfo) runtimePeerStat {
+func (manager *Manager) GetRuntimePeerStat(peer *types.PeerInfo) *runtimePeerStat {
 	return manager.statsService.GetRuntimePeerStat(peer)
 }

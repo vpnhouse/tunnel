@@ -5,10 +5,7 @@
 package grpc
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"sync/atomic"
@@ -16,7 +13,6 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/storage"
@@ -29,22 +25,11 @@ import (
 type Config struct {
 	// Addr to listen for gRPC connections
 	Addr        string             `yaml:"addr"`
-	Tls         *TlsConfig         `yaml:"tls,omitempty"`
+	TunnelKey   string             `yaml:"tunnel_key,omitempty"`
 	TlsSelfSign *TlsSelfSignConfig `yaml:"tls_self_sign,omitempty"`
-	CA          string             `yaml:"ca,omitempty"`
-}
-
-type TlsConfig struct {
-	// Cert is a server certificate path
-	Cert string `yaml:"cert"`
-	// Key is a server certificate key
-	Key string `yaml:"key"`
-	// ClientCA certificate path
-	ClientCA string `yaml:"client_ca"`
 }
 
 type TlsSelfSignConfig struct {
-	TunnelKey    string   `yaml:"tunnel_key"`
 	AllowedIPs   []string `yaml:"allowed_ips,omitempty"`
 	AllowedNames []string `yaml:"allowed_names,omitempty"`
 	// Storage directory is used to keep load self signed certs
@@ -78,29 +63,28 @@ func (g *grpcServer) Shutdown() error {
 
 // New creates and starts gRPC services.
 func New(config Config, eventLog eventlog.EventManager, keystore keystore.Keystore, storage *storage.Storage) (*grpcServer, error) {
-	var withTls grpc.ServerOption
 	var ca string
 	var err error
-	var tunnelKey string
+	var withTls grpc.ServerOption
 	switch {
-	case config.Tls != nil:
-		withTls, ca, err = tlsCredentialsAndCA(config.Tls)
 	case config.TlsSelfSign != nil:
 		withTls, ca, err = tlsSelfSignCredentialsAndCA(config.TlsSelfSign)
-		tunnelKey = config.TlsSelfSign.TunnelKey
 	default:
-		return nil, fmt.Errorf("tls config is not defined: %v", config)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	srv := grpc.NewServer(
-		withTls,
+	grpcServerOptions := []grpc.ServerOption{
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
-	)
-	eventSrv := newEventServer(eventLog, keystore, tunnelKey, storage)
+	}
+	if withTls != nil {
+		grpcServerOptions = append(grpcServerOptions, withTls)
+	}
+
+	srv := grpc.NewServer(grpcServerOptions...)
+	eventSrv := newEventServer(eventLog, keystore, config.TunnelKey, storage)
 	proto.RegisterEventLogServiceServer(srv, eventSrv)
 
 	lis, err := net.Listen("tcp", config.Addr)
@@ -112,7 +96,7 @@ func New(config Config, eventLog eventlog.EventManager, keystore keystore.Keysto
 		server:    srv,
 		ca:        ca,
 		keystore:  keystore,
-		tunnelKey: tunnelKey,
+		tunnelKey: config.TunnelKey,
 	}
 	wrapper.running.Store(true)
 
@@ -127,37 +111,7 @@ func New(config Config, eventLog eventlog.EventManager, keystore keystore.Keysto
 	return wrapper, nil
 }
 
-func tlsCredentialsAndCA(tlsConfig *TlsConfig) (grpc.ServerOption, string, error) {
-	// load server cert
-	serverCert, err := tls.LoadX509KeyPair(tlsConfig.Cert, tlsConfig.Key)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to load server's cert, key pair: %w", err)
-	}
-	// load ca cert
-	clientCABytes, err := os.ReadFile(tlsConfig.ClientCA)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to load CA cert from %s: %w", tlsConfig.ClientCA, err)
-	}
-
-	certPool := x509.NewCertPool()
-	if ok := certPool.AppendCertsFromPEM(clientCABytes); !ok {
-		return nil, "", fmt.Errorf("failed to add ClientCA from %s: check the certificate content", tlsConfig.ClientCA)
-	}
-
-	tlsCreds := credentials.NewTLS(&tls.Config{
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		Certificates: []tls.Certificate{serverCert},
-		ClientCAs:    certPool,
-	})
-
-	return grpc.Creds(tlsCreds), "", nil
-}
-
 func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *TlsSelfSignConfig) (grpc.ServerOption, string, error) {
-	if tlsSelfSignConfig.TunnelKey == "" {
-		return nil, "", fmt.Errorf("tunnel key is not specified for self sign tls config")
-	}
-
 	zap.L().Debug("storage directory", zap.String("dir", tlsSelfSignConfig.Dir))
 
 	signCA, wasGenerated, err := loadOrGenerateCASign(tlsSelfSignConfig)

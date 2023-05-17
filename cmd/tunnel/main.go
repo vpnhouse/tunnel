@@ -24,6 +24,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/control"
+	"github.com/vpnhouse/tunnel/pkg/geoip"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
 	"github.com/vpnhouse/tunnel/pkg/keystore"
 	"github.com/vpnhouse/tunnel/pkg/rapidoc"
@@ -111,8 +112,20 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("ipv4am", ipv4am)
 
+	var geoClient *geoip.Instance
+	if runtime.Features.WithGeoip() {
+		if runtime.Settings.GeoDBPath == "" {
+			zap.L().Warn("geoip db path os not specified")
+		} else {
+			geoClient, err = geoip.NewGeoip(runtime.Settings.GeoDBPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Create new peer manager
-	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4am, eventLog)
+	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4am, eventLog, geoClient)
 	if err != nil {
 		return err
 	}

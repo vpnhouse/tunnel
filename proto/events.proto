@@ -17,6 +17,11 @@ message PeerInfo {
   uint64 bytesRx = 9;
   Timestamp activity = 10;
   string label = 11;
+  uint64 bytesDeltaTx = 12;
+  uint64 bytesDeltaRx = 13;
+  uint64 seconds = 14;
+  string activityID = 15;
+  string country = 16;
 }
 
 // EventType defines types to use with the eventlog package
