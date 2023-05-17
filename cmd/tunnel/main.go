@@ -139,7 +139,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
-	iproseServer, err := iprose.New(jwtAuthorizer)
+	iproseServer, err := iprose.New(runtime, jwtAuthorizer)
 	if err != nil {
 		return err
 	}

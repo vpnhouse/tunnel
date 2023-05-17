@@ -53,6 +53,9 @@ type Config struct {
 	Wireguard  wireguard.Config `yaml:"wireguard"`
 	HTTP       HttpConfig       `yaml:"http"`
 
+	// IPRose-related settings
+	IPRoseNoAuth bool `yaml:"iprose_noauth"`
+
 	// optional configuration
 	ExternalStats      *extstat.Config             `yaml:"external_stats,omitempty"`
 	NetworkPolicy      *NetworkAccessPolicy        `yaml:"network,omitempty"`
