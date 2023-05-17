@@ -6,13 +6,14 @@ package iprose
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/internal/runtime"
 )
 
 type Instance struct {
 	stopped bool
 }
 
-func New(authorizer *authorizer.JWTAuthorizer) (*Instance, error) {
+func New(runtime *runtime.TunnelRuntime, authorizer *authorizer.JWTAuthorizer) (*Instance, error) {
 	return &Instance{}, nil
 }
 
