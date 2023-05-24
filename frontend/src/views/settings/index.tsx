@@ -252,10 +252,10 @@ const Settings: FC = () => {
   }
 
   function toggleIssueSSL() {
-    setDomainConfig({
-      ...domainConfig,
-      issue_ssl: !domainConfig?.issue_ssl
-    } as DomainConfig);
+    setDomainConfig((prevValue) => ({
+      ...prevValue,
+      issue_ssl: !prevValue?.issue_ssl
+    } as DomainConfig));
   }
 
   function toggleSendStats() {
