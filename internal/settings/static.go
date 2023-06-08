@@ -142,7 +142,7 @@ func (s *Config) GetUpdateStatisticsInterval() human.Interval {
 
 func (s *Config) GetSentEventInterval() human.Interval {
 	if s == nil || s.PeerStatistics == nil {
-		human.MustParseInterval(DefaultTrafficChangeSendEventInterval)
+		return human.MustParseInterval(DefaultTrafficChangeSendEventInterval)
 	}
 	return s.PeerStatistics.TrafficChangeSendEventInterval
 }
