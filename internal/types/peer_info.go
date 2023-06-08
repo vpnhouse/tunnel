@@ -48,6 +48,8 @@ type PeerInfo struct {
 	Upstream   *int64      `db:"upstream"`
 	Downstream *int64      `db:"downstream"`
 	Activity   *xtime.Time `db:"activity"`
+
+	SuggestedExpireSeconds *int `db:"suggested_expire"`
 }
 
 func (peer *PeerInfo) GetNetworkPolicy() ipam.Policy {
