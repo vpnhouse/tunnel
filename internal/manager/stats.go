@@ -247,6 +247,11 @@ func (s *runtimePeerStatsService) GetRuntimePeerStat(peer *types.PeerInfo) *runt
 
 func (s *runtimePeerStatsService) GetSessions(peer *types.PeerInfo) []Session {
 	stats := s.GetRuntimePeerStat(peer)
+	// Stats can gone on peer deletion that's detected on UpdatePeersStats
+	// In this case we simply return empty sessions list for removed peer
+	if stats == nil {
+		return nil
+	}
 	return stats.GetSessions()
 }
 
