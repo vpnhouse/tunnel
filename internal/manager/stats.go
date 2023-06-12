@@ -123,6 +123,9 @@ func (s *runtimePeerStat) newSession() *runtimePeerSession {
 }
 
 func (s *runtimePeerStat) UpdateSession(upstream int64, downstream int64, seconds int64, country string, resetInterval time.Duration) {
+	if s == nil {
+		return
+	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	var sess *runtimePeerSession
@@ -148,6 +151,9 @@ func (s *runtimePeerStat) UpdateSession(upstream int64, downstream int64, second
 }
 
 func (s *runtimePeerStat) GetSessions() []Session {
+	if s == nil {
+		return nil
+	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if len(s.sessions) == 0 {
@@ -173,6 +179,9 @@ func (s *runtimePeerStat) GetSessions() []Session {
 }
 
 func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64, country string, resetInterval time.Duration) {
+	if s == nil {
+		return
+	}
 	ts := now.Unix()
 	if upstream < s.Upstream {
 		upstream = s.Upstream
@@ -210,6 +219,9 @@ func (s *runtimePeerStat) Update(now time.Time, upstream int64, downstream int64
 }
 
 func (s *runtimePeerStat) UpdateSpeedNoTraffic() {
+	if s == nil {
+		return
+	}
 	s.UpstreamSpeed = s.upstreamSpeedAvg.Push(0)
 	s.DownstreamSpeed = s.downstreamSpeedAvg.Push(0)
 }
