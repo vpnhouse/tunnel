@@ -5,8 +5,10 @@
 package httpapi
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -162,19 +164,24 @@ func (tun *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Request
 
 		// Prepare connection response
 		settings := tun.runtime.Settings.Wireguard
+		ipv6Stub := net.ParseIP("0::0")
+		rand.Read(ipv6Stub)
+		ipv6Stub[0] = 0xfc
+		ipv6Stub[1] = 0
 
 		tmpl := `[Interface]
-Address = %s/32
+Address = %s/32, %s/128
 PrivateKey = %s
 
 [Peer]
 PublicKey = %s
 Endpoint = %s:%d
-AllowedIPs = 0.0.0.0/1, 128.0.0.0/1
+AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = %d
 `
 		response := fmt.Sprintf(tmpl,
 			peer.Ipv4.String(),
+			ipv6Stub.String(),
 			privateKey.String(),
 			tun.runtime.Settings.Wireguard.GetPrivateKey().Public().Unwrap().String(),
 			settings.ServerIPv4,
