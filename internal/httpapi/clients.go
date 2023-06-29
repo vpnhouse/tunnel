@@ -61,7 +61,7 @@ func (tun *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
 		// Prepare openapi peer representation
 		oPeer := adminAPI.Peer{
 			InfoWireguard: oConnectRequest.InfoWireguard,
-			Expires:       tun.getExpiration(),
+			Expires:       tun.getExpiration(oConnectRequest.ExpireSeconds),
 			Claims:        &claimsString,
 			Identifiers:   oIdentifiers,
 		}
@@ -216,7 +216,7 @@ func (tun *TunnelAPI) ClientPing(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 
-		if err := tun.manager.UpdatePeerExpiration(identifiers, tun.getExpiration()); err != nil {
+		if err := tun.manager.UpdatePeerExpiration(identifiers, tun.getExpiration(nil)); err != nil {
 			return nil, err
 		}
 
@@ -292,9 +292,14 @@ func (tun *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerIdentif
 	return identifiers, claims, nil
 }
 
-func (tun *TunnelAPI) getExpiration() *time.Time {
+func (tun *TunnelAPI) getExpiration(suggestedSeconds *int) *time.Time {
 	settings := tun.runtime.Settings.GetPublicAPIConfig()
 	expiresSeconds := settings.PingInterval + settings.PeerTTL
+
+	if suggestedSeconds != nil && *suggestedSeconds < expiresSeconds {
+		expiresSeconds = *suggestedSeconds
+	}
+
 	expires := time.Now().Add(time.Second * time.Duration(expiresSeconds))
 	return &expires
 }
