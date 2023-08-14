@@ -41,24 +41,24 @@ func New(runtime *runtime.TunnelRuntime, authorizer *authorizer.JWTAuthorizer) (
 	return instance, nil
 }
 
-func (instance *Instance) Authenticate(r *http.Request) error {
+func (instance *Instance) Authenticate(r *http.Request) (*string, error) {
 	if instance.runtime.Settings.IPRoseNoAuth {
-		return nil
+		return nil, nil
 	}
 
 	// Extract JWT
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
-		return xerror.EAuthenticationFailed("no auth token", nil)
+		return nil, xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
 	// Verify JWT, get JWT claims
-	_, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+	claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &claims.Subject, nil
 }
 
 func (instance *Instance) RegisterHandlers(r chi.Router) {
