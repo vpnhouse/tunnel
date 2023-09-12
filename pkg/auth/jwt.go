@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	AudienceAuth     = "auth"
-	AudienceDiscover = "discover"
-	AudienceTunnel   = "tunnel"
+	AudienceAuth       = "auth"
+	AudienceDiscover   = "discover"
+	AudienceTunnel     = "tunnel"
+	AudienceAuthorizer = "authorizer"
 
 	jwtSigningMethod = "RS256"
 	jwtKeyID         = "kid"
@@ -37,7 +38,11 @@ func (l StringList) Has(entry string) bool {
 }
 
 type ClientClaims struct {
-	Audience StringList `json:"aud,omitempty"`
+	Audience       StringList             `json:"aud,omitempty"`
+	UserId         string                 `json:"user_id,omitempty"`
+	InstallationId string                 `json:"installation_id,omitempty"`
+	PlatformType   string                 `json:"platform_type,omitempty"`
+	Entitlements   map[string]interface{} `json:"entitlements,omitempty"`
 	jwt.StandardClaims
 }
 
