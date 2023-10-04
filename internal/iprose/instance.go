@@ -26,13 +26,14 @@ func New(runtime *runtime.TunnelRuntime, authorizer *authorizer.JWTAuthorizer) (
 		authorizer: authorizer,
 		runtime:    runtime,
 	}
+
 	var err error
 	instance.iprose, err = server.New(
 		"iprose0",
 		"10.123.76.1/24",
 		"",
 		[]string{"0.0.0.0/0"},
-		128,
+		runtime.Settings.IPRoseQueueSize,
 		instance.Authenticate,
 	)
 	if err != nil {

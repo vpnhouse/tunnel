@@ -54,7 +54,8 @@ type Config struct {
 	HTTP       HttpConfig       `yaml:"http"`
 
 	// IPRose-related settings
-	IPRoseNoAuth bool `yaml:"iprose_noauth"`
+	IPRoseNoAuth    bool `yaml:"iprose_noauth"`
+	IPRoseQueueSize int  `yaml:"iprose_queue_size"`
 
 	// optional configuration
 	ExternalStats      *extstat.Config             `yaml:"external_stats,omitempty"`
@@ -355,6 +356,7 @@ func safeDefaults(rootDir string) *Config {
 		ManagementKeystore: keystorePath,
 		PortRestrictions:   ipam.DefaultPortRestrictions(),
 		PeerStatistics:     defaultPeerStatisticConfig(),
+		IPRoseQueueSize:    256,
 	}
 }
 
