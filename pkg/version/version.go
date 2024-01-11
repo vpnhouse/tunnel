@@ -4,6 +4,10 @@
 
 package version
 
+import (
+	"net/http"
+)
+
 const (
 	Dev        = "dev"
 	Personal   = "personal"
@@ -63,4 +67,8 @@ func GetVersion() string {
 	}
 
 	return version
+}
+
+func RequestHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(GetVersion()))
 }
