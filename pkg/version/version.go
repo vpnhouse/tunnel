@@ -5,6 +5,7 @@
 package version
 
 import (
+	"encoding/json"
 	"net/http"
 )
 
@@ -26,6 +27,12 @@ var (
 	commit  = ""
 	feature = "personal"
 )
+
+type Version struct {
+	Tag     string
+	Commit  string
+	Feature string
+}
 
 // GetTag returns the version tag of this build.
 func GetTag() string {
@@ -69,6 +76,16 @@ func GetVersion() string {
 	return version
 }
 
+func GetVersionStruct() *Version {
+	return &Version{
+		Tag:     tag,
+		Commit:  commit,
+		Feature: feature,
+	}
+}
+
 func RequestHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(GetVersion()))
+	v := GetVersionStruct()
+	b, _ := json.Marshal(v)
+	w.Write(b)
 }
