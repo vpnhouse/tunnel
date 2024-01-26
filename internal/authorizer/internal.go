@@ -5,38 +5,48 @@
 package authorizer
 
 import (
+	"sync/atomic"
+
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 )
 
-type JWTAuthorizer struct {
-	checker *auth.JWTChecker
-	running bool
+type JWTAuthorizer interface {
+	Authenticate(tokenString string, myAudience string) (*auth.ClientClaims, error)
 }
 
-func NewJWT(keyKeeper auth.KeyStore) (*JWTAuthorizer, error) {
+var _ JWTAuthorizer = (*jwtAuthorizer)(nil)
+
+type jwtAuthorizer struct {
+	checker *auth.JWTChecker
+	running atomic.Bool
+}
+
+func NewJWT(keyKeeper auth.KeyStore) (*jwtAuthorizer, error) {
 	checker, err := auth.NewJWTChecker(keyKeeper)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &JWTAuthorizer{
+	jwtAuth := &jwtAuthorizer{
 		checker: checker,
-		running: true,
-	}, nil
+	}
+	jwtAuth.running.Store(true)
+
+	return jwtAuth, nil
 }
 
-func (d *JWTAuthorizer) Shutdown() error {
-	d.running = false
+func (d *jwtAuthorizer) Shutdown() error {
+	d.running.Store(false)
 	return nil
 }
 
-func (d *JWTAuthorizer) Running() bool {
-	return d.running
+func (d *jwtAuthorizer) Running() bool {
+	return d.running.Load()
 }
 
-func (d *JWTAuthorizer) Authenticate(tokenString string, myAudience string) (*auth.ClientClaims, error) {
+func (d *jwtAuthorizer) Authenticate(tokenString string, myAudience string) (*auth.ClientClaims, error) {
 	var claims auth.ClientClaims
 
 	err := d.checker.Parse(tokenString, &claims)

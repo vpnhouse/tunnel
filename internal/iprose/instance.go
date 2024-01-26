@@ -18,12 +18,12 @@ import (
 type Instance struct {
 	iprose     *server.IPRoseServer
 	runtime    *runtime.TunnelRuntime
-	authorizer *authorizer.JWTAuthorizer
+	authorizer authorizer.JWTAuthorizer
 }
 
-func New(runtime *runtime.TunnelRuntime, authorizer *authorizer.JWTAuthorizer) (*Instance, error) {
+func New(runtime *runtime.TunnelRuntime, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
 	instance := &Instance{
-		authorizer: authorizer,
+		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
 		runtime:    runtime,
 	}
 	var err error
