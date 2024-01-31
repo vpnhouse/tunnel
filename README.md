@@ -120,7 +120,7 @@ docker run -d \
     -p 443:443            `# publish web admin port (SSL)` \
     -p 3000:3000/udp      `# publish Wireguard port` \
     -v /opt/vpnhouse-data/:/opt/vpnhouse/tunnel/   `# mount a host directory with configs` \
-    vpnhouse/tunnel:v0.3.4
+    vpnhouse/tunnel:v0.3.5
 ```
 
 ### Deep dive
