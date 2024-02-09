@@ -13,7 +13,7 @@ type Instance struct {
 	stopped bool
 }
 
-func New(runtime *runtime.TunnelRuntime, authorizer *authorizer.JWTAuthorizer) (*Instance, error) {
+func New(runtime *runtime.TunnelRuntime, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
 	return &Instance{}, nil
 }
 

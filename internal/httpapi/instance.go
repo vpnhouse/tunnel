@@ -28,7 +28,7 @@ type TunnelAPI struct {
 	runtime    *runtime.TunnelRuntime
 	manager    *manager.Manager
 	adminJWT   *auth.JWTMaster
-	authorizer *authorizer.JWTAuthorizer
+	authorizer authorizer.JWTAuthorizer
 	storage    *storage.Storage
 	keystore   keystore.Keystore
 	ippool     *ipam.IPAM
@@ -39,7 +39,7 @@ func NewTunnelHandlers(
 	runtime *runtime.TunnelRuntime,
 	manager *manager.Manager,
 	adminJWT *auth.JWTMaster,
-	authorizer *authorizer.JWTAuthorizer,
+	jwtAuthorizer authorizer.JWTAuthorizer,
 	storage *storage.Storage,
 	keystore keystore.Keystore,
 	ip4am *ipam.IPAM,
@@ -48,7 +48,7 @@ func NewTunnelHandlers(
 		runtime:    runtime,
 		manager:    manager,
 		adminJWT:   adminJWT,
-		authorizer: authorizer,
+		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.Wireguard),
 		storage:    storage,
 		keystore:   keystore,
 		ippool:     ip4am,
