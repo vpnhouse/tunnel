@@ -6,8 +6,8 @@
 ![GitHub](https://img.shields.io/github/license/vpnhouse/tunnel)
 
 
-VPN House
-=========
+[VPNHouse](https://vpnhouse.net)
+==========
 
 A basic, self-contained management service for WireGuard with a self-serve web UI.
 
