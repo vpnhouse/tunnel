@@ -13,6 +13,7 @@ const (
 	Any       EntitlementType = ""
 	Wireguard EntitlementType = "wireguard"
 	IPRose    EntitlementType = "iprose"
+	Proxy     EntitlementType = "proxy"
 )
 
 type jwtAuthorizerEntitlement struct {

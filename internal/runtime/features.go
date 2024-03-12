@@ -14,6 +14,7 @@ const (
 	featureFederation = "federation"
 	featurePublicAPI  = "public_api"
 	featureGeoip      = "geoip"
+	featureProxy      = "proxy"
 )
 
 type FeatureSet map[string]bool
@@ -26,6 +27,7 @@ func NewFeatureSet() FeatureSet {
 			featureFederation: true,
 			featurePublicAPI:  true,
 			featureGeoip:      true,
+			featureProxy:      true,
 		}
 	}
 
@@ -35,6 +37,7 @@ func NewFeatureSet() FeatureSet {
 		featureFederation: false,
 		featurePublicAPI:  false,
 		featureGeoip:      false,
+		featureProxy:      false,
 	}
 }
 
@@ -56,4 +59,8 @@ func (f FeatureSet) WithPublicAPI() bool {
 
 func (f FeatureSet) WithGeoip() bool {
 	return f[featureGeoip]
+}
+
+func (f FeatureSet) WithProxy() bool {
+	return f[featureProxy]
 }
