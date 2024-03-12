@@ -19,6 +19,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/ipdiscover"
 	"github.com/vpnhouse/tunnel/internal/iprose"
 	"github.com/vpnhouse/tunnel/internal/manager"
+	"github.com/vpnhouse/tunnel/internal/proxy"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/internal/storage"
@@ -152,6 +153,12 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
+	var proxyServer *proxy.Instance
+	if runtime.Features.WithProxy() {
+		proxyServer = proxy.New(runtime, jwtAuthorizer)
+		runtime.Services.RegisterService("proxy", proxyServer)
+	}
+
 	// Prepare tunneling HTTP API
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am)
 
@@ -206,6 +213,10 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	if iproseServer != nil {
 		iproseServer.RegisterHandlers(xHttpServer.Router())
+	}
+
+	if runtime.Features.WithProxy() {
+		proxyServer.RegisterHandlers(xHttpServer.Router())
 	}
 
 	runtime.ExternalStats.Run()
