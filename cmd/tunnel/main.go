@@ -146,6 +146,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("iprose", iproseServer)
 
+	// Create proxy server
 	var proxyServer *proxy.Instance
 	if runtime.Features.WithProxy() {
 		proxyServer = proxy.New(runtime, jwtAuthorizer)
