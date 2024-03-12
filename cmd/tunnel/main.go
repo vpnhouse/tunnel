@@ -153,6 +153,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
+	// Create proxy server
 	var proxyServer *proxy.Instance
 	if runtime.Features.WithProxy() {
 		proxyServer = proxy.New(runtime, jwtAuthorizer)

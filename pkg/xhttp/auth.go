@@ -11,8 +11,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func ExtractTokenFromRequest(r *http.Request) (string, bool) {
-	authHeader := r.Header.Get("Authorization")
+const (
+	HeaderAuthorization      = "Authorization"
+	HeaderProxyAuthorization = "Proxy-Authorization"
+)
+
+func doExtractTokenFromRequest(r *http.Request, header string) (string, bool) {
+	authHeader := r.Header.Get(header)
 	if authHeader == "" {
 		zap.L().Debug("no auth header was found")
 		return "", false // No error, just no token
@@ -25,4 +30,12 @@ func ExtractTokenFromRequest(r *http.Request) (string, bool) {
 	}
 
 	return authHeaderParts[1], true
+}
+
+func ExtractTokenFromRequest(r *http.Request) (string, bool) {
+	return doExtractTokenFromRequest(r, HeaderAuthorization)
+}
+
+func ExtractProxyTokenFromRequest(r *http.Request) (string, bool) {
+	return doExtractTokenFromRequest(r, HeaderProxyAuthorization)
 }

@@ -27,14 +27,14 @@ type Instance struct {
 
 func New(runtime *runtime.TunnelRuntime, jwtAuthorizer authorizer.JWTAuthorizer) *Instance {
 	return &Instance{
-		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
+		authorizer: jwtAuthorizer, //authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		runtime:    runtime,
 	}
 }
 
 func (instance *Instance) doAuth(r *http.Request) error {
 	// Extract JWT
-	userToken, ok := xhttp.ExtractTokenFromRequest(r)
+	userToken, ok := xhttp.ExtractProxyTokenFromRequest(r)
 	if !ok {
 		return xerror.EAuthenticationFailed("no auth token", nil)
 	}
@@ -177,7 +177,7 @@ func (instance *Instance) handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (instance *Instance) RegisterHandlers(r chi.Router) {
-	r.MethodFunc("CONNECT", "*", instance.handler)
+	r.MethodFunc("CONNECT", "/*", instance.handler)
 }
 
 func (instance *Instance) Shutdown() error {
