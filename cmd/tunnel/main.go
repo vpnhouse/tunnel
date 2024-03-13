@@ -156,8 +156,12 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Create proxy server
 	var proxyServer *proxy.Instance
 	if runtime.Features.WithProxy() {
-		proxyServer = proxy.New(runtime, jwtAuthorizer)
-		runtime.Services.RegisterService("proxy", proxyServer)
+		proxyServer = proxy.New(runtime.Settings.Proxy, jwtAuthorizer)
+		if proxyServer != nil {
+			runtime.Services.RegisterService("proxy", proxyServer)
+		} else {
+			zap.L().Warn("Proxy server is not started")
+		}
 	}
 
 	// Prepare tunneling HTTP API
@@ -216,7 +220,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		iproseServer.RegisterHandlers(xHttpServer.Router())
 	}
 
-	if runtime.Features.WithProxy() {
+	if proxyServer != nil {
 		proxyServer.RegisterHandlers(xHttpServer.Router())
 	}
 

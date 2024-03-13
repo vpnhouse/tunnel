@@ -19,6 +19,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/grpc"
 	"github.com/vpnhouse/tunnel/internal/iprose"
+	"github.com/vpnhouse/tunnel/internal/proxy"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
@@ -55,6 +56,7 @@ type Config struct {
 	HTTP       HttpConfig       `yaml:"http"`
 
 	// optional configuration
+	Proxy              *proxy.Config               `yaml:"proxy,omitempty"`
 	ExternalStats      *extstat.Config             `yaml:"external_stats,omitempty"`
 	NetworkPolicy      *NetworkAccessPolicy        `yaml:"network,omitempty"`
 	SSL                *xhttp.SSLConfig            `yaml:"ssl,omitempty"`

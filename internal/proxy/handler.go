@@ -12,18 +12,18 @@ import (
 	"go.uber.org/zap"
 )
 
-func (instance *Instance) doAuth(r *http.Request) error {
+func (instance *Instance) doAuth(r *http.Request) (string, error) {
 	userToken, ok := extractAnyToken(r)
 	if !ok {
-		return xerror.EAuthenticationFailed("no auth token", nil)
+		return "", xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
-	_, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+	token, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return token.UserId, nil
 }
 
 func (instance *Instance) doConnect(w http.ResponseWriter, r *http.Request) error {
@@ -118,11 +118,18 @@ func (instance *Instance) doConnect(w http.ResponseWriter, r *http.Request) erro
 }
 
 func (instance *Instance) handler(w http.ResponseWriter, r *http.Request) {
-	err := instance.doAuth(r)
+	userId, err := instance.doAuth(r)
 	if err != nil {
 		xhttp.WriteJsonError(w, err)
 		return
 	}
+
+	err = instance.users.acquire(userId)
+	if err != nil {
+		xhttp.WriteJsonError(w, err)
+		return
+	}
+	defer instance.users.release(userId)
 
 	err = instance.doConnect(w, r)
 	if err != nil {
