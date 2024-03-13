@@ -1,24 +1,39 @@
 package proxy
 
 import (
+	"context"
 	"sync/atomic"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
-	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 )
 
-type Instance struct {
-	terminated atomic.Bool
-	runtime    *runtime.TunnelRuntime
-	authorizer authorizer.JWTAuthorizer
+type Config struct {
+	ConnLimit int `yaml:"connlimit"`
 }
 
-func New(runtime *runtime.TunnelRuntime, jwtAuthorizer authorizer.JWTAuthorizer) *Instance {
+type Instance struct {
+	ctx        context.Context
+	cancel     context.CancelFunc
+	terminated atomic.Bool
+	config     *Config
+	authorizer authorizer.JWTAuthorizer
+	users      *userStorage
+}
+
+func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) *Instance {
+	if config == nil {
+		return nil
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Instance{
+		ctx:        ctx,
+		cancel:     cancel,
 		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
-		runtime:    runtime,
+		config:     config,
+		users:      newUserStorage(ctx, config.ConnLimit),
 	}
 }
 
@@ -31,6 +46,7 @@ func (instance *Instance) Shutdown() error {
 		return xerror.EInternalError("Double proxy shutdown", nil)
 	}
 
+	instance.cancel()
 	return nil
 }
 
