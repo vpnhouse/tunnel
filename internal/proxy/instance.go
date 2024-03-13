@@ -17,7 +17,7 @@ type Instance struct {
 
 func New(runtime *runtime.TunnelRuntime, jwtAuthorizer authorizer.JWTAuthorizer) *Instance {
 	return &Instance{
-		authorizer: jwtAuthorizer, //authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
+		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		runtime:    runtime,
 	}
 }
