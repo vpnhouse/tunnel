@@ -13,7 +13,7 @@ import (
 )
 
 func (instance *Instance) doAuth(r *http.Request) error {
-	userToken, ok := xhttp.ExtractProxyTokenFromRequest(r)
+	userToken, ok := extractAnyToken(r)
 	if !ok {
 		return xerror.EAuthenticationFailed("no auth token", nil)
 	}

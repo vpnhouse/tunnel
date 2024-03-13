@@ -3,9 +3,12 @@ package proxy
 import (
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"regexp"
 	"syscall"
+
+	"github.com/vpnhouse/tunnel/pkg/xhttp"
 )
 
 var hasPort = regexp.MustCompile(`:\d+$`)
@@ -29,4 +32,13 @@ func isConnectionClosed(err error) bool {
 		}
 	}
 	return false
+}
+
+func extractAnyToken(r *http.Request) (userToken string, ok bool) {
+	userToken, ok = xhttp.ExtractProxyTokenFromRequest(r)
+	if ok {
+		return
+	}
+
+	return xhttp.ExtractTokenFromRequest(r)
 }
