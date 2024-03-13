@@ -124,12 +124,12 @@ func (instance *Instance) handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = instance.users.acquire(userId)
+	user, err := instance.users.acquire(userId)
 	if err != nil {
 		xhttp.WriteJsonError(w, err)
 		return
 	}
-	defer instance.users.release(userId)
+	defer instance.users.release(userId, user)
 
 	err = instance.doConnect(w, r)
 	if err != nil {

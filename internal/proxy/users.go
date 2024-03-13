@@ -4,21 +4,21 @@ import (
 	"context"
 	"sync"
 
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
 
 type userStorage struct {
-	ctx     context.Context
 	lock    sync.Mutex
+	ctx     context.Context
 	maxConn int64
 	users   map[string]*userEntry
 }
 
 type userEntry struct {
-	storage *userStorage
-	limit   *semaphore.Weighted
-	conns   int
+	limit *semaphore.Weighted
+	usage int
 }
 
 func newUserStorage(ctx context.Context, maxConn int) *userStorage {
@@ -29,60 +29,51 @@ func newUserStorage(ctx context.Context, maxConn int) *userStorage {
 	}
 }
 
-func (instance *userStorage) acquire(id string) error {
+func (instance *userStorage) take(id string) *userEntry {
 	instance.lock.Lock()
-	user, ok := instance.users[id]
+	defer instance.lock.Unlock()
 
-	if !ok {
+	user, loaded := instance.users[id]
+	if !loaded {
 		user = &userEntry{
-			storage: instance,
-			limit:   semaphore.NewWeighted(instance.maxConn),
+			limit: semaphore.NewWeighted(instance.maxConn),
 		}
 		instance.users[id] = user
-		zap.L().Debug("Created user entry", zap.String("id", id))
-	} else {
-		zap.L().Debug("Using existing user entry", zap.String("id", id))
 	}
 
-	user.conns += 1
-	instance.lock.Unlock()
-	err := user.limit.Acquire(instance.ctx, 1)
-	instance.lock.Lock()
-	defer instance.lock.Unlock()
+	user.usage += 1
+	return user
 
-	if err != nil {
-		user.conns -= 1
-		if user.conns < 0 {
-			zap.L().Error("Negative connections", zap.String("id", id))
-		}
-		if user.conns <= 0 {
-			delete(instance.users, id)
-		}
-		return err
-	}
-
-	zap.L().Debug("Acquired limit", zap.String("id", id))
-	return nil
 }
 
-func (instance *userStorage) release(id string) {
+func (instance *userStorage) put(id string) {
 	instance.lock.Lock()
 	defer instance.lock.Unlock()
 
-	user, ok := instance.users[id]
-	if !ok {
-		zap.L().Error("Release for unknown user", zap.String("id", id))
+	user, loaded := instance.users[id]
+	if !loaded {
+		zap.L().Error("Can't put unknown user")
 		return
 	}
 
-	user.limit.Release(1)
-	zap.L().Debug("Released limit", zap.String("id", id))
-
-	user.conns -= 1
-	if user.conns < 0 {
-		zap.L().Error("Negative connections", zap.String("id", id))
-	}
-	if user.conns <= 0 {
+	user.usage -= 1
+	if user.usage == 0 {
 		delete(instance.users, id)
 	}
+}
+
+func (instance *userStorage) acquire(id string) (*userEntry, error) {
+	user := instance.take(id)
+	err := user.limit.Acquire(instance.ctx, 1)
+	if err != nil {
+		instance.put(id)
+		return nil, xerror.EUnavailable("unavailable", err)
+	}
+
+	return user, nil
+}
+
+func (instance *userStorage) release(id string, user *userEntry) {
+	user.limit.Release(1)
+	instance.put(id)
 }
