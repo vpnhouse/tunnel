@@ -13,13 +13,11 @@ import (
 )
 
 func (instance *Instance) doAuth(r *http.Request) error {
-	// Extract JWT
 	userToken, ok := xhttp.ExtractProxyTokenFromRequest(r)
 	if !ok {
 		return xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
-	// Verify JWT, get JWT claims
 	_, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
 		return err
