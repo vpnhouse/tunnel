@@ -16,7 +16,7 @@ const (
 	HeaderProxyAuthorization = "Proxy-Authorization"
 )
 
-func doExtractTokenFromRequest(r *http.Request, header string) (string, bool) {
+func ExtractSpecificTokenFromRequest(r *http.Request, header string) (string, bool) {
 	authHeader := r.Header.Get(header)
 	if authHeader == "" {
 		zap.L().Debug("no auth header was found")
@@ -33,9 +33,9 @@ func doExtractTokenFromRequest(r *http.Request, header string) (string, bool) {
 }
 
 func ExtractTokenFromRequest(r *http.Request) (string, bool) {
-	return doExtractTokenFromRequest(r, HeaderAuthorization)
+	return ExtractSpecificTokenFromRequest(r, HeaderAuthorization)
 }
 
 func ExtractProxyTokenFromRequest(r *http.Request) (string, bool) {
-	return doExtractTokenFromRequest(r, HeaderProxyAuthorization)
+	return ExtractSpecificTokenFromRequest(r, HeaderProxyAuthorization)
 }
