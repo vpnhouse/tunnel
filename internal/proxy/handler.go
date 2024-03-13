@@ -12,6 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
+type proxyHandlerFunc func(w http.ResponseWriter, r *http.Request) (int, string)
+
 func (instance *Instance) doAuth(r *http.Request) (string, error) {
 	userToken, ok := extractAnyToken(r)
 	if !ok {
@@ -26,15 +28,16 @@ func (instance *Instance) doAuth(r *http.Request) (string, error) {
 	return token.UserId, nil
 }
 
-func (instance *Instance) doConnect(w http.ResponseWriter, r *http.Request) error {
+func (instance *Instance) doProxyConnect(w http.ResponseWriter, r *http.Request) (int, string) {
 	hij, ok := w.(http.Hijacker)
 	if !ok {
-		return xerror.EInternalError("Hijack not supported", nil)
+		zap.L().Error("Hijack is not supported")
+		return http.StatusInternalServerError, "Hijack is not supported"
 	}
 	hijConn, _, err := hij.Hijack()
 	if err != nil {
-		return xerror.EInternalError("Connection hijacking failed", nil)
-
+		zap.L().Error("Connection hijack failed")
+		return http.StatusInternalServerError, "Connection hijack failed"
 	}
 
 	host := r.URL.Host
@@ -47,10 +50,7 @@ func (instance *Instance) doConnect(w http.ResponseWriter, r *http.Request) erro
 		hijConn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 		hijConn.Close()
 		zap.L().Debug("Failed dialing to remote", zap.Error(err))
-		return nil
-	}
-	if err != nil {
-		return xerror.EEntryNotFound("Connection failed", err)
+		return 0, ""
 	}
 
 	remoteConn := conn.(*net.TCPConn)
@@ -60,7 +60,7 @@ func (instance *Instance) doConnect(w http.ResponseWriter, r *http.Request) erro
 		if !isConnectionClosed(err) {
 			zap.L().Debug("Failed writing status 200 OK", zap.Error(err))
 		}
-		return nil
+		return 0, ""
 	}
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -114,26 +114,49 @@ func (instance *Instance) doConnect(w http.ResponseWriter, r *http.Request) erro
 	hijConn.Close()
 	remoteConn.Close()
 
-	return nil
+	return 0, ""
 }
 
-func (instance *Instance) handler(w http.ResponseWriter, r *http.Request) {
+func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request, handler proxyHandlerFunc) {
 	userId, err := instance.doAuth(r)
 	if err != nil {
 		xhttp.WriteJsonError(w, err)
 		return
 	}
 
-	user, err := instance.users.acquire(userId)
-	if err != nil {
-		xhttp.WriteJsonError(w, err)
-		return
-	}
-	defer instance.users.release(userId, user)
+	code, status := func() (int, string) {
+		user, err := instance.users.acquire(userId)
+		if err != nil {
+			return http.StatusGone, "Gone"
+		}
+		defer instance.users.release(userId, user)
 
-	err = instance.doConnect(w, r)
-	if err != nil {
-		xhttp.WriteJsonError(w, err)
-		return
+		return handler(w, r)
+	}()
+
+	if code != 0 {
+		w.WriteHeader(code)
+		w.Write([]byte(status))
 	}
+}
+
+func (instance *Instance) doProxyHttp(w http.ResponseWriter, r *http.Request) (int, string) {
+	// http.StatusAccepted
+	// return xerror.EUnavailable("Not implemented yet", nil)
+	return http.StatusTeapot, "I'm a teapot"
+}
+
+func (instance *Instance) ProxyHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		zap.L().Debug("Query", zap.String("method", r.Method), zap.String("uri", r.RequestURI))
+		if r.Method == http.MethodConnect {
+			instance.doProxy(w, r, instance.doProxyConnect)
+			return
+		}
+		if isURL.MatchString(r.RequestURI) {
+			instance.doProxy(w, r, instance.doProxyHttp)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

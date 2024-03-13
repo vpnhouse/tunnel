@@ -168,6 +168,11 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.Settings.HTTP.CORS {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithCORS()}, xhttpOpts...)
 	}
+
+	if proxyServer != nil {
+		xhttpOpts = append([]xhttp.Option{xhttp.WithMiddleware(proxyServer.ProxyHandler)}, xhttpOpts...)
+	}
+
 	// assume that config validation does not pass
 	// the SSL enabled without the domain name configuration
 	if runtime.Settings.SSL != nil {
@@ -220,10 +225,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		rapidoc.RegisterHandlers(xHttpServer.Router())
 	}
 	iproseServer.RegisterHandlers(xHttpServer.Router())
-
-	if proxyServer != nil {
-		proxyServer.RegisterHandlers(xHttpServer.Router())
-	}
 
 	runtime.ExternalStats.Run()
 	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
