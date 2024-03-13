@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 )
@@ -35,10 +34,6 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) *Instance {
 		config:     config,
 		users:      newUserStorage(ctx, config.ConnLimit),
 	}
-}
-
-func (instance *Instance) RegisterHandlers(r chi.Router) {
-	r.MethodFunc("CONNECT", "/*", instance.handler)
 }
 
 func (instance *Instance) Shutdown() error {

@@ -175,7 +175,12 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.Settings.HTTP.CORS {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithCORS()}, xhttpOpts...)
 	}
+	if proxyServer != nil {
+		xhttpOpts = append([]xhttp.Option{xhttp.WithMiddleware(proxyServer.ProxyHandler)}, xhttpOpts...)
+	}
 
+	// assume that config validation does not pass
+	// the SSL enabled without the domain name configuration
 	if runtime.Settings.SSL != nil {
 		redirectOnly := xhttp.NewRedirectToSSL(runtime.Settings.Domain.PrimaryName)
 		// we must start the redirect-only server before passing its Router
@@ -218,10 +223,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	if iproseServer != nil {
 		iproseServer.RegisterHandlers(xHttpServer.Router())
-	}
-
-	if proxyServer != nil {
-		proxyServer.RegisterHandlers(xHttpServer.Router())
 	}
 
 	runtime.ExternalStats.Run()

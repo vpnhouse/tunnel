@@ -11,7 +11,10 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
 )
 
-var hasPort = regexp.MustCompile(`:\d+$`)
+var (
+	hasPort = regexp.MustCompile(`:\d+$`)
+	isURL   = regexp.MustCompile(`^(https?):\/\/([^\/]+)(\/(.*)$)?`)
+)
 
 func isConnectionClosed(err error) bool {
 	if err == nil {
