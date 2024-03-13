@@ -11,7 +11,6 @@ import (
 
 type userStorage struct {
 	lock    sync.Mutex
-	ctx     context.Context
 	maxConn int64
 	users   map[string]*userEntry
 }
@@ -21,9 +20,8 @@ type userEntry struct {
 	usage int
 }
 
-func newUserStorage(ctx context.Context, maxConn int) *userStorage {
+func newUserStorage(maxConn int) *userStorage {
 	return &userStorage{
-		ctx:     ctx,
 		maxConn: int64(maxConn),
 		users:   make(map[string]*userEntry),
 	}
@@ -62,9 +60,9 @@ func (instance *userStorage) put(id string) {
 	}
 }
 
-func (instance *userStorage) acquire(id string) (*userEntry, error) {
+func (instance *userStorage) acquire(ctx context.Context, id string) (*userEntry, error) {
 	user := instance.take(id)
-	err := user.limit.Acquire(instance.ctx, 1)
+	err := user.limit.Acquire(ctx, 1)
 	if err != nil {
 		instance.put(id)
 		return nil, xerror.EUnavailable("unavailable", err)

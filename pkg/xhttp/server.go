@@ -95,9 +95,10 @@ type Server struct {
 // Run starts the http server asynchronously.
 func (w *Server) Run(addr string) error {
 	w.srv = &http.Server{
-		Handler:   w.router,
-		Addr:      addr,
-		TLSConfig: w.tlsConfig,
+		Handler:     w.router,
+		Addr:        addr,
+		TLSConfig:   w.tlsConfig,
+		ReadTimeout: 30 * time.Second,
 	}
 
 	lis, err := net.Listen("tcp", addr)

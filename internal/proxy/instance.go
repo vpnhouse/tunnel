@@ -1,11 +1,12 @@
 package proxy
 
 import (
-	"context"
 	"sync/atomic"
 
+	"github.com/go-httpproxy/httpproxy"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -13,27 +14,30 @@ type Config struct {
 }
 
 type Instance struct {
-	ctx        context.Context
-	cancel     context.CancelFunc
-	terminated atomic.Bool
 	config     *Config
 	authorizer authorizer.JWTAuthorizer
+	proxy      *httpproxy.Proxy
 	users      *userStorage
+	terminated atomic.Bool
 }
 
-func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) *Instance {
+func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
 	if config == nil {
-		return nil
+		zap.L().Warn("Not starting proxy - no configuration")
+		return nil, nil
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	proxy, err := httpproxy.NewProxy()
+	if err != nil {
+		return nil, xerror.EInternalError("Can't create proxy", err)
+	}
+
 	return &Instance{
-		ctx:        ctx,
-		cancel:     cancel,
 		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		config:     config,
-		users:      newUserStorage(ctx, config.ConnLimit),
-	}
+		proxy:      proxy,
+		users:      newUserStorage(config.ConnLimit),
+	}, nil
 }
 
 func (instance *Instance) Shutdown() error {
@@ -41,10 +45,9 @@ func (instance *Instance) Shutdown() error {
 		return xerror.EInternalError("Double proxy shutdown", nil)
 	}
 
-	instance.cancel()
 	return nil
 }
 
 func (instance *Instance) Running() bool {
-	return !instance.terminated.Load()
+	return instance.terminated.Load()
 }
