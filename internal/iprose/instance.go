@@ -41,7 +41,7 @@ func New(runtime *runtime.TunnelRuntime, jwtAuthorizer authorizer.JWTAuthorizer)
 	return instance, nil
 }
 
-func (instance *Instance) Authenticate(r *http.Request) error {
+func (instance *Instance) authenticate(r *http.Request) error {
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
 		return xerror.EAuthenticationFailed("no auth token", nil)
@@ -55,6 +55,15 @@ func (instance *Instance) Authenticate(r *http.Request) error {
 	return nil
 }
 
+func (instance *Instance) Authenticate(r *http.Request) (error, int, []byte) {
+	err := instance.authenticate(r)
+	if err == nil {
+		return nil, 0, nil
+	} else {
+		code, body := xerror.ErrorToHttpResponse(err)
+		return err, code, body
+	}
+}
 func (instance *Instance) RegisterHandlers(r chi.Router) {
 	for _, hndlr := range instance.iprose.Handlers() {
 		r.HandleFunc(hndlr.Pattern, hndlr.Func)
