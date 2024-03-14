@@ -19,6 +19,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/ipdiscover"
 	"github.com/vpnhouse/tunnel/internal/iprose"
 	"github.com/vpnhouse/tunnel/internal/manager"
+	"github.com/vpnhouse/tunnel/internal/proxy"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/internal/storage"
@@ -145,6 +146,21 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("iprose", iproseServer)
 
+	// Create proxy server
+	var proxyServer *proxy.Instance
+	if runtime.Features.WithProxy() {
+		proxyServer, err = proxy.New(runtime.Settings.Proxy, jwtAuthorizer)
+		if err != nil {
+			return err
+		}
+
+		if proxyServer != nil {
+			runtime.Services.RegisterService("proxy", proxyServer)
+		} else {
+			zap.L().Warn("Proxy server is not started")
+		}
+	}
+
 	// Prepare tunneling HTTP API
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am)
 
@@ -156,6 +172,11 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.Settings.HTTP.CORS {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithCORS()}, xhttpOpts...)
 	}
+
+	if proxyServer != nil {
+		xhttpOpts = append([]xhttp.Option{xhttp.WithMiddleware(proxyServer.ProxyHandler)}, xhttpOpts...)
+	}
+
 	// assume that config validation does not pass
 	// the SSL enabled without the domain name configuration
 	if runtime.Settings.SSL != nil {
