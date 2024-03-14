@@ -42,17 +42,11 @@ func New(runtime *runtime.TunnelRuntime, jwtAuthorizer authorizer.JWTAuthorizer)
 }
 
 func (instance *Instance) Authenticate(r *http.Request) error {
-	if instance.runtime.Settings.IPRoseNoAuth {
-		return nil
-	}
-
-	// Extract JWT
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
 		return xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
-	// Verify JWT, get JWT claims
 	_, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
 		return err
