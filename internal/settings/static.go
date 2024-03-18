@@ -18,6 +18,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/grpc"
+	"github.com/vpnhouse/tunnel/internal/iprose"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"github.com/vpnhouse/tunnel/pkg/human"
 	"github.com/vpnhouse/tunnel/pkg/ipam"
@@ -68,6 +69,7 @@ type Config struct {
 	PortRestrictions   *ipam.PortRestrictionConfig `yaml:"ports,omitempty"`
 	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
 	GeoDBPath          string                      `yaml:"geo_db_path,omitempty"`
+	IPRose             *iprose.Config              `yaml:"iprose,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.

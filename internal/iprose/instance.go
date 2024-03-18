@@ -9,22 +9,29 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/iprose-go/pkg/server"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
-	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
+	"go.uber.org/zap"
 )
+
+type Config struct {
+	QueueSize int `yaml:"queue_size"`
+}
 
 type Instance struct {
 	iprose     *server.IPRoseServer
-	runtime    *runtime.TunnelRuntime
 	authorizer authorizer.JWTAuthorizer
 }
 
-func New(runtime *runtime.TunnelRuntime, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
+func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
+	if config == nil {
+		zap.L().Warn("Not starting iprose - no configuration")
+		return nil, nil
+	}
+
 	instance := &Instance{
 		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
-		runtime:    runtime,
 	}
 	var err error
 	instance.iprose, err = server.New(
@@ -32,7 +39,7 @@ func New(runtime *runtime.TunnelRuntime, jwtAuthorizer authorizer.JWTAuthorizer)
 		"10.123.76.1/24",
 		"",
 		[]string{"0.0.0.0/0"},
-		128,
+		config.QueueSize,
 		instance.Authenticate,
 	)
 	if err != nil {
