@@ -139,11 +139,18 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
-	iproseServer, err := iprose.New(runtime, jwtAuthorizer)
-	if err != nil {
-		return err
+	var iproseServer *iprose.Instance
+	if runtime.Features.WithIPRose() {
+		iproseServer, err := iprose.New(runtime.Settings.IPRose, jwtAuthorizer)
+		if err != nil {
+			return err
+		}
+		if iproseServer != nil {
+			runtime.Services.RegisterService("iprose", iproseServer)
+		} else {
+			zap.L().Warn("IPRose servier is not started")
+		}
 	}
-	runtime.Services.RegisterService("iprose", iproseServer)
 
 	// Prepare tunneling HTTP API
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am)
@@ -207,7 +214,10 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.Settings.Rapidoc {
 		rapidoc.RegisterHandlers(xHttpServer.Router())
 	}
-	iproseServer.RegisterHandlers(xHttpServer.Router())
+
+	if iproseServer != nil {
+		iproseServer.RegisterHandlers(xHttpServer.Router())
+	}
 
 	runtime.ExternalStats.Run()
 	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
