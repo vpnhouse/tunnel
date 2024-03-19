@@ -141,7 +141,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	var iproseServer *iprose.Instance
 	if runtime.Features.WithIPRose() {
-		iproseServer, err := iprose.New(runtime.Settings.IPRose, jwtAuthorizer)
+		iproseServer, err = iprose.New(runtime.Settings.IPRose, jwtAuthorizer)
 		if err != nil {
 			return err
 		}
