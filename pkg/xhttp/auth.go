@@ -12,30 +12,39 @@ import (
 )
 
 const (
-	HeaderAuthorization      = "Authorization"
-	HeaderProxyAuthorization = "Proxy-Authorization"
+	headerAuthorization = "Authorization"
+	authTypeBearer      = "bearer"
 )
 
-func ExtractSpecificTokenFromRequest(r *http.Request, header string) (string, bool) {
+func AuthIsBearer(authType string) bool {
+	return strings.ToLower(authType) == authTypeBearer
+}
+
+func ExtractAuthorizationInfo(r *http.Request, header string) (authType string, authInfo string) {
 	authHeader := r.Header.Get(header)
 	if authHeader == "" {
-		zap.L().Debug("no auth header was found")
-		return "", false // No error, just no token
+		return "", ""
 	}
 
 	authHeaderParts := strings.Fields(authHeader)
-	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
-		zap.L().Debug("bearer auth header was not found")
-		return "", false
+	if len(authHeaderParts) != 2 {
+		return "", ""
 	}
 
-	return authHeaderParts[1], true
+	return authHeaderParts[0], authHeaderParts[1]
 }
 
 func ExtractTokenFromRequest(r *http.Request) (string, bool) {
-	return ExtractSpecificTokenFromRequest(r, HeaderAuthorization)
-}
+	authType, authToken := ExtractAuthorizationInfo(r, headerAuthorization)
+	if authToken == "" {
+		zap.L().Debug("Authentication token was not found")
+		return "", false
+	}
 
-func ExtractProxyTokenFromRequest(r *http.Request) (string, bool) {
-	return ExtractSpecificTokenFromRequest(r, HeaderProxyAuthorization)
+	if !AuthIsBearer(authType) {
+		zap.L().Debug("Invalid authentication type")
+		return "", false
+	}
+
+	return authToken, true
 }
