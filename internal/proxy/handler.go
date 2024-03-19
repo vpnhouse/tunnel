@@ -9,17 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func doExtractToken(r *http.Request) (userToken string, ok bool) {
-	userToken, ok = xhttp.ExtractProxyTokenFromRequest(r)
-	if ok {
-		return
-	}
-
-	return xhttp.ExtractTokenFromRequest(r)
-}
-
 func (instance *Instance) doAuth(r *http.Request) (string, error) {
-	userToken, ok := doExtractToken(r)
+	userToken, ok := extractProxyAuthToken(r)
 	if !ok {
 		return "", xerror.EAuthenticationFailed("no auth token", nil)
 	}
@@ -35,7 +26,9 @@ func (instance *Instance) doAuth(r *http.Request) (string, error) {
 func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
 	userId, err := instance.doAuth(r)
 	if err != nil {
-		xhttp.WriteJsonError(w, err)
+		w.Header()["Proxy-Authenticate"] = []string{"Basic realm=\"proxy\""}
+		w.WriteHeader(http.StatusProxyAuthRequired)
+		w.Write([]byte("Proxy authentication required"))
 		return
 	}
 
