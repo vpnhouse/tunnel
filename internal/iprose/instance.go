@@ -23,6 +23,7 @@ type Config struct {
 type Instance struct {
 	iprose     *server.IPRoseServer
 	authorizer authorizer.JWTAuthorizer
+	config     *Config
 }
 
 func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
@@ -33,6 +34,7 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, err
 
 	instance := &Instance{
 		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
+		config:     config,
 	}
 	var err error
 	instance.iprose, err = server.New(
@@ -55,7 +57,7 @@ func (instance *Instance) authenticate(r *http.Request) error {
 		return xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
-	for t := range instance.TrustedTokens {
+	for _, t := range instance.config.TrustedTokens {
 		if userToken == t {
 			zap.L().Debug("Authenticated with fixed trusted token")
 			return nil
