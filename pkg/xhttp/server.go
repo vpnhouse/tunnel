@@ -185,7 +185,7 @@ func discoverRequestHost(r *http.Request) (string, error) {
 
 	segments := strings.Split(r.Host, ":")
 	if len(segments) > 2 {
-		return "", fmt.Errorf("too many colon-separate segments")
+		return "", fmt.Errorf("too many colon-separated segments")
 	}
 
 	if len(segments) > 1 {
