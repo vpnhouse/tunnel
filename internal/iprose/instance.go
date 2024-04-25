@@ -57,7 +57,7 @@ func (instance *Instance) authenticate(r *http.Request) error {
 		return xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
-	for _, t := range instance.config.TrustedTokens {
+	for _, t := range instance.config.PersistentTokens {
 		if userToken == t {
 			zap.L().Debug("Authenticated with fixed trusted token")
 			return nil
