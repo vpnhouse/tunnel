@@ -8,8 +8,11 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -21,6 +24,7 @@ import (
 	openapi "github.com/vpnhouse/api/go/server/common"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
+	"golang.org/x/net/idna"
 )
 
 // initialize the measuring middleware only once
@@ -174,16 +178,44 @@ func NewDefaultSSL(cfg *tls.Config) *Server {
 	)
 }
 
-func NewRedirectToSSL(toHost string) *Server {
+func discoverRequestHost(r *http.Request) (string, error) {
+	if r.Host == "" {
+		return "", fmt.Errorf("host header is not set")
+	}
+
+	segments := strings.Split(r.Host, ":")
+	if len(segments) > 2 {
+		return "", fmt.Errorf("too many colon-separate segments")
+	}
+
+	if len(segments) > 1 {
+		_, err := strconv.Atoi(segments[1])
+		if err != nil {
+			return "", fmt.Errorf("last segment is not integer")
+		}
+	}
+
+	return idna.ToASCII(segments[0])
+}
+
+func NewRedirectToSSL(primaryHost string) *Server {
 	r := chi.NewRouter()
 	r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+		host, err := discoverRequestHost(r)
+		if err != nil {
+			if primaryHost != "" {
+				zap.L().Info("Can't determine request hostname, using primary", zap.Error(err))
+				host = primaryHost
+			} else {
+				zap.L().Error("Can't determine redirection URL")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
 		url2 := *r.URL
 		url2.Scheme = "https"
-		if len(toHost) > 0 {
-			url2.Host = toHost
-		} else {
-			url2.Host = r.Host
-		}
+		url2.Host = host
 		w.Header().Set("Location", url2.String())
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	})

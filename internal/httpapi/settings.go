@@ -5,7 +5,6 @@
 package httpapi
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -20,7 +19,6 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
 	"github.com/vpnhouse/tunnel/pkg/xnet"
-	"go.uber.org/zap"
 )
 
 // AdminGetSettings implements handler for GET /api/tunnel/admin/settings request
@@ -49,11 +47,11 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		var dc *xhttp.DomainConfig = nil
 		if req.Domain != nil {
 			dc = &xhttp.DomainConfig{
-				Mode:     string(req.Domain.Mode),
-				Name:     req.Domain.DomainName,
-				IssueSSL: req.Domain.IssueSsl,
-				Schema:   string(req.Domain.Schema),
-				Dir:      tun.runtime.Settings.ConfigDir(),
+				Mode:        string(req.Domain.Mode),
+				PrimaryName: req.Domain.DomainName,
+				IssueSSL:    req.Domain.IssueSsl,
+				Schema:      string(req.Domain.Schema),
+				Dir:         tun.runtime.Settings.ConfigDir(),
 			}
 			if err := dc.Validate(); err != nil {
 				return nil, err
@@ -66,11 +64,7 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 		}
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(subnet)
 		// blocks for a certificate issuing, timeout is a LE request timeout is about 10s
-		if needCert := setDomainConfig(tun.runtime.Settings, dc); needCert {
-			if err := tun.issueCertificateSync(); err != nil {
-				return nil, err
-			}
-		}
+		setDomainConfig(tun.runtime.Settings, dc)
 
 		// setting the password resets the "initial setup required" flag.
 		if err := tun.runtime.Settings.SetAdminPassword(req.AdminPassword); err != nil {
@@ -123,7 +117,7 @@ func settingsToOpenAPI(s *settings.Config) adminAPI.Settings {
 	var dc *adminAPI.DomainConfig = nil
 	if s.Domain != nil {
 		dc = &adminAPI.DomainConfig{
-			DomainName: s.Domain.Name,
+			DomainName: s.Domain.PrimaryName,
 			IssueSsl:   s.Domain.IssueSSL,
 			Mode:       adminAPI.DomainConfigMode(s.Domain.Mode),
 			Schema:     adminAPI.DomainConfigSchema(s.Domain.Schema),
@@ -180,21 +174,16 @@ func (tun *TunnelAPI) mergeStaticSettings(rt *runtime.TunnelRuntime, s adminAPI.
 	}
 	if s.Domain != nil {
 		tmpDC := &xhttp.DomainConfig{
-			Name:     s.Domain.DomainName,
-			Mode:     string(s.Domain.Mode),
-			IssueSSL: s.Domain.IssueSsl,
-			Schema:   string(s.Domain.Schema),
+			PrimaryName: s.Domain.DomainName,
+			Mode:        string(s.Domain.Mode),
+			IssueSSL:    s.Domain.IssueSsl,
+			Schema:      string(s.Domain.Schema),
 		}
 		if err := tmpDC.Validate(); err != nil {
 			return err
 		}
 
-		if needCert := setDomainConfig(tun.runtime.Settings, tmpDC); needCert {
-			// blocks for a certificate issuing, timeout is a LE request timeout is about 10s
-			if err := tun.issueCertificateSync(); err != nil {
-				return err
-			}
-		}
+		setDomainConfig(tun.runtime.Settings, tmpDC)
 	} else {
 		// consider "domain: null" as "disabled for the whole option set"
 		rt.Settings.Domain = nil
@@ -220,24 +209,6 @@ func (tun *TunnelAPI) mergeStaticSettings(rt *runtime.TunnelRuntime, s adminAPI.
 	return nil
 }
 
-func (tun *TunnelAPI) issueCertificateSync() error {
-	issuer, err := xhttp.NewIssuer(xhttp.IssuerOpts{
-		Domain:   tun.runtime.Settings.Domain.Name,
-		CacheDir: tun.runtime.Settings.ConfigDir(),
-		Router:   tun.runtime.HttpRouter,
-		Callback: func(_ *tls.Config) {
-			zap.L().Info("ssl certificate issued", zap.String("name", tun.runtime.Settings.Domain.Name))
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	// ask for the config (it will be cached inside and re-used after the restart).
-	_, err = issuer.TLSConfig()
-	return err
-}
-
 // setDomainConfig updates current settings with new domain config,
 // return true if the new certificate must be issued.
 func setDomainConfig(c *settings.Config, dc *xhttp.DomainConfig) bool {
@@ -248,7 +219,7 @@ func setDomainConfig(c *settings.Config, dc *xhttp.DomainConfig) bool {
 	oldName := ""
 	if c.Domain != nil {
 		if c.Domain.Mode == string(adminAPI.DomainConfigModeDirect) {
-			oldName = c.Domain.Name
+			oldName = c.Domain.PrimaryName
 		}
 	}
 
@@ -263,7 +234,7 @@ func setDomainConfig(c *settings.Config, dc *xhttp.DomainConfig) bool {
 			}
 		}
 		// notify caller that the name differs
-		return dc.Name != oldName
+		return dc.PrimaryName != oldName
 	}
 
 	return false

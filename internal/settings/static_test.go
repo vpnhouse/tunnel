@@ -41,9 +41,9 @@ func TestXValidation(t *testing.T) {
 
 	c = &Config{
 		Domain: &xhttp.DomainConfig{
-			Mode:     "direct",
-			Name:     "the.foo.bar",
-			IssueSSL: true,
+			Mode:        "direct",
+			PrimaryName: "the.foo.bar",
+			IssueSSL:    true,
 		},
 		SSL: nil,
 	}
@@ -51,9 +51,9 @@ func TestXValidation(t *testing.T) {
 
 	c = &Config{
 		Domain: &xhttp.DomainConfig{
-			Mode:   "reverse-proxy",
-			Name:   "the.foo.bar",
-			Schema: "https",
+			Mode:        "reverse-proxy",
+			PrimaryName: "the.foo.bar",
+			Schema:      "https",
 		},
 		SSL: nil,
 	}

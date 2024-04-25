@@ -99,13 +99,13 @@ func (s *Config) ConfigDir() string {
 func (s *Config) PublicURL() string {
 	if s.Domain != nil {
 		if s.Domain.Mode == string(adminAPI.DomainConfigModeReverseProxy) {
-			return s.Domain.Schema + "://" + s.Domain.Name
+			return s.Domain.Schema + "://" + s.Domain.PrimaryName
 		}
 	}
 
 	host := s.Wireguard.ServerIPv4
 	if s.Domain != nil {
-		host = s.Domain.Name
+		host = s.Domain.PrimaryName
 	}
 
 	if s.SSL != nil {
@@ -319,8 +319,8 @@ func (s *Config) validate() error {
 			return xerror.EInternalError("ssl.listen_addr is required", nil)
 		}
 
-		if s.Domain == nil || len(s.Domain.Name) == 0 {
-			return xerror.EInternalError("SSL server is enabled, but no domain name is set", nil)
+		if s.Domain == nil || len(s.Domain.PrimaryName) == 0 {
+			return xerror.EInternalError("SSL server is enabled, but domain name is not set", nil)
 		}
 	}
 
