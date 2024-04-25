@@ -16,8 +16,8 @@ import (
 )
 
 type Config struct {
-	QueueSize     int      `yaml:"queue_size"`
-	TrustedTokens []string `yaml:"trusted_tokens"`
+	QueueSize        int      `yaml:"queue_size"`
+	PersistentTokens []string `yaml:"persistent_tokens"`
 }
 
 type Instance struct {
