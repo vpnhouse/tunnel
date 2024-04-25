@@ -208,7 +208,8 @@ func NewRedirectToSSL(primaryHost string) *Server {
 				host = primaryHost
 			} else {
 				zap.L().Error("Can't determine redirection URL")
-				w.WriteHeader(http.StatusInternalServerError)
+				w.Header().Set("Upgrade", "TLS/1.2, HTTP/1.1")
+				w.WriteHeader(http.StatusUpgradeRequired)
 				return
 			}
 		}
