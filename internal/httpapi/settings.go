@@ -63,7 +63,6 @@ func (tun *TunnelAPI) AdminInitialSetup(w http.ResponseWriter, r *http.Request) 
 			return nil, err
 		}
 		tun.runtime.Settings.Wireguard.Subnet = validator.Subnet(subnet)
-		// blocks for a certificate issuing, timeout is a LE request timeout is about 10s
 		setDomainConfig(tun.runtime.Settings, dc)
 
 		// setting the password resets the "initial setup required" flag.
