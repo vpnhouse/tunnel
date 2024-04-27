@@ -16,12 +16,14 @@ import (
 )
 
 type Config struct {
-	QueueSize int `yaml:"queue_size"`
+	QueueSize        int      `yaml:"queue_size"`
+	PersistentTokens []string `yaml:"persistent_tokens"`
 }
 
 type Instance struct {
 	iprose     *server.IPRoseServer
 	authorizer authorizer.JWTAuthorizer
+	config     *Config
 }
 
 func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
@@ -32,6 +34,7 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, err
 
 	instance := &Instance{
 		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
+		config:     config,
 	}
 	var err error
 	instance.iprose, err = server.New(
@@ -52,6 +55,13 @@ func (instance *Instance) authenticate(r *http.Request) error {
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
 		return xerror.EAuthenticationFailed("no auth token", nil)
+	}
+
+	for _, t := range instance.config.PersistentTokens {
+		if userToken == t {
+			zap.L().Debug("Authenticated with fixed trusted token")
+			return nil
+		}
 	}
 
 	_, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
