@@ -49,32 +49,32 @@ func TestSetDomainConfig(t *testing.T) {
 		},
 		{
 			c:      &C{},
-			dc:     &DC{Mode: _direct, Name: "foo.com"},
+			dc:     &DC{Mode: _direct, PrimaryName: "foo.com"},
 			update: false, // no issue_ssl here
 		},
 		{
 			c:      &C{},
-			dc:     &DC{Mode: _direct, IssueSSL: true, Name: "foo.com"},
+			dc:     &DC{Mode: _direct, IssueSSL: true, PrimaryName: "foo.com"},
 			update: true, // certificate requested
 		},
 		{
-			c:      &C{Domain: &DC{Mode: "wat", Name: "old.example.org"}},
-			dc:     &DC{Mode: _direct, Name: "new.example.org"},
+			c:      &C{Domain: &DC{Mode: "wat", PrimaryName: "old.example.org"}},
+			dc:     &DC{Mode: _direct, PrimaryName: "new.example.org"},
 			update: false, // name differs but SSL does not requested
 		},
 		{
-			c:      &C{Domain: &DC{Mode: _direct, IssueSSL: true, Name: "old.example.org"}},
-			dc:     &DC{Mode: _direct, IssueSSL: false, Name: "new.example.org"},
+			c:      &C{Domain: &DC{Mode: _direct, IssueSSL: true, PrimaryName: "old.example.org"}},
+			dc:     &DC{Mode: _direct, IssueSSL: false, PrimaryName: "new.example.org"},
 			update: false, // new name, ssl now becomes disabled
 		},
 		{
-			c:      &C{Domain: &DC{Mode: _direct, IssueSSL: true, Name: "old.example.org"}},
-			dc:     &DC{Mode: _direct, IssueSSL: false, Name: "old.example.org"},
+			c:      &C{Domain: &DC{Mode: _direct, IssueSSL: true, PrimaryName: "old.example.org"}},
+			dc:     &DC{Mode: _direct, IssueSSL: false, PrimaryName: "old.example.org"},
 			update: false, // name is the same, but no ssl (wat?)
 		},
 		{
-			c:      &C{Domain: &DC{Mode: _direct, IssueSSL: true, Name: "old.example.org"}},
-			dc:     &DC{Mode: _direct, IssueSSL: true, Name: "new.example.org"},
+			c:      &C{Domain: &DC{Mode: _direct, IssueSSL: true, PrimaryName: "old.example.org"}},
+			dc:     &DC{Mode: _direct, IssueSSL: true, PrimaryName: "new.example.org"},
 			update: true, // new name, with ssl as well
 		},
 	}

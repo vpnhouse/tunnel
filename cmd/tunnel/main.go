@@ -163,10 +163,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.Settings.HTTP.CORS {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithCORS()}, xhttpOpts...)
 	}
-	// assume that config validation does not pass
-	// the SSL enabled without the domain name configuration
+
 	if runtime.Settings.SSL != nil {
-		redirectOnly := xhttp.NewRedirectToSSL(runtime.Settings.Domain.Name)
+		redirectOnly := xhttp.NewRedirectToSSL(runtime.Settings.Domain.PrimaryName)
 		// we must start the redirect-only server before passing its Router
 		// to the certificate issuer.
 		if err := redirectOnly.Run(runtime.Settings.HTTP.ListenAddr); err != nil {
@@ -174,37 +173,27 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 		runtime.Services.RegisterService("httpRedirectServer", redirectOnly)
 
-		opts := xhttp.IssuerOpts{
-			Domain:   runtime.Settings.Domain.Name,
-			CacheDir: runtime.Settings.Domain.Dir,
-			Router:   redirectOnly.Router(),
-
-			// Callback handles the xhttp.Server restarts on certificate updates
-			Callback: func(c *tls.Config) {
-				newHttp := xhttp.NewDefaultSSL(c)
-				if err := newHttp.Run(runtime.Settings.SSL.ListenAddr); err != nil {
-					zap.L().Fatal("failed to start new https server", zap.Error(err))
-				}
-				if err := runtime.Services.Replace("httpServer", newHttp); err != nil {
-					zap.L().Fatal("failed to replace the httpServer service", zap.Error(err))
-				}
-			},
+		opts := &xhttp.CertMasterOpts{
+			Email:        runtime.Settings.Domain.Email,
+			CacheDir:     runtime.Settings.Domain.Dir,
+			NonSSLRouter: redirectOnly.Router(),
+			Domains:      append([]string{runtime.Settings.Domain.PrimaryName}, runtime.Settings.Domain.ExtraNames...),
 		}
-		issuer, err := xhttp.NewIssuer(opts)
+
+		certMaster, err := xhttp.NewCertMaster(opts)
 		if err != nil {
 			return err
 		}
-
-		tlscfg, err := issuer.TLSConfig()
-		if err != nil {
-			return err
+		runtime.Services.RegisterService("certMaster", certMaster)
+		tlsCfg := &tls.Config{
+			GetCertificate: certMaster.GetCertificate,
 		}
 
 		// store the plaintext http router to use for
 		// solve the http01 challenge while updating Settings
 		runtime.HttpRouter = redirectOnly.Router()
 		xHttpAddr = runtime.Settings.SSL.ListenAddr
-		xhttpOpts = append([]xhttp.Option{xhttp.WithSSL(tlscfg)}, xhttpOpts...)
+		xhttpOpts = append([]xhttp.Option{xhttp.WithSSL(tlsCfg)}, xhttpOpts...)
 	}
 
 	xHttpServer := xhttp.New(xhttpOpts...)
