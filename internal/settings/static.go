@@ -354,6 +354,7 @@ func safeDefaults(rootDir string) *Config {
 		ManagementKeystore: keystorePath,
 		PortRestrictions:   ipam.DefaultPortRestrictions(),
 		PeerStatistics:     defaultPeerStatisticConfig(),
+		IPRose:             &iprose.DefaultConfig,
 	}
 }
 

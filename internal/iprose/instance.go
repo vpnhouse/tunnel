@@ -5,6 +5,7 @@ package iprose
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/iprose-go/pkg/server"
@@ -16,8 +17,16 @@ import (
 )
 
 type Config struct {
-	QueueSize        int      `yaml:"queue_size"`
-	PersistentTokens []string `yaml:"persistent_tokens"`
+	QueueSize        int           `yaml:"queue_size"`
+	PersistentTokens []string      `yaml:"persistent_tokens"`
+	PeerLimit        int           `yaml:"peer_limit"`
+	SessionTimeout   time.Duration `yaml:"session_timeout"`
+}
+
+var DefaultConfig = Config{
+	QueueSize:      1024,
+	PeerLimit:      32,
+	SessionTimeout: time.Minute,
 }
 
 type Instance struct {
@@ -44,6 +53,8 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, err
 		[]string{"0.0.0.0/0"},
 		config.QueueSize,
 		instance.Authenticate,
+		config.SessionTimeout,
+		config.PeerLimit,
 	)
 	if err != nil {
 		return nil, err
