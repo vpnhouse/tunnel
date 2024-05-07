@@ -19,13 +19,11 @@ import (
 type Config struct {
 	QueueSize        int           `yaml:"queue_size"`
 	PersistentTokens []string      `yaml:"persistent_tokens"`
-	PeerLimit        int           `yaml:"peer_limit"`
 	SessionTimeout   time.Duration `yaml:"session_timeout"`
 }
 
-var DefaultConfig = Config{
+var DefaultConfig = &Config{
 	QueueSize:      1024,
-	PeerLimit:      32,
 	SessionTimeout: time.Minute,
 }
 
@@ -41,6 +39,11 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, err
 		return nil, nil
 	}
 
+	zap.L().Info("Starting iprose service",
+		zap.Int("trusted tokens", len(config.PersistentTokens)),
+		zap.Int("queue size", config.QueueSize),
+		zap.Duration("session timeout", config.SessionTimeout))
+
 	instance := &Instance{
 		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
 		config:     config,
@@ -54,7 +57,6 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, err
 		config.QueueSize,
 		instance.Authenticate,
 		config.SessionTimeout,
-		config.PeerLimit,
 	)
 	if err != nil {
 		return nil, err
