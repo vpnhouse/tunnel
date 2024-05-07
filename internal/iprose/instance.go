@@ -16,6 +16,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	DefaultQueueSize      = 1024
+	DefaultSessionTimeout = time.Minute * 5
+)
+
 type Config struct {
 	QueueSize        int           `yaml:"queue_size"`
 	PersistentTokens []string      `yaml:"persistent_tokens"`
@@ -23,8 +28,8 @@ type Config struct {
 }
 
 var DefaultConfig = &Config{
-	QueueSize:      1024,
-	SessionTimeout: time.Minute,
+	QueueSize:      DefaultQueueSize,
+	SessionTimeout: DefaultSessionTimeout,
 }
 
 type Instance struct {
@@ -33,11 +38,27 @@ type Instance struct {
 	config     *Config
 }
 
+func fillDefaults(config *Config) *Config {
+	filled := *config
+
+	if filled.QueueSize == 0 {
+		filled.QueueSize = DefaultQueueSize
+	}
+
+	if filled.SessionTimeout == 0 {
+		filled.SessionTimeout = DefaultSessionTimeout
+	}
+
+	return &filled
+}
+
 func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
 	if config == nil {
 		zap.L().Warn("Not starting iprose - no configuration")
 		return nil, nil
 	}
+
+	config = fillDefaults(config)
 
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
