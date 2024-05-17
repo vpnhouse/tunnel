@@ -252,7 +252,9 @@ func loadStaticConfig(fs afero.Fs, path string) (*Config, error) {
 
 	defer fd.Close()
 
-	c := &Config{}
+	c := &Config{
+		IPRose: iprose.DefaultConfig,
+	}
 	if err := yaml.NewDecoder(fd).Decode(c); err != nil {
 		return nil, xerror.EInternalError("failed to unmarshal config", err)
 	}

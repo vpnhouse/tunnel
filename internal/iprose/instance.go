@@ -38,27 +38,11 @@ type Instance struct {
 	config     *Config
 }
 
-func fillDefaults(config *Config) *Config {
-	filled := *config
-
-	if filled.QueueSize == 0 {
-		filled.QueueSize = DefaultQueueSize
-	}
-
-	if filled.SessionTimeout == 0 {
-		filled.SessionTimeout = DefaultSessionTimeout
-	}
-
-	return &filled
-}
-
 func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
 	if config == nil {
 		zap.L().Warn("Not starting iprose - no configuration")
 		return nil, nil
 	}
-
-	config = fillDefaults(config)
 
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
