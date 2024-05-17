@@ -69,7 +69,7 @@ type Config struct {
 	PortRestrictions   *ipam.PortRestrictionConfig `yaml:"ports,omitempty"`
 	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
 	GeoDBPath          string                      `yaml:"geo_db_path,omitempty"`
-	IPRose             *iprose.Config              `yaml:"iprose,omitempty"`
+	IPRose             iprose.Config               `yaml:"iprose,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.

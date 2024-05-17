@@ -27,7 +27,7 @@ type Config struct {
 	SessionTimeout   time.Duration `yaml:"session_timeout"`
 }
 
-var DefaultConfig = &Config{
+var DefaultConfig = Config{
 	QueueSize:      DefaultQueueSize,
 	SessionTimeout: DefaultSessionTimeout,
 }
@@ -35,15 +35,10 @@ var DefaultConfig = &Config{
 type Instance struct {
 	iprose     *server.IPRoseServer
 	authorizer authorizer.JWTAuthorizer
-	config     *Config
+	config     Config
 }
 
-func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
-	if config == nil {
-		zap.L().Warn("Not starting iprose - no configuration")
-		return nil, nil
-	}
-
+func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
 		zap.Int("queue size", config.QueueSize),
