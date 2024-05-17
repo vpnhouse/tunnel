@@ -1,6 +1,8 @@
 module github.com/vpnhouse/tunnel
 
-go 1.19
+go 1.21
+
+toolchain go1.21.1
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
@@ -25,10 +27,10 @@ require (
 	github.com/rubenv/sql-migrate v1.0.0
 	github.com/slok/go-http-metrics v0.10.0
 	github.com/spf13/afero v1.8.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vpnhouse/api v0.0.0-20240207081757-572ff9ef5b97
-	github.com/vpnhouse/iprose-go v0.1.0-rc14
+	github.com/vpnhouse/iprose-go v0.1.0-rc15
 	go.etcd.io/etcd/client/v3 v3.5.2
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
@@ -58,6 +60,7 @@ require (
 	github.com/deepmap/oapi-codegen v1.9.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dnstap/golang-dnstap v0.4.0 // indirect
+	github.com/dolthub/maphash v0.1.0 // indirect
 	github.com/farsightsec/golang-framestream v0.3.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -67,8 +70,8 @@ require (
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/josharian/native v0.0.0-20200817173448-b6b71def0850 // indirect
-	github.com/klauspost/compress v1.16.5 // indirect
-	github.com/lxzan/gws v1.6.13 // indirect
+	github.com/klauspost/compress v1.17.5 // indirect
+	github.com/lxzan/gws v1.8.3 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mdlayher/genetlink v1.1.0 // indirect
