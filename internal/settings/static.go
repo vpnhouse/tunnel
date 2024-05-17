@@ -69,7 +69,7 @@ type Config struct {
 	PortRestrictions   *ipam.PortRestrictionConfig `yaml:"ports,omitempty"`
 	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
 	GeoDBPath          string                      `yaml:"geo_db_path,omitempty"`
-	IPRose             *iprose.Config              `yaml:"iprose,omitempty"`
+	IPRose             iprose.Config               `yaml:"iprose,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
@@ -252,7 +252,9 @@ func loadStaticConfig(fs afero.Fs, path string) (*Config, error) {
 
 	defer fd.Close()
 
-	c := &Config{}
+	c := &Config{
+		IPRose: iprose.DefaultConfig,
+	}
 	if err := yaml.NewDecoder(fd).Decode(c); err != nil {
 		return nil, xerror.EInternalError("failed to unmarshal config", err)
 	}
@@ -354,6 +356,7 @@ func safeDefaults(rootDir string) *Config {
 		ManagementKeystore: keystorePath,
 		PortRestrictions:   ipam.DefaultPortRestrictions(),
 		PeerStatistics:     defaultPeerStatisticConfig(),
+		IPRose:             iprose.DefaultConfig,
 	}
 }
 

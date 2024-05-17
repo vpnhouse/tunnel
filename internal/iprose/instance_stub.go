@@ -13,7 +13,9 @@ type Instance struct {
 	stopped bool
 }
 
-func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
+var DefaultConfig = Config{}
+
+func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
 	return &Instance{}, nil
 }
 

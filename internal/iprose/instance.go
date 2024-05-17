@@ -5,6 +5,7 @@ package iprose
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/iprose-go/pkg/server"
@@ -15,22 +16,33 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	DefaultQueueSize      = 1024
+	DefaultSessionTimeout = time.Minute * 5
+)
+
 type Config struct {
-	QueueSize        int      `yaml:"queue_size"`
-	PersistentTokens []string `yaml:"persistent_tokens"`
+	QueueSize        int           `yaml:"queue_size"`
+	PersistentTokens []string      `yaml:"persistent_tokens"`
+	SessionTimeout   time.Duration `yaml:"session_timeout"`
+}
+
+var DefaultConfig = Config{
+	QueueSize:      DefaultQueueSize,
+	SessionTimeout: DefaultSessionTimeout,
 }
 
 type Instance struct {
 	iprose     *server.IPRoseServer
 	authorizer authorizer.JWTAuthorizer
-	config     *Config
+	config     Config
 }
 
-func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
-	if config == nil {
-		zap.L().Warn("Not starting iprose - no configuration")
-		return nil, nil
-	}
+func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
+	zap.L().Info("Starting iprose service",
+		zap.Int("trusted tokens", len(config.PersistentTokens)),
+		zap.Int("queue size", config.QueueSize),
+		zap.Duration("session timeout", config.SessionTimeout))
 
 	instance := &Instance{
 		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
@@ -44,6 +56,7 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, err
 		[]string{"0.0.0.0/0"},
 		config.QueueSize,
 		instance.Authenticate,
+		config.SessionTimeout,
 	)
 	if err != nil {
 		return nil, err
