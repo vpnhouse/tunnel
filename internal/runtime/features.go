@@ -16,7 +16,6 @@ const (
 	featureGeoip      = "geoip"
 	featureIPRose     = "iprose"
 	featureProxy      = "proxy"
-
 )
 
 type FeatureSet map[string]bool
@@ -67,6 +66,7 @@ func (f FeatureSet) WithGeoip() bool {
 
 func (f FeatureSet) WithIPRose() bool {
 	return f[featureIPRose]
+}
 
 func (f FeatureSet) WithProxy() bool {
 	return f[featureProxy]
