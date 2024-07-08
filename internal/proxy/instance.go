@@ -1,22 +1,23 @@
 package proxy
 
 import (
+	"net/http"
 	"sync/atomic"
+	"time"
 
-	"github.com/go-httpproxy/httpproxy"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 )
 
 type Config struct {
-	ConnLimit int `yaml:"connlimit"`
+	ConnLimit   int           `yaml:"conn_limit"`
+	ConnTimeout time.Duration `yaml:"conn_timeout"`
 }
 
 type Instance struct {
 	config     *Config
 	authorizer authorizer.JWTAuthorizer
-	proxy      *httpproxy.Proxy
 	users      *userStorage
 	terminated atomic.Bool
 }
@@ -27,15 +28,9 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, err
 		return nil, nil
 	}
 
-	proxy, err := httpproxy.NewProxy()
-	if err != nil {
-		return nil, xerror.EInternalError("Can't create proxy", err)
-	}
-
 	return &Instance{
 		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		config:     config,
-		proxy:      proxy,
 		users:      newUserStorage(config.ConnLimit),
 	}, nil
 }
@@ -50,4 +45,16 @@ func (instance *Instance) Shutdown() error {
 
 func (instance *Instance) Running() bool {
 	return instance.terminated.Load()
+}
+
+func (instance *Instance) ProxyHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		zap.L().Debug("Query", zap.String("method", r.Method), zap.String("uri", r.RequestURI))
+		if r.Method == http.MethodConnect || r.URL.IsAbs() {
+			instance.doProxy(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
