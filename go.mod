@@ -23,6 +23,7 @@ require (
 	github.com/miekg/dns v1.1.55
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
 	github.com/oschwald/maxminddb-golang v1.8.0
+	github.com/posener/h2conn v0.0.0-20231204025407-3997deeca0f0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/rubenv/sql-migrate v1.0.0
 	github.com/slok/go-http-metrics v0.10.0
@@ -34,8 +35,8 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.2
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
-	golang.org/x/net v0.2.0
-	golang.org/x/sys v0.11.0
+	golang.org/x/net v0.17.0
+	golang.org/x/sys v0.13.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
@@ -63,7 +64,6 @@ require (
 	github.com/dolthub/maphash v0.1.0 // indirect
 	github.com/farsightsec/golang-framestream v0.3.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
-	github.com/go-httpproxy/httpproxy v0.0.0-20180417134941-6977c68bf38e
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -94,12 +94,12 @@ require (
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.2 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.2 // indirect
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
-	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/sync v0.6.0
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
-	golang.org/x/tools v0.3.0 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20211129173154-2dd424e2d808 // indirect
 	google.golang.org/genproto v0.0.0-20220218161850-94dd64e39d7c // indirect

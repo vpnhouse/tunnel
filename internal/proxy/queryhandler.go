@@ -41,6 +41,7 @@ func isConnectionClosed(err error) bool {
 	if err == nil {
 		return false
 	}
+
 	if err == io.EOF {
 		return true
 	}
