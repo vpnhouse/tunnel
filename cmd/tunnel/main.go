@@ -155,7 +155,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	// Create proxy server
 	var proxyServer *proxy.Instance
-	if runtime.Features.WithProxy() {
+	if runtime.Features.WithProxy() && runtime.Settings.Proxy != nil {
 		proxyServer, err = proxy.New(
 			runtime.Settings.Proxy,
 			jwtAuthorizer,
@@ -167,11 +167,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			return err
 		}
 
-		if proxyServer != nil {
-			runtime.Services.RegisterService("proxy", proxyServer)
-		} else {
-			zap.L().Warn("Proxy server is not started")
-		}
+		runtime.Services.RegisterService("proxy", proxyServer)
 	}
 
 	// Prepare tunneling HTTP API

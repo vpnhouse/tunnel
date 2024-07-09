@@ -10,7 +10,6 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
-	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -31,8 +30,7 @@ type Instance struct {
 
 func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []string) (*Instance, error) {
 	if config == nil {
-		zap.L().Warn("Not starting proxy - no configuration")
-		return nil, nil
+		return nil, xerror.EInternalError("No configuration", nil)
 	}
 
 	domains := make(map[string]struct{})
