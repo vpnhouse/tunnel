@@ -27,16 +27,16 @@ func newUserStorage(maxConn int) *userStorage {
 	}
 }
 
-func (instance *userStorage) take(id string) *userInfo {
-	instance.lock.Lock()
-	defer instance.lock.Unlock()
+func (s *userStorage) take(id string) *userInfo {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
-	user, loaded := instance.users[id]
+	user, loaded := s.users[id]
 	if !loaded {
 		user = &userInfo{
-			limit: semaphore.NewWeighted(instance.maxConn),
+			limit: semaphore.NewWeighted(s.maxConn),
 		}
-		instance.users[id] = user
+		s.users[id] = user
 	}
 
 	user.usage += 1
@@ -44,11 +44,11 @@ func (instance *userStorage) take(id string) *userInfo {
 
 }
 
-func (instance *userStorage) put(id string) {
-	instance.lock.Lock()
-	defer instance.lock.Unlock()
+func (s *userStorage) put(id string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
-	user, loaded := instance.users[id]
+	user, loaded := s.users[id]
 	if !loaded {
 		zap.L().Error("Can't put unknown user")
 		return
@@ -56,24 +56,24 @@ func (instance *userStorage) put(id string) {
 
 	user.usage -= 1
 	if user.usage == 0 {
-		delete(instance.users, id)
+		delete(s.users, id)
 	}
 }
 
 // TODO: Recover user limits
 
-func (instance *userStorage) acquire(ctx context.Context, id string) (*userInfo, error) {
-	user := instance.take(id)
+func (s *userStorage) acquire(ctx context.Context, id string) (*userInfo, error) {
+	user := s.take(id)
 	err := user.limit.Acquire(ctx, 1)
 	if err != nil {
-		instance.put(id)
+		s.put(id)
 		return nil, xerror.EUnavailable("unavailable", err)
 	}
 
 	return user, nil
 }
 
-func (instance *userStorage) release(id string, user *userInfo) {
+func (s *userStorage) release(id string, user *userInfo) {
 	user.limit.Release(1)
-	instance.put(id)
+	s.put(id)
 }

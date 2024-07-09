@@ -1,14 +1,15 @@
 package proxy
 
 import (
-	"math/rand"
 	"net/http"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/tunnel/pkg/xhttp"
 	"go.uber.org/zap"
 )
 
@@ -26,16 +27,6 @@ type Instance struct {
 	terminated      atomic.Bool
 	myDomains       map[string]struct{}
 	proxyMarkHeader string
-}
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func markHeader(prefix string, n uint) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return prefix + string(b)
 }
 
 func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []string) (*Instance, error) {
@@ -59,7 +50,7 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []str
 		config:          config,
 		users:           newUserStorage(config.ConnLimit),
 		myDomains:       domains,
-		proxyMarkHeader: markHeader(config.MarkHeaderPrefix, markHeaderLength),
+		proxyMarkHeader: config.MarkHeaderPrefix + randomString(markHeaderLength),
 	}, nil
 }
 
@@ -94,4 +85,60 @@ func (instance *Instance) ProxyHandler(next http.Handler) http.Handler {
 			instance.doProxy(w, r)
 		}
 	})
+}
+
+func (instance *Instance) doAuth(r *http.Request) (string, error) {
+	userToken, ok := extractProxyAuthToken(r)
+	if !ok {
+		return "", xerror.EAuthenticationFailed("no auth token", nil)
+	}
+
+	token, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+	if err != nil {
+		return "", err
+	}
+
+	return token.UserId, nil
+}
+
+func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
+	userId, err := instance.doAuth(r)
+	if err != nil {
+		w.Header()["Proxy-Authenticate"] = []string{"Basic realm=\"proxy\""}
+		w.WriteHeader(http.StatusProxyAuthRequired)
+		w.Write([]byte("Proxy authentication required"))
+		return
+	}
+
+	user, err := instance.users.acquire(r.Context(), userId)
+	if err != nil {
+		http.Error(w, "Limit exceeded", http.StatusTooManyRequests)
+		xhttp.WriteJsonError(w, err)
+		return
+	}
+	defer instance.users.release(userId, user)
+
+	conn := &ProxyQuery{
+		userId:        userId,
+		userInfo:      user,
+		id:            connCounter.Add(1),
+		proxyInstance: instance,
+	}
+
+	if r.Method == "CONNECT" {
+		if r.ProtoMajor == 1 {
+			conn.handleV1Connect(w, r)
+			return
+		}
+
+		if r.ProtoMajor == 2 {
+			conn.handleV2Connect(w, r)
+			return
+		}
+
+		http.Error(w, "Unsupported protocol version", http.StatusHTTPVersionNotSupported)
+		return
+	} else {
+		conn.handleProxy(w, r)
+	}
 }
