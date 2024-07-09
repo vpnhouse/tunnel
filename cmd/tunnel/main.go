@@ -188,7 +188,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if proxyServer != nil {
 		xhttpOpts = append([]xhttp.Option{
 			xhttp.WithMiddleware(proxyServer.ProxyHandler),
-			xhttp.WithDisableHTTPv2(),
+			xhttp.WithDisableHTTPv2(), // see task 97304 (fix http over httpv2 proxy issue)
 		}, xhttpOpts...)
 	}
 
