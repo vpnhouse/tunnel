@@ -105,7 +105,7 @@ func (w *Server) Run(addr string) error {
 		Handler:     w.router,
 		Addr:        addr,
 		TLSConfig:   w.tlsConfig,
-		ReadTimeout: 30 * time.Second,
+		ReadTimeout: 10 * time.Second,
 	}
 
 	if w.disablev2 {
