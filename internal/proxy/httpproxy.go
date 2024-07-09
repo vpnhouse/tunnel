@@ -12,7 +12,9 @@ var (
 )
 
 func (query *ProxyQuery) handleProxy(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("Processing proxy request", zap.Int64("id", query.id))
+	if r.ProtoMajor == 2 {
+		http.Error(w, "Bad request", http.StatusHTTPVersionNotSupported)
+	}
 
 	proxyReq, err := http.NewRequest(r.Method, r.URL.String(), r.Body)
 	if err != nil {
@@ -24,6 +26,7 @@ func (query *ProxyQuery) handleProxy(w http.ResponseWriter, r *http.Request) {
 	r.Header.Del("Proxy-Connection")
 	r.Header.Del("Proxy-Authenticate")
 	r.Header.Del("Proxy-Authorization")
+	r.Header.Add(query.proxyInstance.proxyMarkHeader, "0")
 
 	// Copy the headers from the original request to the proxy request
 	for name, values := range r.Header {
@@ -35,7 +38,6 @@ func (query *ProxyQuery) handleProxy(w http.ResponseWriter, r *http.Request) {
 	// Send the proxy request using the custom transport
 	resp, err := customTransport.RoundTrip(proxyReq)
 	if err != nil {
-		zap.L().Debug("Error sending proxy request", zap.Error(err), zap.Int64("id", query.id))
 		http.Error(w, "Error sending proxy request", http.StatusInternalServerError)
 		return
 	}

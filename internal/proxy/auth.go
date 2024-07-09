@@ -17,7 +17,6 @@ const (
 func extractProxyAuthToken(r *http.Request) (string, bool) {
 	authType, authInfo := xhttp.ExtractAuthorizationInfo(r, headerProxyAuthorization)
 	if authInfo == "" {
-		zap.L().Debug("Authentication info was not found")
 		return "", false
 	}
 

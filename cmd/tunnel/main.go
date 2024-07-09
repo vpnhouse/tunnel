@@ -156,7 +156,13 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Create proxy server
 	var proxyServer *proxy.Instance
 	if runtime.Features.WithProxy() {
-		proxyServer, err = proxy.New(runtime.Settings.Proxy, jwtAuthorizer)
+		proxyServer, err = proxy.New(
+			runtime.Settings.Proxy,
+			jwtAuthorizer,
+			append(
+				runtime.Settings.Domain.ExtraNames,
+				runtime.Settings.Domain.PrimaryName,
+			))
 		if err != nil {
 			return err
 		}
@@ -180,7 +186,10 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithCORS()}, xhttpOpts...)
 	}
 	if proxyServer != nil {
-		xhttpOpts = append([]xhttp.Option{xhttp.WithMiddleware(proxyServer.ProxyHandler)}, xhttpOpts...)
+		xhttpOpts = append([]xhttp.Option{
+			xhttp.WithMiddleware(proxyServer.ProxyHandler),
+			xhttp.WithDisableHTTPv2(),
+		}, xhttpOpts...)
 	}
 
 	// assume that config validation does not pass

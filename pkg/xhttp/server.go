@@ -74,6 +74,12 @@ func WithCORS() Option {
 	}
 }
 
+func WithDisableHTTPv2() Option {
+	return func(w *Server) {
+		w.disablev2 = true
+	}
+}
+
 func WithLogger() Option {
 	return func(w *Server) {
 		w.router.Use(requestLogger)
@@ -90,6 +96,7 @@ type Server struct {
 	srv       *http.Server
 	tlsConfig *tls.Config
 	router    chi.Router
+	disablev2 bool
 }
 
 // Run starts the http server asynchronously.
@@ -99,6 +106,10 @@ func (w *Server) Run(addr string) error {
 		Addr:        addr,
 		TLSConfig:   w.tlsConfig,
 		ReadTimeout: 30 * time.Second,
+	}
+
+	if w.disablev2 {
+		w.srv.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler))
 	}
 
 	lis, err := net.Listen("tcp", addr)

@@ -9,8 +9,6 @@ import (
 )
 
 func (query *ProxyQuery) handleV1Connect(w http.ResponseWriter, r *http.Request) {
-	zap.L().Debug("Processing v1 CONNECT", zap.Int64("id", query.id))
-
 	remoteConn, err := net.DialTimeout("tcp", remoteEndpoint(r), query.proxyInstance.config.ConnTimeout)
 	if err != nil {
 		http.Error(w, "Not found", http.StatusNotFound)

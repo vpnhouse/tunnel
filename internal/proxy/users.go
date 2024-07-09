@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
@@ -62,18 +63,17 @@ func (instance *userStorage) put(id string) {
 // TODO: Recover user limits
 
 func (instance *userStorage) acquire(ctx context.Context, id string) (*userInfo, error) {
-	// user := instance.take(id)
-	// err := user.limit.Acquire(ctx, 1)
-	// if err != nil {
-	// 	instance.put(id)
-	// 	return nil, xerror.EUnavailable("unavailable", err)
-	// }
+	user := instance.take(id)
+	err := user.limit.Acquire(ctx, 1)
+	if err != nil {
+		instance.put(id)
+		return nil, xerror.EUnavailable("unavailable", err)
+	}
 
-	// return user, nil
-	return nil, nil
+	return user, nil
 }
 
 func (instance *userStorage) release(id string, user *userInfo) {
-	// user.limit.Release(1)
-	// instance.put(id)
+	user.limit.Release(1)
+	instance.put(id)
 }
