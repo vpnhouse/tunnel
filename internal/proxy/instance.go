@@ -116,27 +116,27 @@ func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	defer instance.users.release(userId, user)
 
-	conn := &ProxyQuery{
+	query := &ProxyQuery{
 		userId:        userId,
 		userInfo:      user,
-		id:            connCounter.Add(1),
+		id:            queryCounter.Add(1),
 		proxyInstance: instance,
 	}
 
 	if r.Method == "CONNECT" {
 		if r.ProtoMajor == 1 {
-			conn.handleV1Connect(w, r)
+			query.handleV1Connect(w, r)
 			return
 		}
 
 		if r.ProtoMajor == 2 {
-			conn.handleV2Connect(w, r)
+			query.handleV2Connect(w, r)
 			return
 		}
 
 		http.Error(w, "Unsupported protocol version", http.StatusHTTPVersionNotSupported)
 		return
 	} else {
-		conn.handleProxy(w, r)
+		query.handleProxy(w, r)
 	}
 }

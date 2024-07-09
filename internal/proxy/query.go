@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	connCounter     atomic.Int64
+	queryCounter    atomic.Int64
 	customTransport = http.DefaultTransport
 )
 
