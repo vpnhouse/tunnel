@@ -13,7 +13,6 @@ import (
 	"github.com/vpnhouse/tunnel/pkg/auth"
 	"github.com/vpnhouse/tunnel/pkg/xerror"
 	"github.com/vpnhouse/tunnel/pkg/xhttp"
-	"go.uber.org/zap"
 )
 
 var (
@@ -67,18 +66,12 @@ func (query *ProxyQuery) doPairedForward(wg *sync.WaitGroup, src, dst io.ReadWri
 		buffer := make([]byte, 4096)
 		len, err := src.Read(buffer)
 		if err != nil {
-			if !isConnectionClosed(err) {
-				zap.L().Error("Cant read from source", zap.Error(err), zap.String("tag", tag), zap.Int64("id", query.id))
-			}
 			return
 		}
 
 		// TODO: Handle length
 		_, err = dst.Write(buffer[:len])
 		if err != nil {
-			if !isConnectionClosed(err) {
-				zap.L().Error("Cant write to destination", zap.Error(err), zap.String("tag", tag), zap.Int64("id", query.id))
-			}
 			return
 		}
 

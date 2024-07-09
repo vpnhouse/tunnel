@@ -83,7 +83,6 @@ func (instance *JWTChecker) keyHelper(token *jwt.Token) (interface{}, error) {
 	if !ok {
 		return nil, xerror.EAuthenticationFailed("invalid token", nil)
 	}
-	zap.L().Debug("Got key id", zap.Any("keyIdValue", keyIdValue))
 
 	keyID, ok := keyIdValue.(string)
 	if !ok {
