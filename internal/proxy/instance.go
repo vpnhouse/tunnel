@@ -23,9 +23,9 @@ type Instance struct {
 	config          *Config
 	authorizer      authorizer.JWTAuthorizer
 	users           *userStorage
-	terminated      atomic.Bool
 	myDomains       map[string]struct{}
 	proxyMarkHeader string
+	terminated      atomic.Bool
 }
 
 func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []string) (*Instance, error) {
@@ -44,8 +44,8 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []str
 	}
 
 	return &Instance{
-		authorizer:      authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		config:          config,
+		authorizer:      authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		users:           newUserStorage(config.ConnLimit),
 		myDomains:       domains,
 		proxyMarkHeader: config.MarkHeaderPrefix + randomString(markHeaderLength),
