@@ -19,6 +19,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/ipdiscover"
 	"github.com/vpnhouse/tunnel/internal/iprose"
 	"github.com/vpnhouse/tunnel/internal/manager"
+	"github.com/vpnhouse/tunnel/internal/proxy"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/internal/storage"
@@ -152,6 +153,23 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
+	// Create proxy server
+	var proxyServer *proxy.Instance
+	if runtime.Features.WithProxy() && runtime.Settings.Proxy != nil {
+		proxyServer, err = proxy.New(
+			runtime.Settings.Proxy,
+			jwtAuthorizer,
+			append(
+				runtime.Settings.Domain.ExtraNames,
+				runtime.Settings.Domain.PrimaryName,
+			))
+		if err != nil {
+			return err
+		}
+
+		runtime.Services.RegisterService("proxy", proxyServer)
+	}
+
 	// Prepare tunneling HTTP API
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am)
 
@@ -163,7 +181,15 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if runtime.Settings.HTTP.CORS {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithCORS()}, xhttpOpts...)
 	}
+	if proxyServer != nil {
+		xhttpOpts = append([]xhttp.Option{
+			xhttp.WithMiddleware(proxyServer.ProxyHandler),
+			xhttp.WithDisableHTTPv2(), // see task 97304 (fix http over httpv2 proxy issue)
+		}, xhttpOpts...)
+	}
 
+	// assume that config validation does not pass
+	// the SSL enabled without the domain name configuration
 	if runtime.Settings.SSL != nil {
 		redirectOnly := xhttp.NewRedirectToSSL(runtime.Settings.Domain.PrimaryName)
 		// we must start the redirect-only server before passing its Router

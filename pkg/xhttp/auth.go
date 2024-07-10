@@ -11,18 +11,40 @@ import (
 	"go.uber.org/zap"
 )
 
-func ExtractTokenFromRequest(r *http.Request) (string, bool) {
-	authHeader := r.Header.Get("Authorization")
+const (
+	headerAuthorization = "Authorization"
+	authTypeBearer      = "bearer"
+)
+
+func AuthIsBearer(authType string) bool {
+	return strings.ToLower(authType) == authTypeBearer
+}
+
+func ExtractAuthorizationInfo(r *http.Request, header string) (authType string, authInfo string) {
+	authHeader := r.Header.Get(header)
 	if authHeader == "" {
-		zap.L().Debug("no auth header was found")
-		return "", false // No error, just no token
+		return "", ""
 	}
 
 	authHeaderParts := strings.Fields(authHeader)
-	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
-		zap.L().Debug("bearer auth header was not found")
+	if len(authHeaderParts) != 2 {
+		return "", ""
+	}
+
+	return authHeaderParts[0], authHeaderParts[1]
+}
+
+func ExtractTokenFromRequest(r *http.Request) (string, bool) {
+	authType, authToken := ExtractAuthorizationInfo(r, headerAuthorization)
+	if authToken == "" {
+		zap.L().Debug("Authentication token was not found")
 		return "", false
 	}
 
-	return authHeaderParts[1], true
+	if !AuthIsBearer(authType) {
+		zap.L().Debug("Invalid authentication type")
+		return "", false
+	}
+
+	return authToken, true
 }
