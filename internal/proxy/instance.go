@@ -88,7 +88,7 @@ func (instance *Instance) ProxyHandler(next http.Handler) http.Handler {
 func (instance *Instance) doAuth(r *http.Request) (string, error) {
 	userToken, ok := extractProxyAuthToken(r)
 	if !ok {
-		return "", xerror.EAuthenticationFailed("no auth token", nil)
+		return "", xerror.WAuthenticationFailed("proxy", "no auth token", nil)
 	}
 
 	token, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
