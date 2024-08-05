@@ -44,7 +44,7 @@ func (d *jwtAuthorizerEntitlement) Authenticate(tokenString string, myAudience s
 	// Probably need check entitlement + platform_type
 	v, ok := claims.Entitlements[string(d.Entitlement)]
 	if !ok || fmt.Sprint(v) != "true" {
-		return nil, xerror.EForbidden(fmt.Sprintf("no entitlement: %s", d.Entitlement))
+		return nil, xerror.ENoLicense(fmt.Sprintf("no entitlement: %s", d.Entitlement))
 	}
 
 	return claims, nil
