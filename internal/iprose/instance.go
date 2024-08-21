@@ -52,7 +52,7 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, erro
 	instance.iprose, err = server.New(
 		"iprose0",
 		"10.123.76.1/24",
-		"fc00:123.76::0/96",
+		"fc00:123:76::0/96",
 		[]string{"0.0.0.0/0"},
 		config.QueueSize,
 		instance.Authenticate,
