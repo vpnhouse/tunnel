@@ -27,7 +27,7 @@ var nftSetCounter uint32 = 0
 
 var nfIsolationTable = &nftables.Table{
 	Name:   nftPrefix + "isolation",
-	Family: nftables.TableFamilyIPv4,
+	Family: nftables.TableFamilyINet,
 }
 
 var nfIsolationChain = &nftables.Chain{
@@ -41,7 +41,7 @@ var nfIsolationChain = &nftables.Chain{
 
 var nfPortfilterTable = &nftables.Table{
 	Name:   nftPrefix + "portfilter",
-	Family: nftables.TableFamilyIPv4,
+	Family: nftables.TableFamilyINet,
 }
 
 var nfPortfilterChain = &nftables.Chain{
@@ -86,7 +86,7 @@ func (nft *netfilterWrapper) print() {
 func (nft *netfilterWrapper) enableMasquerade() {
 	nat := nft.c.AddTable(&nftables.Table{
 		Name:   nftPrefix + "nat",
-		Family: nftables.TableFamilyIPv4,
+		Family: nftables.TableFamilyINet,
 	})
 	nft.c.FlushTable(nat)
 	postrouting := nft.c.AddChain(&nftables.Chain{

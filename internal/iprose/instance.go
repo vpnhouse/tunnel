@@ -52,13 +52,14 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, erro
 	instance.iprose, err = server.New(
 		"iprose0",
 		"10.123.76.1/24",
-		"fc00:123:76::0/96",
+		"fc00:123:76::1/96",
 		[]string{"0.0.0.0/0"},
 		config.QueueSize,
 		instance.Authenticate,
 		config.SessionTimeout,
 	)
 	if err != nil {
+		zap.L().Error("Can't start iprose service", zap.Error(err))
 		return nil, err
 	}
 	return instance, nil
