@@ -336,6 +336,8 @@ github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
 github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
+github.com/google/gopacket v1.1.19 h1:ves8RnFZPGiFnTS0uPQStjwru6uO6h+nlr9j6fL7kF8=
+github.com/google/gopacket v1.1.19/go.mod h1:iJ8V8n6KS+z2U1A8pUwu8bW5SyEMkXJB8Yo/Vo+TKTo=
 github.com/google/martian v2.1.0+incompatible/go.mod h1:9I4somxYTbIHy5NJKHRl3wXiIaQGbYVAs8BPL6v8lEs=
 github.com/google/martian/v3 v3.0.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIGO+w/tUAp0=
 github.com/google/martian/v3 v3.1.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIGO+w/tUAp0=
@@ -816,8 +818,8 @@ github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df h1:OviZH7qLw/7Zo
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
 github.com/vpnhouse/api v0.0.0-20240710130147-abe1c9a47ae5 h1:XN0WViBfdoOrXdc4WMfy1sB+hH3x9A5vrf1F66pTSrc=
 github.com/vpnhouse/api v0.0.0-20240710130147-abe1c9a47ae5/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
-github.com/vpnhouse/iprose-go v0.1.0-rc18 h1:GIujbCYM4FVTtcq72f1LeR2rrVcBZghh4Eh5CCp/TpY=
-github.com/vpnhouse/iprose-go v0.1.0-rc18/go.mod h1:JPDz6koxs2qX0X5vxA1r3Kv1RgpSgT1drek47C+jrWc=
+github.com/vpnhouse/iprose-go v0.1.0-rc9.0.20240822101929-0661cbede22c h1:SbuO+ZZNf7o1X5funPqSVjqobZ/Etb5ZBhANyhfCAWE=
+github.com/vpnhouse/iprose-go v0.1.0-rc9.0.20240822101929-0661cbede22c/go.mod h1:Dkxo6/aXrqvIpRjRXH3dwhH8a98J6fPTnZFq1KUqM+M=
 github.com/vultr/govultr/v2 v2.7.1/go.mod h1:BvOhVe6/ZpjwcoL6/unkdQshmbS9VGbowI4QT+3DGVU=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.0.2/go.mod h1:1WAq6h33pAW+iRreB34OORO2Nf7qel3VV3fjBj+hCSs=
