@@ -15,6 +15,11 @@ const (
 )
 
 func extractProxyAuthToken(r *http.Request) (string, bool) {
+	authToken, ok := xhttp.ExtractTokenFromRequest(r)
+	if ok {
+		return authToken, ok
+	}
+
 	authType, authInfo := xhttp.ExtractAuthorizationInfo(r, headerProxyAuthorization)
 	if authInfo == "" {
 		return "", false
