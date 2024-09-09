@@ -31,7 +31,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vpnhouse/api v0.0.0-20240710130147-abe1c9a47ae5
-	github.com/vpnhouse/iprose-go v0.1.0-rc9.0.20240822101929-0661cbede22c
+	github.com/vpnhouse/iprose-go v0.1.0
 	go.etcd.io/etcd/client/v3 v3.5.2
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
@@ -43,8 +43,6 @@ require (
 	gopkg.in/hlandau/passlib.v1 v1.0.11
 	gopkg.in/yaml.v3 v3.0.1
 )
-
-require github.com/google/gopacket v1.1.19 // indirect
 
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
