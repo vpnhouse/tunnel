@@ -25,6 +25,7 @@ type Config struct {
 	QueueSize        int           `yaml:"queue_size"`
 	PersistentTokens []string      `yaml:"persistent_tokens"`
 	SessionTimeout   time.Duration `yaml:"session_timeout"`
+	ProxyConnLimit   int           `yaml:"proxy_conn_limit"`
 }
 
 var DefaultConfig = Config{
@@ -57,6 +58,7 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, erro
 		config.QueueSize,
 		instance.Authenticate,
 		config.SessionTimeout,
+		config.ProxyConnLimit,
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
