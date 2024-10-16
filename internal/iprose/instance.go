@@ -59,6 +59,7 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, erro
 		config.QueueSize,
 		instance.Authenticate,
 		config.SessionTimeout,
+		config.ProxyConnLimit != 0,
 		config.ProxyConnLimit,
 	)
 	if err != nil {
