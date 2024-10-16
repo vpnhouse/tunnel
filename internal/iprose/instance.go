@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/vpnhouse/iprose-go/pkg/server"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/tunnel/pkg/auth"
@@ -67,35 +68,42 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, erro
 	return instance, nil
 }
 
-func (instance *Instance) authenticate(r *http.Request) error {
+func (instance *Instance) authenticate(r *http.Request) (string, error) {
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
-		return xerror.EAuthenticationFailed("no auth token", nil)
+		return "", xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
 	for _, t := range instance.config.PersistentTokens {
 		if userToken == t {
 			zap.L().Debug("Authenticated with fixed trusted token")
-			return nil
+			return "", nil
 		}
 	}
 
-	_, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+	claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	var userId string
+	if claims != nil {
+		userId = claims.UserId
+	} else {
+		userId = uuid.New().String()
+	}
+
+	return userId, nil
 }
 
-func (instance *Instance) Authenticate(r *http.Request) (error, int, []byte) {
-	err := instance.authenticate(r)
-	if err == nil {
-		return nil, 0, nil
-	} else {
+func (instance *Instance) Authenticate(r *http.Request) (error, int, []byte, string) {
+	userId, err := instance.authenticate(r)
+	if err != nil {
 		code, body := xerror.ErrorToHttpResponse(err)
-		return err, code, body
+		return err, code, body, ""
 	}
+
+	return nil, 0, nil, userId
 }
 func (instance *Instance) RegisterHandlers(r chi.Router) {
 	for _, hndlr := range instance.iprose.Handlers() {
