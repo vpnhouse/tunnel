@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine3.18 AS toolset
+FROM golang:1.22-alpine3.18 AS toolset
 
 RUN apk add gcc make git musl-dev
 

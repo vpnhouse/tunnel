@@ -45,6 +45,11 @@ require (
 )
 
 require (
+	github.com/erwint/ttlcache v1.6.1 // indirect
+	github.com/google/gopacket v1.1.19 // indirect
+)
+
+require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.0.0-20211129110424-6491aa3bf583 // indirect
 	github.com/DataDog/datadog-go v4.8.2+incompatible // indirect

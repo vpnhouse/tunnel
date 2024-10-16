@@ -19,7 +19,6 @@ var (
 type ProxyQuery struct {
 	id            int64
 	userId        string
-	userInfo      *userInfo
 	proxyInstance *Instance
 }
 
