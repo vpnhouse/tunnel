@@ -18,7 +18,7 @@ require (
 	github.com/spf13/afero v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
-	github.com/vpnhouse/api v0.0.0-20240710130147-abe1c9a47ae5
+	github.com/vpnhouse/api v0.0.0-20240916134854-020f48ada450
 	github.com/vpnhouse/common-lib-go v0.0.0-20241018091937-70e0ca568dfa
 	github.com/vpnhouse/iprose-go v0.2.0-rc1.0.20241018092529-9968dbb1f929
 	go.uber.org/multierr v1.10.0

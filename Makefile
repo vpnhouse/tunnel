@@ -76,6 +76,10 @@ vet:
 	@echo "+ $@"
 	@go vet ./...
 
+up:
+	go get github.com/vpnhouse/api@main
+	go get github.com/vpnhouse/common-lib-go@main
+
 .PHONY: proto
 proto:
 	@protoc -I proto/ --go_out=./proto/ --go-grpc_out=./proto/ proto/*.proto
