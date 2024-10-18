@@ -15,9 +15,9 @@ import (
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
-	"github.com/vpnhouse/tunnel/pkg/geoip"
-	"github.com/vpnhouse/tunnel/pkg/ipam"
-	"github.com/vpnhouse/tunnel/pkg/statutils"
+	"github.com/vpnhouse/common-lib-go/geoip"
+	"github.com/vpnhouse/common-lib-go/ipam"
+	"github.com/vpnhouse/common-lib-go/statutils"
 	"go.uber.org/zap"
 )
 

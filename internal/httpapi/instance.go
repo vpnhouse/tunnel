@@ -17,10 +17,10 @@ import (
 	"github.com/vpnhouse/tunnel/internal/manager"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
-	"github.com/vpnhouse/tunnel/pkg/auth"
-	"github.com/vpnhouse/tunnel/pkg/ipam"
-	"github.com/vpnhouse/tunnel/pkg/keystore"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/ipam"
+	"github.com/vpnhouse/common-lib-go/keystore"
+	"github.com/vpnhouse/common-lib-go/xerror"
 	"go.uber.org/zap"
 )
 

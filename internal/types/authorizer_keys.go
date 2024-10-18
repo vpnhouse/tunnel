@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/vpnhouse/tunnel/pkg/xcrypto"
+	"github.com/vpnhouse/common-lib-go/xcrypto"
 )
 
 type AuthorizerKey struct {

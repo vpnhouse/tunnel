@@ -7,8 +7,8 @@ package authorizer
 import (
 	"sync/atomic"
 
-	"github.com/vpnhouse/tunnel/pkg/auth"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/xerror"
 )
 
 type JWTAuthorizer interface {

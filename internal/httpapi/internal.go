@@ -15,12 +15,12 @@ import (
 	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/auth"
-	"github.com/vpnhouse/tunnel/pkg/version"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
-	"github.com/vpnhouse/tunnel/pkg/xnet"
-	"github.com/vpnhouse/tunnel/pkg/xtime"
+	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/version"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/common-lib-go/xnet"
+	"github.com/vpnhouse/common-lib-go/xtime"
 	"go.uber.org/zap"
 )
 

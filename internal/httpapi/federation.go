@@ -11,8 +11,8 @@ import (
 	"github.com/vpnhouse/api/go/server/federation"
 	mgmtAPI "github.com/vpnhouse/api/go/server/tunnel_mgmt"
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xhttp"
 	"go.uber.org/zap"
 )
 

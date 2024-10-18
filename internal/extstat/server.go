@@ -17,7 +17,7 @@ import (
 	"time"
 
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
+	"github.com/vpnhouse/common-lib-go/xhttp"
 	"go.uber.org/zap"
 
 	_ "github.com/mattn/go-sqlite3"

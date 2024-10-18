@@ -10,9 +10,9 @@ import (
 
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/ippool"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xtime"
+	"github.com/vpnhouse/common-lib-go/ippool"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xtime"
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"

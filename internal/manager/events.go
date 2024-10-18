@@ -8,7 +8,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/human"
+	"github.com/vpnhouse/common-lib-go/human"
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
 )

@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/vpnhouse/tunnel/pkg/version"
+	"github.com/vpnhouse/common-lib-go/version"
 	"go.uber.org/zap"
 )
 

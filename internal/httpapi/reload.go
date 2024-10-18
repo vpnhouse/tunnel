@@ -7,8 +7,8 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/vpnhouse/tunnel/pkg/control"
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
+	"github.com/vpnhouse/common-lib-go/control"
+	"github.com/vpnhouse/common-lib-go/xhttp"
 )
 
 // AdminReloadService reloads server with new configuration

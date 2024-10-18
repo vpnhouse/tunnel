@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/vpnhouse/tunnel/pkg/xtime"
+	"github.com/vpnhouse/common-lib-go/xtime"
 )
 
 type EventlogSubscriber struct {

@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/settings"
-	"github.com/vpnhouse/tunnel/pkg/control"
+	"github.com/vpnhouse/common-lib-go/control"
 	"go.uber.org/zap"
 )
 
