@@ -16,9 +16,9 @@ import (
 
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/storage"
-	"github.com/vpnhouse/tunnel/pkg/keystore"
-	"github.com/vpnhouse/tunnel/pkg/tlsutils"
-	"github.com/vpnhouse/tunnel/pkg/xnet"
+	"github.com/vpnhouse/common-lib-go/keystore"
+	"github.com/vpnhouse/common-lib-go/tlsutils"
+	"github.com/vpnhouse/common-lib-go/xnet"
 	"github.com/vpnhouse/tunnel/proto"
 )
 

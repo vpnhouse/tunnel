@@ -9,8 +9,8 @@ import (
 	"net"
 
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/validator"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/common-lib-go/validator"
+	"github.com/vpnhouse/common-lib-go/xerror"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )

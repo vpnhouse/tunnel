@@ -9,8 +9,8 @@ import (
 	"errors"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xstorage"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xstorage"
 
 	_ "github.com/mattn/go-sqlite3"
 )

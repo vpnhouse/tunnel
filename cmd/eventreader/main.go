@@ -8,8 +8,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/vpnhouse/tunnel/pkg/eventlog"
-	"github.com/vpnhouse/tunnel/pkg/xap"
+	"github.com/vpnhouse/common-lib-go/eventlog"
+	"github.com/vpnhouse/common-lib-go/xap"
 )
 
 const defaultServerPort = "8089"

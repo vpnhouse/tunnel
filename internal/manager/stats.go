@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/geoip"
-	"github.com/vpnhouse/tunnel/pkg/statutils"
-	"github.com/vpnhouse/tunnel/pkg/xtime"
+	"github.com/vpnhouse/common-lib-go/geoip"
+	"github.com/vpnhouse/common-lib-go/statutils"
+	"github.com/vpnhouse/common-lib-go/xtime"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )

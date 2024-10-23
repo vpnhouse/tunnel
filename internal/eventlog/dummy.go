@@ -7,7 +7,7 @@ package eventlog
 import (
 	"context"
 
-	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/common-lib-go/xerror"
 )
 
 func NewDummy() *dummyEventManager {

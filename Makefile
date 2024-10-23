@@ -22,7 +22,7 @@ DOCKER_TAG := $(DOCKER_TAG)-$(FEATURE_SET)
 endif
 DOCKER_IMAGE ?= vpnhouse/tunnel:$(DOCKER_TAG)
 
-GO_VERSION_PATH = github.com/vpnhouse/tunnel/pkg/version
+GO_VERSION_PATH = github.com/vpnhouse/common-lib-go/version
 GO_LDFLAGS = -w -s -X $(GO_VERSION_PATH).tag=$(GIT_TAG) -X $(GO_VERSION_PATH).commit=$(GIT_COMMIT) -X $(GO_VERSION_PATH).feature=$(FEATURE_SET)
 DOCKER_BUILD_ARGS = --progress=plain --platform=linux/amd64 --build-arg FEATURE_SET=$(FEATURE_SET) --file ./Dockerfile
 DESCRIPTION = tunnel $(GIT_TAG)-$(GIT_COMMIT) branch=$(GIT_BRANCH) features=$(FEATURE_SET)
@@ -75,6 +75,10 @@ fmt:
 vet:
 	@echo "+ $@"
 	@go vet ./...
+
+up:
+	go get github.com/vpnhouse/api@main
+	go get github.com/vpnhouse/common-lib-go@main
 
 .PHONY: proto
 proto:

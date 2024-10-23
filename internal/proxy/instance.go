@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/vpnhouse/tunnel/internal/authorizer"
-	"github.com/vpnhouse/tunnel/pkg/auth"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
+	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/common-lib-go/xlimits"
 )
 
 type Config struct {
@@ -22,7 +23,7 @@ type Config struct {
 type Instance struct {
 	config          *Config
 	authorizer      authorizer.JWTAuthorizer
-	users           *userStorage
+	users           *xlimits.Blocker
 	myDomains       map[string]struct{}
 	proxyMarkHeader string
 	terminated      atomic.Bool
@@ -46,7 +47,7 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []str
 	return &Instance{
 		config:          config,
 		authorizer:      authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
-		users:           newUserStorage(config.ConnLimit),
+		users:           xlimits.NewBlocker(config.ConnLimit),
 		myDomains:       domains,
 		proxyMarkHeader: config.MarkHeaderPrefix + randomString(markHeaderLength),
 	}, nil
@@ -108,17 +109,16 @@ func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := instance.users.acquire(r.Context(), userId)
+	user, err := instance.users.Acquire(r.Context(), userId)
 	if err != nil {
 		http.Error(w, "Limit exceeded", http.StatusTooManyRequests)
 		xhttp.WriteJsonError(w, err)
 		return
 	}
-	defer instance.users.release(userId, user)
+	defer instance.users.Release(userId, user)
 
 	query := &ProxyQuery{
 		userId:        userId,
-		userInfo:      user,
 		id:            queryCounter.Add(1),
 		proxyInstance: instance,
 	}

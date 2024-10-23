@@ -9,8 +9,8 @@ import (
 
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xhttp"
 )
 
 // AdminGetStatus returns current server status

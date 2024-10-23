@@ -5,7 +5,7 @@
 package runtime
 
 import (
-	"github.com/vpnhouse/tunnel/pkg/version"
+	"github.com/vpnhouse/common-lib-go/version"
 )
 
 const (

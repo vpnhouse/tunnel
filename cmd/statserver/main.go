@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vpnhouse/tunnel/internal/extstat"
-	"github.com/vpnhouse/tunnel/pkg/xap"
+	"github.com/vpnhouse/common-lib-go/xap"
 	"go.uber.org/zap"
 )
 

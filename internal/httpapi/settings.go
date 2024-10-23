@@ -13,12 +13,12 @@ import (
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
-	"github.com/vpnhouse/tunnel/pkg/control"
-	"github.com/vpnhouse/tunnel/pkg/validator"
-	"github.com/vpnhouse/tunnel/pkg/version"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
-	"github.com/vpnhouse/tunnel/pkg/xnet"
+	"github.com/vpnhouse/common-lib-go/control"
+	"github.com/vpnhouse/common-lib-go/validator"
+	"github.com/vpnhouse/common-lib-go/version"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/common-lib-go/xnet"
 )
 
 // AdminGetSettings implements handler for GET /api/tunnel/admin/settings request

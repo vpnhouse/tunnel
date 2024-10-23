@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
+	"github.com/vpnhouse/common-lib-go/xhttp"
 	"go.uber.org/zap"
 )
 

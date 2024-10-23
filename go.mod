@@ -1,47 +1,53 @@
 module github.com/vpnhouse/tunnel
 
-go 1.21
+go 1.22.2
 
-toolchain go1.21.1
+toolchain go1.22.6
 
 require (
-	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
-	github.com/coredns/caddy v1.1.1
-	github.com/coredns/coredns v1.9.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/dustin/go-humanize v1.0.0
-	github.com/fsnotify/fsnotify v1.5.1
 	github.com/getsentry/sentry-go v0.12.0
-	github.com/go-acme/lego/v4 v4.6.0
 	github.com/go-chi/chi/v5 v5.0.7
-	github.com/go-chi/cors v1.2.0
-	github.com/google/nftables v0.0.0-20221002140148-535f5eb8da79
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/mattn/go-sqlite3 v1.14.10
-	github.com/miekg/dns v1.1.55
-	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
-	github.com/oschwald/maxminddb-golang v1.8.0
 	github.com/posener/h2conn v0.0.0-20231204025407-3997deeca0f0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/rubenv/sql-migrate v1.0.0
-	github.com/slok/go-http-metrics v0.10.0
 	github.com/spf13/afero v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
-	github.com/vpnhouse/api v0.0.0-20240710130147-abe1c9a47ae5
-	github.com/vpnhouse/iprose-go v0.1.0
-	go.etcd.io/etcd/client/v3 v3.5.2
+	github.com/vpnhouse/api v0.0.0-20240916134854-020f48ada450
+	github.com/vpnhouse/common-lib-go v0.0.0-20241018091937-70e0ca568dfa
+	github.com/vpnhouse/iprose-go v0.2.0-rc2
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
-	golang.org/x/net v0.17.0
-	golang.org/x/sys v0.13.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/hlandau/passlib.v1 v1.0.11
 	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
+	github.com/coredns/caddy v1.1.1 // indirect
+	github.com/coredns/coredns v1.9.1 // indirect
+	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/erwint/ttlcache v1.6.1 // indirect
+	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/go-acme/lego/v4 v4.6.0 // indirect
+	github.com/go-chi/cors v1.2.0 // indirect
+	github.com/google/gopacket v1.1.19 // indirect
+	github.com/google/nftables v0.0.0-20221002140148-535f5eb8da79 // indirect
+	github.com/miekg/dns v1.1.55 // indirect
+	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021 // indirect
+	github.com/oschwald/maxminddb-golang v1.8.0 // indirect
+	github.com/slok/go-http-metrics v0.10.0 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.2 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 )
 
 require (
@@ -96,7 +102,7 @@ require (
 	go.etcd.io/etcd/client/pkg/v3 v3.5.2 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/sync v0.6.0
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
 	golang.org/x/tools v0.6.0 // indirect

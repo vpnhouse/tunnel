@@ -3,8 +3,8 @@ package authorizer
 import (
 	"fmt"
 
-	"github.com/vpnhouse/tunnel/pkg/auth"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
+	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/xerror"
 )
 
 type EntitlementType string

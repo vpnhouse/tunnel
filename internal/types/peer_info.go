@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/vpnhouse/tunnel/pkg/ipam"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xnet"
-	"github.com/vpnhouse/tunnel/pkg/xtime"
+	"github.com/vpnhouse/common-lib-go/ipam"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xnet"
+	"github.com/vpnhouse/common-lib-go/xtime"
 	"github.com/vpnhouse/tunnel/proto"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )

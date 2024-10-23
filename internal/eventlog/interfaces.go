@@ -8,7 +8,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/vpnhouse/tunnel/pkg/control"
+	"github.com/vpnhouse/common-lib-go/control"
 )
 
 var ErrNotFound = errors.New("not found")

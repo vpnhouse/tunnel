@@ -9,9 +9,9 @@ import (
 	"net/http"
 
 	"github.com/vpnhouse/api/go/server/tunnel_admin"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
-	"github.com/vpnhouse/tunnel/pkg/xnet"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/common-lib-go/xnet"
 )
 
 // AdminIppoolSuggest suggests an available IP address by the server pool

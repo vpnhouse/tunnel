@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	"github.com/vpnhouse/tunnel/internal/settings"
-	"github.com/vpnhouse/tunnel/pkg/xhttp"
+	"github.com/vpnhouse/common-lib-go/xhttp"
 )
 
 type C = settings.Config

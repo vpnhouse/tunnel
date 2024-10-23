@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/pkg/xerror"
-	"github.com/vpnhouse/tunnel/pkg/xstorage"
-	"github.com/vpnhouse/tunnel/pkg/xtime"
+	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xstorage"
+	"github.com/vpnhouse/common-lib-go/xtime"
 	"go.uber.org/zap"
 )
 
