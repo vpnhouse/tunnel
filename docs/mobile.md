@@ -9,15 +9,15 @@ _Note: iOS and Android clients are very similar, so we describe only the Android
 
 2. Open the app, click "add a tunnel" and choose "Scan from QR code" option:
 
-    <img src="https://media.nikonov.tech/android-add.jpg" style="width: 25%; max-width: 240px"/>
+    <img src="assets/android-add.jpg" style="width: 25%; max-width: 240px"/>
 
 3. Scan the QR-code on the Peers page, give it a name and save:
 
-    <img src="https://media.nikonov.tech/android-name.jpg" style="width: 25%; max-width: 240px"/>
+    <img src="assets/android-name.jpg" style="width: 25%; max-width: 240px"/>
 
 4. Allow to add the VPN configuration for your operating system.
 
 5. Connect to the VPN:
 
-    <img src="https://media.nikonov.tech/android-connect.jpg" style="width: 25%; max-width: 240px"/>
+    <img src="assets/android-connect.jpg" style="width: 25%; max-width: 240px"/>
 
