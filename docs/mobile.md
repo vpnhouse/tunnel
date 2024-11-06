@@ -3,7 +3,7 @@
 _Note: iOS and Android clients are very similar, so we describe only the Android one client here._
 
 
-0. [Create the peer](https://gist.github.com/sshaman1101/c7fae485430fa01a48d5c4d808914b4a#add-a-vpn-peer). Do not close the pop-up window with QR-code!
+0. [Create the peer](../README.md#add-a-vpn-peer). Do not close the pop-up window with QR-code!
 
 1. Download the official app for your platform: [iOS &rarr;](https://apps.apple.com/us/app/wireguard/id1441195209?ls=1), [Android &rarr;](https://play.google.com/store/apps/details?id=com.wireguard.android).
 

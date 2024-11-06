@@ -3,7 +3,7 @@
 _Note: Windows and macOS clients are very similar, so we describe only the macOS one here._
 
 
-0. [Create the peer](https://gist.github.com/sshaman1101/c7fae485430fa01a48d5c4d808914b4a#add-a-vpn-peer). Do not close the pop-up window with peer config!
+0. [Create the peer](../README.md#add-a-vpn-peer). Do not close the pop-up window with peer config!
 
 1. [Download &rarr;](https://www.wireguard.com/install/#installation) and install the official app for your operating system.
 
