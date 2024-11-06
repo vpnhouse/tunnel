@@ -66,7 +66,7 @@ Then go to `http://host-ip/` for the initial setup.
 
 Set the password and the network subnet for VPN clients:
 
-<img src="https://media.nikonov.tech/initial-with-ssl2.png" style="width: 60%; max-width: 240px" alt="Peers" />
+<img src="docs/assets/initial-with-ssl2.png" style="width: 60%; max-width: 240px" alt="Peers" />
 
 Tick **I have a domain name** only if you have a domain, as well as a DNS record that points to *this* machine.
 
@@ -83,7 +83,7 @@ Click "Add new" to create a connection to your new VPN server.
 Give it a name and optional expiration date. The suggested IP address is perfectly valid and can be used. 
 You don’t have to change it. But if you have a sound reason, you may activate the field and set the IP address by hand.
 
-<img src="https://media.nikonov.tech/add_peer.png" style="width: 60%; max-width: 240px" alt="Peers" />
+<img src="docs/assets/add-peer.png" style="width: 60%; max-width: 240px" alt="Peers" />
 
 
 ### Use your new VPN connection
@@ -93,12 +93,12 @@ You don’t have to change it. But if you have a sound reason, you may activate 
 2. Use the QR-code to set-up your mobile client, [or follow our step-by-step guide](https://github.com/vpnhouse/tunnel/blob/main/docs/mobile.md).
 
 
-<img src="https://media.nikonov.tech/config-qr.png" style="width: 60%; max-width: 240px" alt="QR" />
+<img src="docs/assets/config-qr.png" style="width: 60%; max-width: 240px" alt="QR" />
 
 
 3. The "Show config" button shows the configuration in the text format. Use it for the desktop client, [or follow our step-by-step guide](https://github.com/vpnhouse/tunnel/blob/main/docs/desktop.md).
 
-<img src="https://media.nikonov.tech/config-text.png" style="width: 60%; max-width: 240px" alt="QR" />
+<img src="docs/assets/config-text.png" style="width: 60%; max-width: 240px" alt="QR" />
 
 ### How to update service
 
