@@ -84,8 +84,12 @@ func New(config Config, eventLog eventlog.EventManager, keystore keystore.Keysto
 	}
 
 	srv := grpc.NewServer(grpcServerOptions...)
+
 	eventSrv := newEventServer(eventLog, keystore, config.TunnelKey, storage)
 	proto.RegisterEventLogServiceServer(srv, eventSrv)
+
+	adminSrv := newAdminServer()
+	proto.RegisterAdminServiceServer(srv, adminSrv)
 
 	lis, err := net.Listen("tcp", config.Addr)
 	if err != nil {
