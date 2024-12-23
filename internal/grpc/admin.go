@@ -25,23 +25,34 @@ type AdminServer struct {
 
 // Event implements proto.AdminServiceServer.
 func (s *AdminServer) Event(ctx context.Context, event *proto.EventRequest) (*proto.EventResponse, error) {
+	serverTime, err := getServerTime(ctx)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "event has no X-Server-Time supplied")
+	}
+
 	// Event describes one of the dedicated action
 	if event.GetAction().AddRestriction != nil {
 		err := s.adminService.AddRestriction(ctx, &admin.AddRestrictionRequest{
-			UserId: event.GetAction().GetAddRestriction().GetUserId(),
-			Expires: 
-			RulesJson: 
-		)
+			ServerTime:     *serverTime,
+			UserId:         event.GetAction().GetAddRestriction().GetUserId(),
+			InstallationId: event.GetAction().GetAddRestriction().GetInstallationId(),
+			SessionId:      event.GetAction().GetAddRestriction().GetSessionId(),
+		})
 		if err != nil {
 			return nil, err
 		}
 	} else if event.GetAction().DeleteRestriction != nil {
-		err := s.deleteRestriction(ctx, event.GetAction().DeleteRestriction)
+		err := s.adminService.DeleteRestriction(ctx, &admin.DeleteRestrictionRequest{
+			ServerTime:     *serverTime,
+			UserId:         event.GetAction().GetAddRestriction().GetUserId(),
+			InstallationId: event.GetAction().GetAddRestriction().GetInstallationId(),
+			SessionId:      event.GetAction().GetAddRestriction().GetSessionId(),
+		})
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		return nil, status.Error(codes.InvalidArgument, "event has no action suplied")
+		return nil, status.Error(codes.InvalidArgument, "event has no action supplied")
 	}
 	return &proto.EventResponse{}, nil
 }
