@@ -38,7 +38,6 @@ func (s *Service) AddRestriction(ctx context.Context, req *AddRestrictionRequest
 		Expires: &xtime.Time{Time: time.Unix(req.ExpiredTo, 0)},
 		Action:  string(Restrict),
 	})
-
 	if err != nil {
 		return err
 	}
@@ -50,11 +49,7 @@ func (s *Service) AddRestriction(ctx context.Context, req *AddRestrictionRequest
 func (s *Service) DeleteRestriction(ctx context.Context, req *DeleteRestrictionRequest) error {
 	zap.L().Debug("delete restriction", zap.Time("server_time", req.ServerTime))
 
-	err := s.storage.DeleteActionRule(&types.ActionRule{
-		UserId: req.UserId,
-		Action: string(Restrict),
-	})
-
+	err := s.storage.DeleteActionRule(req.UserId, string(Restrict))
 	if err != nil {
 		return err
 	}
