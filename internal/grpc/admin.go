@@ -1,3 +1,7 @@
+// Copyright 2021 The VPN House Authors. All rights reserved.
+// Use of this source code is governed by a AGPL-style
+// license that can be found in the LICENSE file.
+
 package grpc
 
 import (
@@ -6,46 +10,38 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/vpnhouse/tunnel/internal/iprose"
-	"github.com/vpnhouse/tunnel/internal/manager"
+	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/proto"
 )
 
 type AdminServer struct {
 	proto.AdminServiceServer
-
-	// Manager to control over WG sessions stuff
-	mgr *manager.Manager
-
-	// Manager to control over IPRose sessions stuff
-	ipr *iprose.Instance
-}
-
-func newAdminServer(mgr *manager.Manager, ipr *iprose.Instance) *AdminServer {
-	return &AdminServer{
-		mgr: mgr,
-		ipr: ipr,
-	}
+	adminService *admin.Service
 }
 
 // Event implements proto.AdminServiceServer.
 func (s *AdminServer) Event(ctx context.Context, event *proto.EventRequest) (*proto.EventResponse, error) {
+	// Event describes one of the dedicated action
 	if event.GetAction().AddRestriction != nil {
-		err := s.addRestriction(ctx, event.GetAction().AddRestriction)
+		err := s.adminService.AddRestriction(ctx, &admin.AddRestrictionRequest{
+			UserId: event.GetAction().GetAddRestriction().GetUserId(),
+			Expires: 
+			RulesJson: 
+		)
 		if err != nil {
 			return nil, err
 		}
-	}
-	if event.GetAction().DeleteRestriction != nil {
+	} else if event.GetAction().DeleteRestriction != nil {
 		err := s.deleteRestriction(ctx, event.GetAction().DeleteRestriction)
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		return nil, status.Error(codes.InvalidArgument, "event has no action suplied")
 	}
 	return &proto.EventResponse{}, nil
 }
@@ -68,28 +64,4 @@ func getServerTime(ctx context.Context) (*time.Time, error) {
 	serverTime := time.Unix(serverTimeSeconds, 0)
 
 	return &serverTime, nil
-}
-
-func (s *AdminServer) addRestriction(ctx context.Context, add *proto.AddRestriction) error {
-	serverTime, err := getServerTime(ctx)
-	if err != nil {
-		return err
-	}
-
-	zap.L().Debug("add restriction action event", zap.Timep("server_time", serverTime))
-
-	// TODO: Add handling restriction event
-	return nil
-}
-
-func (s *AdminServer) deleteRestriction(ctx context.Context, del *proto.DeleteRestriction) error {
-	serverTime, err := getServerTime(ctx)
-	if err != nil {
-		return err
-	}
-
-	zap.L().Debug("delete restriction action event", zap.Timep("server_time", serverTime))
-
-	// TODO: Add handling restriction event
-	return nil
 }

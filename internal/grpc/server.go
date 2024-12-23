@@ -14,11 +14,13 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	"github.com/vpnhouse/tunnel/internal/eventlog"
-	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/common-lib-go/tlsutils"
 	"github.com/vpnhouse/common-lib-go/xnet"
+	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/iprose"
+	"github.com/vpnhouse/tunnel/internal/manager"
+	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/proto"
 )
 
@@ -62,7 +64,14 @@ func (g *grpcServer) Shutdown() error {
 }
 
 // New creates and starts gRPC services.
-func New(config Config, eventLog eventlog.EventManager, keystore keystore.Keystore, storage *storage.Storage) (*grpcServer, error) {
+func New(
+	config Config,
+	eventLog eventlog.EventManager,
+	keystore keystore.Keystore,
+	storage *storage.Storage,
+	sessionManager *manager.Manager,
+	iprose *iprose.Instance,
+) (*grpcServer, error) {
 	var ca string
 	var err error
 	var withTls grpc.ServerOption
@@ -88,7 +97,7 @@ func New(config Config, eventLog eventlog.EventManager, keystore keystore.Keysto
 	eventSrv := newEventServer(eventLog, keystore, config.TunnelKey, storage)
 	proto.RegisterEventLogServiceServer(srv, eventSrv)
 
-	adminSrv := newAdminServer()
+	adminSrv := newAdminServer(sessionManager, iprose)
 	proto.RegisterAdminServiceServer(srv, adminSrv)
 
 	lis, err := net.Listen("tcp", config.Addr)
