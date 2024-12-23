@@ -30,8 +30,8 @@ func New(mgr *manager.Manager, ipr *iprose.Instance, storage *storage.Storage) *
 }
 
 func (s *Service) run() {
-	s.storage.CleanupExpiredActions()
+	s.storage.CleanupExpiredActionRules()
 	for range time.Tick(time.Hour) {
-		s.storage.CleanupExpiredActions()
+		s.storage.CleanupExpiredActionRules()
 	}
 }

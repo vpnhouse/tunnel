@@ -20,7 +20,7 @@ import (
 
 type AdminServer struct {
 	proto.AdminServiceServer
-	adminService *admin.Service
+	AdminService *admin.Service
 }
 
 // Event implements proto.AdminServiceServer.
@@ -32,7 +32,7 @@ func (s *AdminServer) Event(ctx context.Context, event *proto.EventRequest) (*pr
 
 	// Event describes one of the dedicated action
 	if event.GetAction().AddRestriction != nil {
-		err := s.adminService.AddRestriction(ctx, &admin.AddRestrictionRequest{
+		err := s.AdminService.AddRestriction(ctx, &admin.AddRestrictionRequest{
 			ServerTime:     *serverTime,
 			UserId:         event.GetAction().GetAddRestriction().GetUserId(),
 			InstallationId: event.GetAction().GetAddRestriction().GetInstallationId(),
@@ -42,7 +42,7 @@ func (s *AdminServer) Event(ctx context.Context, event *proto.EventRequest) (*pr
 			return nil, err
 		}
 	} else if event.GetAction().DeleteRestriction != nil {
-		err := s.adminService.DeleteRestriction(ctx, &admin.DeleteRestrictionRequest{
+		err := s.AdminService.DeleteRestriction(ctx, &admin.DeleteRestrictionRequest{
 			ServerTime:     *serverTime,
 			UserId:         event.GetAction().GetAddRestriction().GetUserId(),
 			InstallationId: event.GetAction().GetAddRestriction().GetInstallationId(),

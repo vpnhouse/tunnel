@@ -17,9 +17,8 @@ import (
 	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/common-lib-go/tlsutils"
 	"github.com/vpnhouse/common-lib-go/xnet"
+	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
-	"github.com/vpnhouse/tunnel/internal/iprose"
-	"github.com/vpnhouse/tunnel/internal/manager"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/proto"
 )
@@ -69,8 +68,7 @@ func New(
 	eventLog eventlog.EventManager,
 	keystore keystore.Keystore,
 	storage *storage.Storage,
-	sessionManager *manager.Manager,
-	iprose *iprose.Instance,
+	adminService *admin.Service,
 ) (*grpcServer, error) {
 	var ca string
 	var err error
@@ -97,7 +95,7 @@ func New(
 	eventSrv := newEventServer(eventLog, keystore, config.TunnelKey, storage)
 	proto.RegisterEventLogServiceServer(srv, eventSrv)
 
-	adminSrv := newAdminServer(sessionManager, iprose)
+	adminSrv := &AdminServer{AdminService: adminService}
 	proto.RegisterAdminServiceServer(srv, adminSrv)
 
 	lis, err := net.Listen("tcp", config.Addr)
