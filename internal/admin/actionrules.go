@@ -21,9 +21,7 @@ type AddRestrictionRequest struct {
 }
 
 type DeleteRestrictionRequest struct {
-	UserId         string
-	InstallationId string
-	SessionId      string
+	UserId string
 }
 
 func (s *Service) AddRestriction(ctx context.Context, req *AddRestrictionRequest) error {
