@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/vpnhouse/common-lib-go/xtime"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 )
@@ -28,9 +27,9 @@ type DeleteRestrictionRequest struct {
 }
 
 func (s *Service) AddRestriction(ctx context.Context, req *AddRestrictionRequest) error {
-	var expires *xtime.Time
+	var expires *int64
 	if req.ExpiredTo > 0 {
-		expires = &xtime.Time{Time: time.Unix(req.ExpiredTo, 0)}
+		expires = &req.ExpiredTo
 	}
 	err := s.storage.AddActionRule(ctx, &types.ActionRule{
 		UserId:  req.UserId,

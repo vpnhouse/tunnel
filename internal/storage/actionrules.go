@@ -6,9 +6,9 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/vpnhouse/common-lib-go/xerror"
-	"github.com/vpnhouse/common-lib-go/xtime"
 	"go.uber.org/zap"
 
 	"github.com/vpnhouse/tunnel/internal/types"
@@ -69,10 +69,10 @@ func (storage *Storage) FindActionRules(ctx context.Context, userId string, acti
 		ORDER BY expires DESC
 	`
 
-	now := xtime.Now()
+	now := time.Now().UTC()
 
 	args := map[string]any{
-		"now":     now,
+		"now":     now.Unix(),
 		"user_id": userId,
 		"action":  actionRuleType,
 	}
@@ -82,7 +82,7 @@ func (storage *Storage) FindActionRules(ctx context.Context, userId string, acti
 		return nil, xerror.EStorageError(
 			"can't read action_rules",
 			err,
-			zap.Timep("now", now.TimePtr()),
+			zap.Time("now", now),
 			zap.String("user_id", userId),
 		)
 	}
@@ -113,17 +113,17 @@ func (storage *Storage) CleanupExpiredActionRules(ctx context.Context) {
 			coalesce(expires, :now) < :now
 	`
 
-	now := xtime.Now()
+	now := time.Now().UTC()
 
 	args := map[string]any{
-		"now": now,
+		"now": now.Unix(),
 	}
 
 	res, err := storage.db.NamedExecContext(ctx, query, args)
 	if err != nil {
 		zap.L().Error(
 			"failed to run cleanup action_rules query",
-			zap.Timep("now", now.TimePtr()),
+			zap.Time("now", now),
 			zap.Error(err),
 		)
 		return
@@ -133,7 +133,7 @@ func (storage *Storage) CleanupExpiredActionRules(ctx context.Context) {
 	if err != nil {
 		zap.L().Error(
 			"failed to get affected rows after cleanup action_rules",
-			zap.Timep("now", now.TimePtr()),
+			zap.Time("now", now),
 			zap.Error(err),
 		)
 		return

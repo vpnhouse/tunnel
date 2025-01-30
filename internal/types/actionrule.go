@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/vpnhouse/common-lib-go/xtime"
 	"go.uber.org/zap"
 )
 
@@ -17,7 +16,7 @@ const (
 type ActionRule struct {
 	UserId    string         `db:"user_id"`
 	Action    ActionRuleType `db:"action"`
-	Expires   *xtime.Time    `db:"expires"`
+	Expires   *int64         `db:"expires"`
 	RulesJson string         `db:"rules_json"`
 }
 
@@ -31,7 +30,7 @@ func (s *ActionRule) IsActive(now time.Time) bool {
 		return true
 	}
 
-	return now.Before(s.Expires.Time)
+	return now.Before(time.Unix(*s.Expires, 0))
 }
 
 func (s *ActionRule) GetRules() map[string]any {
