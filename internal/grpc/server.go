@@ -122,7 +122,7 @@ func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *settings.TLSSelfSignConfig) 
 		return nil, "", err
 	}
 
-	creds, err := sign.GrpcServerCredentials()
+	creds, err := sign.GrpcServerCredentials(signCA.CertPem)
 	if err != nil {
 		return nil, "", err
 	}
@@ -209,7 +209,6 @@ func loadOrGenerateServerSign(tlsSelfSignConfig *settings.TLSSelfSignConfig, sig
 	}
 
 	sign, err = tlsutils.GenerateSign(opts...)
-
 	if err != nil {
 		return nil, err
 	}
