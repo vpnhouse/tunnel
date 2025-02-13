@@ -50,6 +50,9 @@ func (storage *Storage) UpdateAuthorizerKeys(keys []types.AuthorizerKey) error {
 }
 
 func (storage *Storage) GetAuthorizerKeyByID(id string) (types.AuthorizerKey, error) {
+	storage.authKeyLock.Lock()
+	defer storage.authKeyLock.Unlock()
+
 	cachedKeyPtr, cached := storage.authKeyCache.Get(id)
 	if cached {
 		cachedKey := cachedKeyPtr.(types.AuthorizerKey)

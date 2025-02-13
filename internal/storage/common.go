@@ -7,6 +7,7 @@ package storage
 import (
 	"embed"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/erwint/ttlcache"
@@ -23,7 +24,9 @@ var migrations embed.FS
 var ErrNotFound = errors.New("not found")
 
 type Storage struct {
-	db              *sqlx.DB
+	db *sqlx.DB
+
+	authKeyLock     sync.Mutex
 	authKeyCache    *ttlcache.Cache
 	authKeyCacheTtl time.Duration
 }
