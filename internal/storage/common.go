@@ -7,7 +7,9 @@ package storage
 import (
 	"embed"
 	"errors"
+	"time"
 
+	"github.com/erwint/ttlcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xstorage"
@@ -21,21 +23,27 @@ var migrations embed.FS
 var ErrNotFound = errors.New("not found")
 
 type Storage struct {
-	db *sqlx.DB
+	db           *sqlx.DB
+	authKeyCache *ttlcache.Cache
 }
 
-func New(path string) (*Storage, error) {
+func New(path string, authKeyCacheInterval time.Duration) (*Storage, error) {
 	db, err := xstorage.NewSqlite3(path, migrations)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Storage{
-		db: db,
-	}, nil
+	storage := &Storage{
+		db:           db,
+		authKeyCache: ttlcache.NewCache(),
+	}
+
+	storage.authKeyCache.SetTTL(authKeyCacheInterval)
+	return storage, nil
 }
 
 func (storage *Storage) Shutdown() error {
+	storage.authKeyCache.Close()
 	err := storage.db.Close()
 	if err != nil {
 		return xerror.EStorageError("failed close database", err)

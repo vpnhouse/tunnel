@@ -72,7 +72,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	// Initialize sqlite storage
-	dataStorage, err := storage.New(runtime.Settings.SQLitePath)
+	dataStorage, err := storage.New(runtime.Settings.SQLitePath, runtime.Settings.AuthKeyCacheInterval)
 	if err != nil {
 		return err
 	}

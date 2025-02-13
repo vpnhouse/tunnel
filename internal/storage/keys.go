@@ -40,10 +40,22 @@ func (storage *Storage) UpdateAuthorizerKeys(keys []types.AuthorizerKey) error {
 		}
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	storage.authKeyCache.Purge()
+	return nil
 }
 
 func (storage *Storage) GetAuthorizerKeyByID(id string) (types.AuthorizerKey, error) {
+	cachedKeyPtr, cached := storage.authKeyCache.Get(id)
+	if cached {
+		cachedKey := cachedKeyPtr.(types.AuthorizerKey)
+		return cachedKey, nil
+	}
+
 	var key types.AuthorizerKey
 	const q = `select id, source, key from authorizer_keys where id = $1`
 	if err := storage.db.QueryRow(q, id).Scan(&key.ID, &key.Source, &key.Key); err != nil {
@@ -52,6 +64,8 @@ func (storage *Storage) GetAuthorizerKeyByID(id string) (types.AuthorizerKey, er
 		}
 		return types.AuthorizerKey{}, xerror.EStorageError("failed to query for a key with a given id", err)
 	}
+
+	storage.authKeyCache.Set(id, key)
 	return key, nil
 }
 
