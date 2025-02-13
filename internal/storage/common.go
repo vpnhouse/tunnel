@@ -23,8 +23,9 @@ var migrations embed.FS
 var ErrNotFound = errors.New("not found")
 
 type Storage struct {
-	db           *sqlx.DB
-	authKeyCache *ttlcache.Cache
+	db              *sqlx.DB
+	authKeyCache    *ttlcache.Cache
+	authKeyCacheTtl time.Duration
 }
 
 func New(path string, authKeyCacheInterval time.Duration) (*Storage, error) {
@@ -33,13 +34,11 @@ func New(path string, authKeyCacheInterval time.Duration) (*Storage, error) {
 		return nil, err
 	}
 
-	storage := &Storage{
-		db:           db,
-		authKeyCache: ttlcache.NewCache(),
-	}
-
-	storage.authKeyCache.SetTTL(authKeyCacheInterval)
-	return storage, nil
+	return &Storage{
+		db:              db,
+		authKeyCache:    ttlcache.NewCache(),
+		authKeyCacheTtl: authKeyCacheInterval,
+	}, nil
 }
 
 func (storage *Storage) Shutdown() error {

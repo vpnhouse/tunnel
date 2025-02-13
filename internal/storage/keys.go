@@ -65,7 +65,7 @@ func (storage *Storage) GetAuthorizerKeyByID(id string) (types.AuthorizerKey, er
 		return types.AuthorizerKey{}, xerror.EStorageError("failed to query for a key with a given id", err)
 	}
 
-	storage.authKeyCache.Set(id, key)
+	storage.authKeyCache.SetWithTTL(id, key, storage.authKeyCacheTtl)
 	return key, nil
 }
 
