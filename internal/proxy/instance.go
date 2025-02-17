@@ -6,11 +6,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xlimits"
+	"github.com/vpnhouse/common-lib-go/xproxy"
+	"github.com/vpnhouse/common-lib-go/xrand"
+	"github.com/vpnhouse/tunnel/internal/authorizer"
 )
 
 type Config struct {
@@ -23,6 +25,7 @@ type Config struct {
 type Instance struct {
 	config          *Config
 	authorizer      authorizer.JWTAuthorizer
+	fetcher         *xproxy.Instance
 	users           *xlimits.Blocker
 	myDomains       map[string]struct{}
 	proxyMarkHeader string
@@ -49,7 +52,7 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []str
 		authorizer:      authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		users:           xlimits.NewBlocker(config.ConnLimit),
 		myDomains:       domains,
-		proxyMarkHeader: config.MarkHeaderPrefix + randomString(markHeaderLength),
+		proxyMarkHeader: config.MarkHeaderPrefix + xrand.RandomString(markHeaderLength),
 	}, nil
 }
 
@@ -117,26 +120,5 @@ func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	defer instance.users.Release(userId, user)
 
-	query := &ProxyQuery{
-		userId:        userId,
-		id:            queryCounter.Add(1),
-		proxyInstance: instance,
-	}
-
-	if r.Method == "CONNECT" {
-		if r.ProtoMajor == 1 {
-			query.handleV1Connect(w, r)
-			return
-		}
-
-		if r.ProtoMajor == 2 {
-			query.handleV2Connect(w, r)
-			return
-		}
-
-		http.Error(w, "Unsupported protocol version", http.StatusHTTPVersionNotSupported)
-		return
-	} else {
-		query.handleProxy(w, r)
-	}
+	instance.fetcher.ServeHTTP(w, r)
 }
