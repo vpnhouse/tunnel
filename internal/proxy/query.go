@@ -7,7 +7,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/google/uuid"
 	"github.com/posener/h2conn"
+	"github.com/vpnhouse/common-lib-go/stats"
 	"go.uber.org/zap"
 )
 
@@ -16,28 +18,32 @@ var (
 	customTransport = http.DefaultTransport
 )
 
+type reporter func(n uint64)
+
 type ProxyQuery struct {
-	id            int64
-	userId        string
-	proxyInstance *Instance
+	id             int64
+	installationID string
+	userID         string
+	proxyInstance  *Instance
 }
 
-func (query *ProxyQuery) doPairedForward(wg *sync.WaitGroup, src, dst io.ReadWriteCloser) {
+func (query *ProxyQuery) doPairedForward(wg *sync.WaitGroup, src, dst io.ReadWriteCloser, rep reporter) {
 	defer wg.Done()
 	defer dst.Close()
 
 	for {
 		buffer := make([]byte, 4096)
-		len, err := src.Read(buffer)
+		n, err := src.Read(buffer)
 		if err != nil {
 			return
 		}
 
 		// TODO: Handle length
-		_, err = dst.Write(buffer[:len])
+		n, err = dst.Write(buffer[:n])
 		if err != nil {
 			return
 		}
+		rep(uint64(n))
 	}
 }
 
@@ -75,8 +81,9 @@ func (query *ProxyQuery) handleV1Connect(w http.ResponseWriter, r *http.Request)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go query.doPairedForward(&wg, clientConn, remoteConn)
-	go query.doPairedForward(&wg, remoteConn, clientConn)
+	sessionID := uuid.New()
+	go query.doPairedForward(&wg, clientConn, remoteConn, query.reporterRx(sessionID))
+	go query.doPairedForward(&wg, remoteConn, clientConn, query.reporterTx(sessionID))
 	wg.Wait()
 }
 
@@ -96,9 +103,38 @@ func (query *ProxyQuery) handleV2Connect(w http.ResponseWriter, r *http.Request)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go query.doPairedForward(&wg, clientConn, remoteConn)
-	go query.doPairedForward(&wg, remoteConn, clientConn)
+	sessionID := uuid.New()
+	go query.doPairedForward(&wg, clientConn, remoteConn, query.reporterRx(sessionID))
+	go query.doPairedForward(&wg, remoteConn, clientConn, query.reporterTx(sessionID))
 	wg.Wait()
+}
+
+func (query *ProxyQuery) reporterRx(sessionID uuid.UUID) reporter {
+	if query.proxyInstance.statsService == nil {
+		return func(uint64) {}
+	}
+	return func(drx uint64) {
+		query.proxyInstance.statsService.ReportStats(sessionID, drx, 0, func(sessionID uuid.UUID) *stats.Session {
+			return &stats.Session{
+				InstallationID: query.installationID,
+				UserID:         query.userID,
+			}
+		})
+	}
+}
+
+func (query *ProxyQuery) reporterTx(sessionID uuid.UUID) reporter {
+	if query.proxyInstance.statsService == nil {
+		return func(uint64) {}
+	}
+	return func(dtx uint64) {
+		query.proxyInstance.statsService.ReportStats(sessionID, 0, dtx, func(sessionID uuid.UUID) *stats.Session {
+			return &stats.Session{
+				InstallationID: query.installationID,
+				UserID:         query.userID,
+			}
+		})
+	}
 }
 
 func (query *ProxyQuery) handleProxy(w http.ResponseWriter, r *http.Request) {

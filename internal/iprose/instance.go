@@ -9,11 +9,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/vpnhouse/iprose-go/pkg/server"
-	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/iprose-go/pkg/server"
+	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"go.uber.org/zap"
 )
 
@@ -40,7 +41,7 @@ type Instance struct {
 	config     Config
 }
 
-func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
+func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer, statsService *stats.Service) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
 		zap.Int("queue size", config.QueueSize),
@@ -61,6 +62,7 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, erro
 		config.SessionTimeout,
 		config.ProxyConnLimit != 0,
 		config.ProxyConnLimit,
+		statsService,
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
@@ -87,25 +89,29 @@ func (instance *Instance) authenticate(r *http.Request) (string, error) {
 		return "", err
 	}
 
-	var userId string
+	var userID string
+	var installationID string
 	if claims != nil {
-		userId = claims.UserId
+		userID = claims.UserId
+		installationID = claims.InstallationId
 	} else {
-		userId = uuid.New().String()
+		userID = uuid.New().String()
+		installationID = "" // to indicate it's dummy
 	}
 
-	return userId, nil
+	return installationID, userID, nil
 }
 
-func (instance *Instance) Authenticate(r *http.Request) (error, int, []byte, string) {
-	userId, err := instance.authenticate(r)
-	if err != nil {
-		code, body := xerror.ErrorToHttpResponse(err)
-		return err, code, body, ""
-	}
-
-	return nil, 0, nil, userId
+func (instance *Instance) Authenticate(r *http.Request) (*server.AuthCallbackResponse, error) {
+	installationID, userID, err := instance.authenticate(r)
+	return &server.AuthCallbackResponse{
+		Code:           code,
+		Body:           body,
+		InstallationID: installationID,
+		UserID:         userID,
+	}, err
 }
+
 func (instance *Instance) RegisterHandlers(r chi.Router) {
 	for _, hndlr := range instance.iprose.Handlers() {
 		r.HandleFunc(hndlr.Pattern, hndlr.Func)

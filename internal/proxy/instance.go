@@ -6,11 +6,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xlimits"
+	"github.com/vpnhouse/tunnel/internal/authorizer"
 )
 
 type Config struct {
@@ -27,9 +28,10 @@ type Instance struct {
 	myDomains       map[string]struct{}
 	proxyMarkHeader string
 	terminated      atomic.Bool
+	statsService    *stats.Service
 }
 
-func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []string) (*Instance, error) {
+func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []string, statsService *stats.Service) (*Instance, error) {
 	if config == nil {
 		return nil, xerror.EInternalError("No configuration", nil)
 	}
@@ -50,6 +52,7 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []str
 		users:           xlimits.NewBlocker(config.ConnLimit),
 		myDomains:       domains,
 		proxyMarkHeader: config.MarkHeaderPrefix + randomString(markHeaderLength),
+		statsService:    statsService,
 	}, nil
 }
 
@@ -86,22 +89,22 @@ func (instance *Instance) ProxyHandler(next http.Handler) http.Handler {
 	})
 }
 
-func (instance *Instance) doAuth(r *http.Request) (string, error) {
+func (instance *Instance) doAuth(r *http.Request) (string, string, error) {
 	userToken, ok := extractProxyAuthToken(r)
 	if !ok {
-		return "", xerror.WAuthenticationFailed("proxy", "no auth token", nil)
+		return "", "", xerror.WAuthenticationFailed("proxy", "no auth token", nil)
 	}
 
 	token, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return token.UserId, nil
+	return token.InstallationId, token.UserId, nil
 }
 
 func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
-	userId, err := instance.doAuth(r)
+	installationID, userID, err := instance.doAuth(r)
 	if err != nil {
 		w.Header()["Proxy-Authenticate"] = []string{"Basic realm=\"proxy\""}
 		w.WriteHeader(http.StatusProxyAuthRequired)
@@ -109,18 +112,19 @@ func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := instance.users.Acquire(r.Context(), userId)
+	user, err := instance.users.Acquire(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "Limit exceeded", http.StatusTooManyRequests)
 		xhttp.WriteJsonError(w, err)
 		return
 	}
-	defer instance.users.Release(userId, user)
+	defer instance.users.Release(userID, user)
 
 	query := &ProxyQuery{
-		userId:        userId,
-		id:            queryCounter.Add(1),
-		proxyInstance: instance,
+		installationId: installationID,
+		userId:         userID,
+		id:             queryCounter.Add(1),
+		proxyInstance:  instance,
 	}
 
 	if r.Method == "CONNECT" {
