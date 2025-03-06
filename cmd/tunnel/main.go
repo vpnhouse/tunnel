@@ -19,6 +19,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/common-lib-go/rapidoc"
 	"github.com/vpnhouse/common-lib-go/sentry"
+	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/common-lib-go/version"
 	"github.com/vpnhouse/common-lib-go/xdns"
 	"github.com/vpnhouse/common-lib-go/xhttp"
@@ -126,6 +127,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			}
 		}
 	}
+
+	// Create stats service
+	stats := stats.New()
 
 	// Create new peer manager
 	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4am, eventLog, geoClient)
