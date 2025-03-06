@@ -1,7 +1,5 @@
-import { components } from '@schema';
-
-export type TrustedKeyType = components['schemas']['TrustedKey'];
-export type TrustedKeyRecordType = components['schemas']['TrustedKeyRecord'];
+export type TrustedKeyType = string// components['schemas']['TrustedKey'];
+export type TrustedKeyRecordType = { [key: string]: any }// components['schemas']['TrustedKeyRecord'];
 
 export type TrustedKeyErrorType = {
   [key in keyof TrustedKeyRecordType]?: string;

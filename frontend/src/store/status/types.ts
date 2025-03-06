@@ -1,6 +1,6 @@
 import { components } from '@schema';
 
-export type StatusResponseType = components['schemas']['ServiceStatusResponse'];
+export type StatusResponseType = components['schemas']['ServiceStatus'];
 
 export type StatusTimerType = {
   intervalTimer: NodeJS.Timeout | null;

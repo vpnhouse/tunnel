@@ -4,4 +4,4 @@ export type AuthDataType = {
   password: string;
 }
 
-export type AuthResponseType = components['schemas']['AdminAuthResponse'];
+export type AuthResponseType = components['schemas']['AdminAuth'];
