@@ -19,3 +19,5 @@ export interface GlobalStatsResponse {
   traffic_up_speed: number;
   traffic_down_speed: number;
 }
+
+export type TabType = 'all' | 'wireguard' | 'iprose';
