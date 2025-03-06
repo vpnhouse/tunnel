@@ -35,8 +35,8 @@ const GlobalStatsBar = () => {
       ...data,
       traffic_up: convertBytes(data.traffic_up),
       traffic_down: convertBytes(data.traffic_down),
-      traffic_up_speed: convertBytes(data.traffic_up_speed) + `ps`,
-      traffic_down_speed: convertBytes(data.traffic_down_speed) + `ps`
+      traffic_up_speed: `${convertBytes(data.traffic_up_speed)}ps`,
+      traffic_down_speed: `${convertBytes(data.traffic_down_speed)}ps`
     });
   }, [convertBytes]);
 
@@ -53,7 +53,7 @@ const GlobalStatsBar = () => {
     return null;
   }
 
-  const { peers_active_1h, peers_active_1d, peers_connected, peers_total, traffic_up, traffic_down, traffic_up_speed, traffic_down_speed} = stats;
+  const { peers_active_1h, peers_active_1d, peers_connected, peers_total, traffic_up, traffic_down, traffic_up_speed, traffic_down_speed } = stats;
 
   return (
     <div className={classes.root}>

@@ -5,8 +5,8 @@ export interface GlobalStats {
   peers_active_1d: number;
   traffic_up: string;
   traffic_down: string;
-  traffic_up_speed: number;
-  traffic_down_speed: number;
+  traffic_up_speed: string;
+  traffic_down_speed: string;
 }
 
 export interface GlobalStatsResponse {
