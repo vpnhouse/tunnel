@@ -96,7 +96,7 @@ func (s *Client) readAndPublishEvents() {
 
 			select {
 			case <-time.After(s.opts.ReportPositionInterval * 2):
-				s.publishOrDrop(&Event{Error: errors.New("cannot handle read event position")})
+				s.publishOrDrop(&ClientEvent{Error: errors.New("cannot handle read event position")})
 				return
 			case positionAckChan <- positionAck{Position: position}:
 			}
