@@ -10,16 +10,18 @@ import (
 	"time"
 
 	"github.com/vishvananda/netlink"
+	"github.com/vpnhouse/common-lib-go/geoip"
+	"github.com/vpnhouse/common-lib-go/ipam"
+	"github.com/vpnhouse/common-lib-go/statutils"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
-	"github.com/vpnhouse/common-lib-go/geoip"
-	"github.com/vpnhouse/common-lib-go/ipam"
-	"github.com/vpnhouse/common-lib-go/statutils"
 	"go.uber.org/zap"
 )
+
+const ProtocolWireguard string = "wireguard"
 
 type CachedStatistics struct {
 	// PeersTotal is a number of peers

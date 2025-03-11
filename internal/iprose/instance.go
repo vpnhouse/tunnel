@@ -62,7 +62,7 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer, statsService *st
 		config.SessionTimeout,
 		config.ProxyConnLimit != 0,
 		config.ProxyConnLimit,
-		statsService,
+		statsService, // safe to pass nil
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
@@ -71,7 +71,7 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer, statsService *st
 	return instance, nil
 }
 
-func (instance *Instance) authenticate(r *http.Request) (string, error) {
+func (instance *Instance) authenticate(r *http.Request) (*server.UserInfo, error) {
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
 		return "", xerror.EAuthenticationFailed("no auth token", nil)
@@ -99,16 +99,18 @@ func (instance *Instance) authenticate(r *http.Request) (string, error) {
 		installationID = "" // to indicate it's dummy
 	}
 
-	return installationID, userID, nil
+	return &server.UserInfo{
+		InstallationID: installationID
+		UserID: userID,
+	}, nil
 }
 
 func (instance *Instance) Authenticate(r *http.Request) (*server.AuthCallbackResponse, error) {
-	installationID, userID, err := instance.authenticate(r)
+	userInfo, err := instance.authenticate(r)
 	return &server.AuthCallbackResponse{
-		Code:           code,
-		Body:           body,
-		InstallationID: installationID,
-		UserID:         userID,
+		Code:     code,
+		Body:     body,
+		UserInfo: userInfo,
 	}, err
 }
 

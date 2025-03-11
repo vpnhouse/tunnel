@@ -31,6 +31,12 @@ type Instance struct {
 	statsService    *stats.Service
 }
 
+type authInfo struct {
+	InstallationID string
+	UserID         string
+	Country        string
+}
+
 func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []string, statsService *stats.Service) (*Instance, error) {
 	if config == nil {
 		return nil, xerror.EInternalError("No configuration", nil)
@@ -89,22 +95,27 @@ func (instance *Instance) ProxyHandler(next http.Handler) http.Handler {
 	})
 }
 
-func (instance *Instance) doAuth(r *http.Request) (string, string, error) {
+func (instance *Instance) doAuth(r *http.Request) (*authInfo, error) {
 	userToken, ok := extractProxyAuthToken(r)
 	if !ok {
-		return "", "", xerror.WAuthenticationFailed("proxy", "no auth token", nil)
+		return nil, xerror.WAuthenticationFailed("proxy", "no auth token", nil)
 	}
 
 	token, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	return token.InstallationId, token.UserId, nil
+	// TODO: Add Country
+	return &authInfo{
+		InstallationID: token.InstallationId,
+		UserID:         token.UserId,
+		Country:        "",
+	}, nil
 }
 
 func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
-	installationID, userID, err := instance.doAuth(r)
+	authInfo, err := instance.doAuth(r)
 	if err != nil {
 		w.Header()["Proxy-Authenticate"] = []string{"Basic realm=\"proxy\""}
 		w.WriteHeader(http.StatusProxyAuthRequired)
@@ -112,19 +123,18 @@ func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := instance.users.Acquire(r.Context(), userID)
+	user, err := instance.users.Acquire(r.Context(), authInfo.UserID)
 	if err != nil {
 		http.Error(w, "Limit exceeded", http.StatusTooManyRequests)
 		xhttp.WriteJsonError(w, err)
 		return
 	}
-	defer instance.users.Release(userID, user)
+	defer instance.users.Release(authInfo.UserID, user)
 
 	query := &ProxyQuery{
-		installationId: installationID,
-		userId:         userID,
-		id:             queryCounter.Add(1),
-		proxyInstance:  instance,
+		auth:          authInfo,
+		id:            queryCounter.Add(1),
+		proxyInstance: instance,
 	}
 
 	if r.Method == "CONNECT" {

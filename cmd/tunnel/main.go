@@ -19,7 +19,6 @@ import (
 	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/common-lib-go/rapidoc"
 	"github.com/vpnhouse/common-lib-go/sentry"
-	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/common-lib-go/version"
 	"github.com/vpnhouse/common-lib-go/xdns"
 	"github.com/vpnhouse/common-lib-go/xhttp"
@@ -34,6 +33,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/proxy"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
+	"github.com/vpnhouse/tunnel/internal/stats"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"go.uber.org/zap"
@@ -84,7 +84,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			if err != nil {
 				return err
 			}
-			runtime.Services.RegisterService("eventLog", eventLog)
+			runtime.Services.RegisterService("eventlog", eventLog)
 		}
 	}
 
@@ -128,9 +128,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
-	// Create stats service
-	stats := stats.New()
-
 	// Create new peer manager
 	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4am, eventLog, geoClient)
 	if err != nil {
@@ -147,7 +144,12 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	var iproseServer *iprose.Instance
 	if runtime.Features.WithIPRose() {
-		iproseServer, err = iprose.New(runtime.Settings.IPRose, jwtAuthorizer)
+		statsService := stats.New(
+			runtime.Settings.Statistics.FlushInterval.Value(),
+			eventLog,
+			"iprose",
+		)
+		iproseServer, err = iprose.New(runtime.Settings.IPRose, jwtAuthorizer, statsService)
 		if err != nil {
 			return err
 		}
@@ -161,13 +163,20 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Create proxy server
 	var proxyServer *proxy.Instance
 	if runtime.Features.WithProxy() && runtime.Settings.Proxy != nil {
+		statsService := stats.New(
+			runtime.Settings.Statistics.FlushInterval.Value(),
+			eventLog,
+			"proxy",
+		)
 		proxyServer, err = proxy.New(
 			runtime.Settings.Proxy,
 			jwtAuthorizer,
 			append(
 				runtime.Settings.Domain.ExtraNames,
 				runtime.Settings.Domain.PrimaryName,
-			))
+			),
+			statsService,
+		)
 		if err != nil {
 			return err
 		}

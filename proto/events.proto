@@ -22,6 +22,7 @@ message PeerInfo {
   uint64 seconds = 14;
   string activityID = 15;
   string country = 16;
+  string protocol = 17;
 }
 
 // EventType defines types to use with the eventlog package

@@ -21,10 +21,9 @@ var (
 type reporter func(n uint64)
 
 type ProxyQuery struct {
-	id             int64
-	installationID string
-	userID         string
-	proxyInstance  *Instance
+	id            int64
+	auth          *authInfo
+	proxyInstance *Instance
 }
 
 func (query *ProxyQuery) doPairedForward(wg *sync.WaitGroup, src, dst io.ReadWriteCloser, rep reporter) {
@@ -114,11 +113,10 @@ func (query *ProxyQuery) reporterRx(sessionID uuid.UUID) reporter {
 		return func(uint64) {}
 	}
 	return func(drx uint64) {
-		query.proxyInstance.statsService.ReportStats(sessionID, drx, 0, func(sessionID uuid.UUID) *stats.Session {
-			return &stats.Session{
-				InstallationID: query.installationID,
-				UserID:         query.userID,
-			}
+		query.proxyInstance.statsService.ReportStats(sessionID, drx, 0, func(sessionID uuid.UUID, sessionData *stats.SessionData) {
+			sessionData.InstallationID = query.auth.InstallationID
+			sessionData.UserID = query.auth.UserID
+			sessionData.Country = query.auth.Country
 		})
 	}
 }
@@ -128,11 +126,10 @@ func (query *ProxyQuery) reporterTx(sessionID uuid.UUID) reporter {
 		return func(uint64) {}
 	}
 	return func(dtx uint64) {
-		query.proxyInstance.statsService.ReportStats(sessionID, 0, dtx, func(sessionID uuid.UUID) *stats.Session {
-			return &stats.Session{
-				InstallationID: query.installationID,
-				UserID:         query.userID,
-			}
+		query.proxyInstance.statsService.ReportStats(sessionID, 0, dtx, func(sessionID uuid.UUID, sessionData *stats.SessionData) {
+			sessionData.InstallationID = query.auth.InstallationID
+			sessionData.UserID = query.auth.UserID
+			sessionData.Country = query.auth.Country
 		})
 	}
 }

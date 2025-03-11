@@ -85,7 +85,7 @@ type Config struct {
 	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
 	GeoDBPath          string                      `yaml:"geo_db_path,omitempty"`
 	IPRose             iprose.Config               `yaml:"iprose,omitempty"`
-	Statistics         *StatisticsConfig           `yaml:"statistics,omitempty"`
+	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.

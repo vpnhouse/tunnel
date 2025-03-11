@@ -8,7 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/vpnhouse/common-lib-go/eventlog"
+	"github.com/vpnhouse/tunnel/pkg/eventlog"
 	"github.com/vpnhouse/common-lib-go/xap"
 )
 
@@ -43,7 +43,7 @@ func main() {
 }
 
 func runClient(serverHost string, serverPort string, authSecret string) {
-	offsetSync, err := eventlog.NewEventlogSyncFile("./offsets")
+	offsetSync, err := client.NewEventlogSyncFile("./offsets")
 	if err != nil {
 		zap.L().Error("failed to create offset sync", zap.Error(err))
 	}
