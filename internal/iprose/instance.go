@@ -71,22 +71,22 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer, statsService *st
 	return instance, nil
 }
 
-func (instance *Instance) authenticate(r *http.Request) (*server.UserInfo, error) {
+func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error) {
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
-		return "", xerror.EAuthenticationFailed("no auth token", nil)
+		return nil, xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
 	for _, t := range instance.config.PersistentTokens {
 		if userToken == t {
 			zap.L().Debug("Authenticated with fixed trusted token")
-			return "", nil
+			return &server.UserInfo{}, nil
 		}
 	}
 
 	claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var userID string
@@ -100,18 +100,9 @@ func (instance *Instance) authenticate(r *http.Request) (*server.UserInfo, error
 	}
 
 	return &server.UserInfo{
-		InstallationID: installationID
-		UserID: userID,
+		InstallationID: installationID,
+		UserID:         userID,
 	}, nil
-}
-
-func (instance *Instance) Authenticate(r *http.Request) (*server.AuthCallbackResponse, error) {
-	userInfo, err := instance.authenticate(r)
-	return &server.AuthCallbackResponse{
-		Code:     code,
-		Body:     body,
-		UserInfo: userInfo,
-	}, err
 }
 
 func (instance *Instance) RegisterHandlers(r chi.Router) {

@@ -144,11 +144,14 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	var iproseServer *iprose.Instance
 	if runtime.Features.WithIPRose() {
-		statsService := stats.New(
+		statsService, err := stats.New(
 			runtime.Settings.Statistics.FlushInterval.Value(),
 			eventLog,
 			"iprose",
 		)
+		if err != nil {
+			return err
+		}
 		iproseServer, err = iprose.New(runtime.Settings.IPRose, jwtAuthorizer, statsService)
 		if err != nil {
 			return err
@@ -163,11 +166,14 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Create proxy server
 	var proxyServer *proxy.Instance
 	if runtime.Features.WithProxy() && runtime.Settings.Proxy != nil {
-		statsService := stats.New(
+		statsService, err := stats.New(
 			runtime.Settings.Statistics.FlushInterval.Value(),
 			eventLog,
 			"proxy",
 		)
+		if err != nil {
+			return err
+		}
 		proxyServer, err = proxy.New(
 			runtime.Settings.Proxy,
 			jwtAuthorizer,

@@ -248,8 +248,8 @@ func (s *StatisticsConfig) validate() {
 	}
 }
 
-func defaultStatisticsConfig() *StatisticsConfig {
-	return &StatisticsConfig{
+func defaultStatisticsConfig() StatisticsConfig {
+	return StatisticsConfig{
 		FlushInterval: human.MustParseInterval(DefaultFlushStatisticsInterval),
 	}
 }

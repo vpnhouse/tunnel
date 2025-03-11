@@ -12,14 +12,16 @@ import (
 	"github.com/vpnhouse/tunnel/proto"
 )
 
-func New(flushInterval time.Duration, eventlogService eventlog.EventManager, protocol string) *stats.Service {
+func New(flushInterval time.Duration, eventlogService eventlog.EventManager, protocol string) (*stats.Service, error) {
 	if flushInterval == 0 {
 		flushInterval = human.MustParseInterval(settings.DefaultFlushStatisticsInterval).Value()
 		zap.L().Info("stats flush interval is not defined use default one")
-		return nil
 	}
 
-	stats.New(flushInterval, func(report *stats.Report) {
+	zap.L().Info("stats flush interval",
+		zap.String("protocol", protocol), zap.Duration("flush_interval", flushInterval))
+
+	return stats.New(flushInterval, func(report *stats.Report) {
 		err := eventlogService.Push(eventlog.PeerTraffic, &proto.PeerInfo{
 			SessionID:      report.SessionID,
 			UserID:         report.UserID,
