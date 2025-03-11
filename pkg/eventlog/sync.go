@@ -1,4 +1,4 @@
-package 
+package eventlog
 
 import (
 	"encoding/base64"
