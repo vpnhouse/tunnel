@@ -43,7 +43,7 @@ func main() {
 }
 
 func runClient(serverHost string, serverPort string, authSecret string) {
-	offsetSync, err := client.NewEventlogSyncFile("./offsets")
+	offsetSync, err := eventlog.NewEventlogSyncFile("./offsets")
 	if err != nil {
 		zap.L().Error("failed to create offset sync", zap.Error(err))
 	}
