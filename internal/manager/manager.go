@@ -159,3 +159,8 @@ func (manager *Manager) GetCachedStatistics() *CachedStatistics {
 func (manager *Manager) GetRuntimePeerStat(peer *types.PeerInfo) *runtimePeerStat {
 	return manager.statsService.GetRuntimePeerStat(peer)
 }
+
+// admin.Handler implementation
+func (manager *Manager) KillActiveUserSessions(userId string) {
+	// TODO: add implementation
+}

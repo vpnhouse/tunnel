@@ -32,3 +32,7 @@ func (instance *Instance) Shutdown() error {
 func (instance *Instance) Running() bool {
 	return !instance.stopped
 }
+
+// admin.Handler implementation
+func (instance *Instance) KillActiveUserSessions(userId string) {
+}

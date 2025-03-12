@@ -119,3 +119,8 @@ func (instance *Instance) Shutdown() error {
 func (instance *Instance) Running() bool {
 	return instance.iprose.Running()
 }
+
+// admin.Handler implementation
+func (instance *Instance) KillActiveUserSessions(userId string) {
+	// TODO: add implementation
+}

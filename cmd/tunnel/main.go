@@ -128,12 +128,15 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
+	var adminHandlers []admin.Handler
+
 	// Create new peer manager
 	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4am, eventLog, geoClient)
 	if err != nil {
 		return err
 	}
 	runtime.Services.RegisterService("manager", sessionManager)
+	adminHandlers = append(adminHandlers, sessionManager)
 
 	var keyStore keystore.Keystore = keystore.DenyAllKeystore{}
 	if runtime.Features.WithFederation() {
@@ -158,6 +161,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 		if iproseServer != nil {
 			runtime.Services.RegisterService("iprose", iproseServer)
+			adminHandlers = append(adminHandlers, iproseServer)
 		} else {
 			zap.L().Warn("IPRose servier is not started")
 		}
@@ -188,6 +192,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 
 		runtime.Services.RegisterService("proxy", proxyServer)
+		adminHandlers = append(adminHandlers, proxyServer)
 	}
 
 	// Prepare tunneling HTTP API
@@ -259,7 +264,10 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
-			adminService := admin.New(sessionManager, iproseServer, dataStorage)
+			adminService, err := admin.New(adminHandlers, dataStorage)
+			if err != nil {
+				return fmt.Errorf("failed to create admin service: %w", err)
+			}
 			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog, keyStore, dataStorage, adminService)
 			if err != nil {
 				return fmt.Errorf("failed to create grpc server: %w", err)

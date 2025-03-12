@@ -154,3 +154,8 @@ func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
 		query.handleProxy(w, r)
 	}
 }
+
+// admin.Handler implementation
+func (instance *Instance) KillActiveUserSessions(userId string) {
+	// TODO: add implementation
+}
