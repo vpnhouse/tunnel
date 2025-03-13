@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/version"
 	"github.com/vpnhouse/common-lib-go/xdns"
+	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
@@ -88,7 +90,23 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
-	jwtAuthorizer, err := authorizer.NewJWT(dataStorage.AsKeystore())
+	adminService, err := admin.New(dataStorage)
+	if err != nil {
+		return fmt.Errorf("failed to create admin service: %w", err)
+	}
+	authClientOpt := authorizer.WithAuthClient(
+		func(ctx context.Context, clientClaims *auth.ClientClaims) error {
+			err := adminService.CheckUserByActionRules(ctx, clientClaims.UserId)
+			if err != nil {
+				zap.L().Debug("check user actions error",
+					zap.String("error", err.Error()), zap.String("user_id", clientClaims.UserId))
+				return xerror.EForbidden("user is restricted")
+			}
+			return nil
+		},
+	)
+
+	jwtAuthorizer, err := authorizer.NewJWT(dataStorage.AsKeystore(), authClientOpt)
 	if err != nil {
 		return err
 	}
@@ -128,11 +146,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
-	adminService, err := admin.New(dataStorage)
-	if err != nil {
-		return fmt.Errorf("failed to create admin service: %w", err)
-	}
-
 	// Create new peer manager
 	sessionManager, err := manager.New(
 		runtime,
@@ -141,12 +154,12 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		ipv4am,
 		eventLog,
 		geoClient,
-		adminService,
 	)
 	if err != nil {
 		return err
 	}
 	runtime.Services.RegisterService("manager", sessionManager)
+	adminService.AddHandler(sessionManager)
 
 	var keyStore keystore.Keystore = keystore.DenyAllKeystore{}
 	if runtime.Features.WithFederation() {
@@ -169,7 +182,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			runtime.Settings.IPRose,
 			jwtAuthorizer,
 			statsService,
-			adminService,
 		)
 		if err != nil {
 			return err
@@ -201,13 +213,13 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 				runtime.Settings.Domain.PrimaryName,
 			),
 			statsService,
-			adminService,
 		)
 		if err != nil {
 			return err
 		}
 
 		runtime.Services.RegisterService("proxy", proxyServer)
+		adminService.AddHandler(proxyServer)
 	}
 
 	// Prepare tunneling HTTP API

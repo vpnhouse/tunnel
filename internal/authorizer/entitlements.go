@@ -1,6 +1,7 @@
 package authorizer
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/vpnhouse/common-lib-go/auth"
@@ -30,8 +31,8 @@ func WithEntitlement(jwtAuthorizer JWTAuthorizer, entitlement EntitlementType) *
 	}
 }
 
-func (d *jwtAuthorizerEntitlement) Authenticate(tokenString string, myAudience string) (*auth.ClientClaims, error) {
-	claims, err := d.JWTAuthorizer.Authenticate(tokenString, myAudience)
+func (d *jwtAuthorizerEntitlement) Authenticate(ctx context.Context, tokenString string, myAudience string) (*auth.ClientClaims, error) {
+	claims, err := d.JWTAuthorizer.Authenticate(ctx, tokenString, myAudience)
 	if err != nil {
 		return nil, err
 	}

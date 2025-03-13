@@ -19,11 +19,11 @@ type Handler interface {
 }
 
 type Service struct {
-	storage        *storage.Storage
-	actionsCache   *lru.Cache[string, *types.ActionRule]
-	sessionsToKill *xcache.Cache
-	lock           sync.Mutex
-	handlers       []Handler
+	storage             *storage.Storage
+	actionsCache        *lru.Cache[string, *types.ActionRule]
+	usersToKillSessions *xcache.Cache
+	lock                sync.Mutex
+	handlers            []Handler
 }
 
 func New(storage *storage.Storage) (*Service, error) {
@@ -37,7 +37,7 @@ func New(storage *storage.Storage) (*Service, error) {
 		actionsCache: actionsCache,
 	}
 
-	s.sessionsToKill, err = xcache.New(
+	s.usersToKillSessions, err = xcache.New(
 		32<<20, // 32 Mb
 		func(items *xcache.Items) {
 			// This is triggered periodically by Reset() call (see run() method)
@@ -75,7 +75,7 @@ func (s *Service) run() {
 		case <-cleanupTicker.C:
 			s.storage.CleanupExpiredActionRules(ctx)
 		case <-restrictUsersTicker.C:
-			s.sessionsToKill.Reset()
+			s.usersToKillSessions.Reset()
 		}
 	}
 }

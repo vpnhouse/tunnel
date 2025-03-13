@@ -11,7 +11,6 @@ import (
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xlimits"
-	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 )
 
@@ -30,7 +29,6 @@ type Instance struct {
 	proxyMarkHeader string
 	terminated      atomic.Bool
 	statsService    *stats.Service
-	adminService    *admin.Service
 }
 
 type authInfo struct {
@@ -44,7 +42,6 @@ func New(
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	myDomains []string,
 	statsService *stats.Service,
-	adminService *admin.Service,
 ) (*Instance, error) {
 	if config == nil {
 		return nil, xerror.EInternalError("No configuration", nil)
@@ -67,10 +64,7 @@ func New(
 		myDomains:       domains,
 		proxyMarkHeader: config.MarkHeaderPrefix + randomString(markHeaderLength),
 		statsService:    statsService,
-		adminService:    adminService,
 	}
-
-	adminService.AddHandler(instance)
 
 	return instance, nil
 }
@@ -114,7 +108,7 @@ func (instance *Instance) doAuth(r *http.Request) (*authInfo, error) {
 		return nil, xerror.WAuthenticationFailed("proxy", "no auth token", nil)
 	}
 
-	token, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+	token, err := instance.authorizer.Authenticate(r.Context(), userToken, auth.AudienceTunnel)
 	if err != nil {
 		return nil, err
 	}

@@ -39,7 +39,7 @@ func (tun *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Verify JWT, get JWT claims
-		claims, err := tun.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+		claims, err := tun.authorizer.Authenticate(r.Context(), userToken, auth.AudienceTunnel)
 		if err != nil {
 			return nil, err
 		}
@@ -113,7 +113,7 @@ func (tun *TunnelAPI) ClientConnectUnsafe(w http.ResponseWriter, r *http.Request
 		}
 
 		// Verify JWT, get JWT claims
-		claims, err := tun.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+		claims, err := tun.authorizer.Authenticate(r.Context(), userToken, auth.AudienceTunnel)
 		if err != nil {
 			return nil, err
 		}
@@ -274,7 +274,7 @@ func (tun *TunnelAPI) extractPeerActionInfo(r *http.Request) (*types.PeerIdentif
 		return nil, nil, xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
-	claims, err := tun.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+	claims, err := tun.authorizer.Authenticate(r.Context(), userToken, auth.AudienceTunnel)
 	if err != nil {
 		return nil, nil, err
 	}

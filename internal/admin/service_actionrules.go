@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/vpnhouse/common-lib-go/xutils"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 )
@@ -38,7 +39,8 @@ func (s *Service) AddRestriction(ctx context.Context, req *AddRestrictionRequest
 		return err
 	}
 
-	// TODO: Add handling add restriction event
+	s.usersToKillSessions.Set(xutils.StringToBytes(req.UserId), nil)
+
 	return nil
 }
 
@@ -47,7 +49,9 @@ func (s *Service) DeleteRestriction(ctx context.Context, req *DeleteRestrictionR
 	if err != nil {
 		return err
 	}
-	// TODO: Add handling delete restriction event
+
+	s.usersToKillSessions.Del(xutils.StringToBytes(req.UserId))
+
 	return nil
 }
 

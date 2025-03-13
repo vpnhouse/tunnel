@@ -14,7 +14,6 @@ import (
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/iprose-go/pkg/server"
-	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"go.uber.org/zap"
 )
@@ -37,17 +36,15 @@ var DefaultConfig = Config{
 }
 
 type Instance struct {
-	iprose       *server.IPRoseServer
-	authorizer   authorizer.JWTAuthorizer
-	config       Config
-	adminService *admin.Service
+	iprose     *server.IPRoseServer
+	authorizer authorizer.JWTAuthorizer
+	config     Config
 }
 
 func New(
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	statsService *stats.Service,
-	adminService *admin.Service,
 ) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
@@ -55,9 +52,8 @@ func New(
 		zap.Duration("session timeout", config.SessionTimeout))
 
 	instance := &Instance{
-		authorizer:   authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
-		config:       config,
-		adminService: adminService,
+		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
+		config:     config,
 	}
 	var err error
 	instance.iprose, err = server.New(
@@ -77,8 +73,6 @@ func New(
 		return nil, err
 	}
 
-	adminService.AddHandler(instance)
-
 	return instance, nil
 }
 
@@ -95,7 +89,7 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 		}
 	}
 
-	claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+	claims, err := instance.authorizer.Authenticate(r.Context(), userToken, auth.AudienceTunnel)
 	if err != nil {
 		return nil, err
 	}
