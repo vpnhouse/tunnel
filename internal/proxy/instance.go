@@ -11,6 +11,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xlimits"
+	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 )
 
@@ -29,6 +30,7 @@ type Instance struct {
 	proxyMarkHeader string
 	terminated      atomic.Bool
 	statsService    *stats.Service
+	adminService    *admin.Service
 }
 
 type authInfo struct {
@@ -37,7 +39,13 @@ type authInfo struct {
 	Country        string
 }
 
-func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []string, statsService *stats.Service) (*Instance, error) {
+func New(
+	config *Config,
+	jwtAuthorizer authorizer.JWTAuthorizer,
+	myDomains []string,
+	statsService *stats.Service,
+	adminService *admin.Service,
+) (*Instance, error) {
 	if config == nil {
 		return nil, xerror.EInternalError("No configuration", nil)
 	}
@@ -52,14 +60,19 @@ func New(config *Config, jwtAuthorizer authorizer.JWTAuthorizer, myDomains []str
 		markHeaderLength = 8
 	}
 
-	return &Instance{
+	instance := &Instance{
 		config:          config,
 		authorizer:      authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		users:           xlimits.NewBlocker(config.ConnLimit),
 		myDomains:       domains,
 		proxyMarkHeader: config.MarkHeaderPrefix + randomString(markHeaderLength),
 		statsService:    statsService,
-	}, nil
+		adminService:    adminService,
+	}
+
+	adminService.AddHandler(instance)
+
+	return instance, nil
 }
 
 func (instance *Instance) Shutdown() error {

@@ -13,6 +13,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/ipam"
 	"github.com/vpnhouse/common-lib-go/statutils"
+	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
@@ -93,10 +94,19 @@ type Manager struct {
 	upstreamSpeedAvg   *statutils.AvgValue
 	downstreamSpeedAvg *statutils.AvgValue
 
-	statistic atomic.Value // *CachedStatistics
+	statistic    atomic.Value // *CachedStatistics
+	adminService *admin.Service
 }
 
-func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager, geoClient *geoip.Instance) (*Manager, error) {
+func New(
+	runtime *runtime.TunnelRuntime,
+	storage *storage.Storage,
+	wireguard *wireguard.Wireguard,
+	ip4am *ipam.IPAM,
+	eventLog eventlog.EventManager,
+	geoClient *geoip.Instance,
+	adminService *admin.Service,
+) (*Manager, error) {
 	statsService := &runtimePeerStatsService{
 		ResetInterval: runtime.Settings.GetSentEventInterval().Value(),
 		Geo:           geoClient,
@@ -115,6 +125,7 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
 		statsService:       statsService,
+		adminService:       adminService,
 	}
 
 	manager.restorePeers()
@@ -124,6 +135,8 @@ func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wi
 		Downstream: storage.GetDownstreamMetric(),
 		Collected:  time.Now().Unix(),
 	})
+
+	adminService.AddHandler(manager)
 
 	// Run background goroutine
 	go manager.background()

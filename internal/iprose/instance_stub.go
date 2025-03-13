@@ -6,6 +6,7 @@ package iprose
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/common-lib-go/stats"
+	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 )
 
@@ -18,7 +19,12 @@ type (
 
 var DefaultConfig = Config{}
 
-func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer, statsService *stats.Service) (*Instance, error) {
+func New(
+	config Config,
+	jwtAuthorizer authorizer.JWTAuthorizer,
+	statsService *stats.Service,
+	adminService *admin.Service,
+) (*Instance, error) {
 	return &Instance{}, nil
 }
 

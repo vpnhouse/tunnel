@@ -128,15 +128,25 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
-	var adminHandlers []admin.Handler
+	adminService, err := admin.New(dataStorage)
+	if err != nil {
+		return fmt.Errorf("failed to create admin service: %w", err)
+	}
 
 	// Create new peer manager
-	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4am, eventLog, geoClient)
+	sessionManager, err := manager.New(
+		runtime,
+		dataStorage,
+		wireguardController,
+		ipv4am,
+		eventLog,
+		geoClient,
+		adminService,
+	)
 	if err != nil {
 		return err
 	}
 	runtime.Services.RegisterService("manager", sessionManager)
-	adminHandlers = append(adminHandlers, sessionManager)
 
 	var keyStore keystore.Keystore = keystore.DenyAllKeystore{}
 	if runtime.Features.WithFederation() {
@@ -155,13 +165,18 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		if err != nil {
 			return err
 		}
-		iproseServer, err = iprose.New(runtime.Settings.IPRose, jwtAuthorizer, statsService)
+		iproseServer, err = iprose.New(
+			runtime.Settings.IPRose,
+			jwtAuthorizer,
+			statsService,
+			adminService,
+		)
 		if err != nil {
 			return err
 		}
 		if iproseServer != nil {
 			runtime.Services.RegisterService("iprose", iproseServer)
-			adminHandlers = append(adminHandlers, iproseServer)
+			adminService.AddHandler(iproseServer)
 		} else {
 			zap.L().Warn("IPRose servier is not started")
 		}
@@ -186,13 +201,13 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 				runtime.Settings.Domain.PrimaryName,
 			),
 			statsService,
+			adminService,
 		)
 		if err != nil {
 			return err
 		}
 
 		runtime.Services.RegisterService("proxy", proxyServer)
-		adminHandlers = append(adminHandlers, proxyServer)
 	}
 
 	// Prepare tunneling HTTP API
@@ -264,10 +279,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
-			adminService, err := admin.New(adminHandlers, dataStorage)
-			if err != nil {
-				return fmt.Errorf("failed to create admin service: %w", err)
-			}
 			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog, keyStore, dataStorage, adminService)
 			if err != nil {
 				return fmt.Errorf("failed to create grpc server: %w", err)

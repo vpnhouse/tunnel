@@ -14,6 +14,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/iprose-go/pkg/server"
+	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"go.uber.org/zap"
 )
@@ -36,20 +37,27 @@ var DefaultConfig = Config{
 }
 
 type Instance struct {
-	iprose     *server.IPRoseServer
-	authorizer authorizer.JWTAuthorizer
-	config     Config
+	iprose       *server.IPRoseServer
+	authorizer   authorizer.JWTAuthorizer
+	config       Config
+	adminService *admin.Service
 }
 
-func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer, statsService *stats.Service) (*Instance, error) {
+func New(
+	config Config,
+	jwtAuthorizer authorizer.JWTAuthorizer,
+	statsService *stats.Service,
+	adminService *admin.Service,
+) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
 		zap.Int("queue size", config.QueueSize),
 		zap.Duration("session timeout", config.SessionTimeout))
 
 	instance := &Instance{
-		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
-		config:     config,
+		authorizer:   authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
+		config:       config,
+		adminService: adminService,
 	}
 	var err error
 	instance.iprose, err = server.New(
@@ -68,6 +76,9 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer, statsService *st
 		zap.L().Error("Can't start iprose service", zap.Error(err))
 		return nil, err
 	}
+
+	adminService.AddHandler(instance)
+
 	return instance, nil
 }
 

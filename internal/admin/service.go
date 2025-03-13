@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -18,13 +19,14 @@ type Handler interface {
 }
 
 type Service struct {
-	storage         *storage.Storage
-	actionsCache    *lru.Cache[string, *types.ActionRule]
-	handlers        []Handler
-	restrictedUsers *xcache.Cache
+	storage        *storage.Storage
+	actionsCache   *lru.Cache[string, *types.ActionRule]
+	sessionsToKill *xcache.Cache
+	lock           sync.Mutex
+	handlers       []Handler
 }
 
-func New(handlers []Handler, storage *storage.Storage) (*Service, error) {
+func New(storage *storage.Storage) (*Service, error) {
 	actionsCache, err := lru.New[string, *types.ActionRule](1024)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create lru cache for actions: %w", err)
@@ -33,16 +35,18 @@ func New(handlers []Handler, storage *storage.Storage) (*Service, error) {
 	s := &Service{
 		storage:      storage,
 		actionsCache: actionsCache,
-		handlers:     handlers,
 	}
 
-	s.restrictedUsers, err = xcache.New(
+	s.sessionsToKill, err = xcache.New(
 		32<<20, // 32 Mb
 		func(items *xcache.Items) {
-			// This is triggered periodically by Reset() call (see run() method) by time
+			// This is triggered periodically by Reset() call (see run() method)
 			// Also can be called once the cache got full and start internal cleaning
+			s.lock.Lock()
+			handlers := s.handlers
+			s.lock.Unlock()
 			for i := range items.Keys {
-				for _, h := range s.handlers {
+				for _, h := range handlers {
 					h.KillActiveUserSessions(xutils.BytesToString(items.Keys[i]))
 				}
 			}
@@ -71,7 +75,13 @@ func (s *Service) run() {
 		case <-cleanupTicker.C:
 			s.storage.CleanupExpiredActionRules(ctx)
 		case <-restrictUsersTicker.C:
-			s.restrictedUsers.Reset()
+			s.sessionsToKill.Reset()
 		}
 	}
+}
+
+func (s *Service) AddHandler(handler Handler) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.handlers = append(s.handlers, handler)
 }
