@@ -85,7 +85,7 @@ func (storage *Storage) FindActionRules(ctx context.Context, userId string, acti
 		return nil, xerror.EStorageError(
 			"can't read action_rules",
 			err,
-			zap.Time("now", now),
+			zap.Time("now", *now),
 			zap.String("user_id", userId),
 		)
 	}

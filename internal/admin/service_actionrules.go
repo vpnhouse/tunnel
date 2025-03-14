@@ -80,6 +80,10 @@ func (s *Service) CheckUserByActionRules(ctx context.Context, userId string, ser
 }
 
 func (s *Service) getActionRule(ctx context.Context, userId string, actionRuleType types.ActionRuleType, now *time.Time) *types.ActionRule {
+	if now == nil {
+		nowTime := time.Now().UTC()
+		now = &nowTime
+	}
 	actionRules, err := s.storage.FindActionRules(ctx, userId, actionRuleType, now)
 	if err != nil {
 		zap.L().Error("failed to get action_rules",
@@ -92,8 +96,13 @@ func (s *Service) getActionRule(ctx context.Context, userId string, actionRuleTy
 
 	// No any rules
 	if len(actionRules) == 0 {
+		zap.L().Debug("no action rules found for user",
+			zap.String("user_id", userId), zap.String("action", string(actionRuleType)), zap.Int64("timestamp", now.Unix()))
 		return nil
 	}
+
+	zap.L().Debug("action rules for user",
+		zap.String("user_id", userId), zap.String("action", string(actionRuleType)), zap.Int("count", len(actionRules)))
 
 	// Returns most recent one
 	return actionRules[0]
