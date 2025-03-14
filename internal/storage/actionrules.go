@@ -8,6 +8,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"go.uber.org/zap"
 
@@ -53,7 +54,12 @@ func (storage *Storage) DeleteActionRules(userId string, actionRuleType types.Ac
 	return nil
 }
 
-func (storage *Storage) FindActionRules(ctx context.Context, userId string, actionRuleType types.ActionRuleType, now *time.Time) ([]*types.ActionRule, error) {
+func (storage *Storage) FindActionRules(
+	ctx context.Context,
+	userId string,
+	actionRuleTypes []string,
+	now *time.Time,
+) ([]*types.ActionRule, error) {
 	query := `
 		SELECT 
 			user_id,
@@ -64,7 +70,7 @@ func (storage *Storage) FindActionRules(ctx context.Context, userId string, acti
 			action_rules
 		WHERE
 		    user_id = :user_id
-			AND action = :action
+			AND action IN (:actions)
 			AND coalesce(expires, :now) >= :now
 		ORDER BY expires DESC
 	`
@@ -74,13 +80,33 @@ func (storage *Storage) FindActionRules(ctx context.Context, userId string, acti
 		now = &nowTime
 	}
 
-	args := map[string]any{
+	params := map[string]any{
 		"now":     now.Unix(),
 		"user_id": userId,
-		"action":  actionRuleType,
+		"actions": actionRuleTypes,
 	}
 
-	rows, err := storage.db.NamedQueryContext(ctx, query, args)
+	query, args, err := sqlx.Named(query, params)
+	if err != nil {
+		return nil, xerror.EStorageError(
+			"can't build action_rules query",
+			err,
+			zap.Time("now", *now),
+			zap.String("user_id", userId),
+		)
+	}
+	query, args, err = sqlx.In(query, args...)
+	if err != nil {
+		return nil, xerror.EStorageError(
+			"can't build action_rules query",
+			err,
+			zap.Time("now", *now),
+			zap.String("user_id", userId),
+		)
+	}
+	query = storage.db.Rebind(query)
+
+	rows, err := storage.db.QueryxContext(ctx, query, args...)
 	if err != nil {
 		return nil, xerror.EStorageError(
 			"can't read action_rules",
@@ -99,7 +125,7 @@ func (storage *Storage) FindActionRules(ctx context.Context, userId string, acti
 			zap.L().Error("can't scan action_rule",
 				zap.Error(err),
 				zap.String("user_id", userId),
-				zap.String("action_rule_type", string(actionRuleType)),
+				zap.Strings("action_rule_types", actionRuleTypes),
 			)
 			continue
 		}

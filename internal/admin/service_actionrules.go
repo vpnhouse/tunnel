@@ -84,7 +84,7 @@ func (s *Service) getActionRule(ctx context.Context, userId string, actionRuleTy
 		nowTime := time.Now().UTC()
 		now = &nowTime
 	}
-	actionRules, err := s.storage.FindActionRules(ctx, userId, actionRuleType, now)
+	actionRules, err := s.storage.FindActionRules(ctx, userId, []string{string(actionRuleType)}, now)
 	if err != nil {
 		zap.L().Error("failed to get action_rules",
 			zap.String("action_rule_type", string(actionRuleType)),
