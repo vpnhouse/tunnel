@@ -53,7 +53,7 @@ func (storage *Storage) DeleteActionRules(userId string, actionRuleType types.Ac
 	return nil
 }
 
-func (storage *Storage) FindActionRules(ctx context.Context, userId string, actionRuleType types.ActionRuleType) ([]*types.ActionRule, error) {
+func (storage *Storage) FindActionRules(ctx context.Context, userId string, actionRuleType types.ActionRuleType, now *time.Time) ([]*types.ActionRule, error) {
 	query := `
 		SELECT 
 			user_id,
@@ -69,7 +69,10 @@ func (storage *Storage) FindActionRules(ctx context.Context, userId string, acti
 		ORDER BY expires DESC
 	`
 
-	now := time.Now().UTC()
+	if now == nil {
+		nowTime := time.Now().UTC()
+		now = &nowTime
+	}
 
 	args := map[string]any{
 		"now":     now.Unix(),

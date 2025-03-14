@@ -65,7 +65,7 @@ func (s *Service) CheckUserByActionRules(ctx context.Context, userId string, ser
 		key := userId + "/" + string(actionType)
 		actionRule, ok := s.actionsCache.Get(key)
 		if !ok {
-			actionRule = s.getActionRule(ctx, userId, actionType)
+			actionRule = s.getActionRule(ctx, userId, actionType, &now)
 			s.actionsCache.Add(key, actionRule)
 		}
 		if actionRule == nil {
@@ -79,8 +79,8 @@ func (s *Service) CheckUserByActionRules(ctx context.Context, userId string, ser
 	return nil
 }
 
-func (s *Service) getActionRule(ctx context.Context, userId string, actionRuleType types.ActionRuleType) *types.ActionRule {
-	actionRules, err := s.storage.FindActionRules(ctx, userId, actionRuleType)
+func (s *Service) getActionRule(ctx context.Context, userId string, actionRuleType types.ActionRuleType, now *time.Time) *types.ActionRule {
+	actionRules, err := s.storage.FindActionRules(ctx, userId, actionRuleType, now)
 	if err != nil {
 		zap.L().Error("failed to get action_rules",
 			zap.String("action_rule_type", string(actionRuleType)),
