@@ -55,9 +55,9 @@ func New(
 		zap.Duration("session timeout", config.SessionTimeout))
 
 	instance := &Instance{
-		authorizer:  authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
-		config:      config,
-		geoResolver: geoResolver,
+		authorizer:    authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
+		config:        config,
+		geoipResolver: geoipResolver,
 	}
 	var err error
 	instance.iprose, err = server.New(
