@@ -20,7 +20,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/validator"
 	"github.com/vpnhouse/common-lib-go/version"
-	"github.com/vpnhouse/common-lib-go/xdns"
+	xdns "github.com/vpnhouse/common-lib-go/xdns/server"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xnet"
