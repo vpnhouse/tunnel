@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
@@ -36,15 +37,17 @@ var DefaultConfig = Config{
 }
 
 type Instance struct {
-	iprose     *server.IPRoseServer
-	authorizer authorizer.JWTAuthorizer
-	config     Config
+	iprose        *server.IPRoseServer
+	authorizer    authorizer.JWTAuthorizer
+	config        Config
+	geoipResolver *geoip.GeoResolver,
 }
 
 func New(
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
-	statsService *stats.Service,
+	statsService  *stats.Service,
+	geoipResolver *geoip.GeoResolver,
 ) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
@@ -52,8 +55,9 @@ func New(
 		zap.Duration("session timeout", config.SessionTimeout))
 
 	instance := &Instance{
-		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
-		config:     config,
+		authorizer:    authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
+		config:        config,
+		geoipResolver: geoipResolver,
 	}
 	var err error
 	instance.iprose, err = server.New(
@@ -104,9 +108,12 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 		installationID = "" // to indicate it's dummy
 	}
 
+	clientInfo := instance.geoResolver.ClientInfoFromRequest(r)
+
 	return &server.UserInfo{
 		InstallationID: installationID,
 		UserID:         userID,
+		Country:        clientInfo.Country,
 	}, nil
 }
 

@@ -60,6 +60,26 @@ type TLSSelfSignConfig struct {
 	Dir string `yaml:"dir,omitempty"`
 }
 
+type CDNConfig struct {
+	Secrets []struct {
+		Header string `yaml:"header"`
+		Secret string `yaml:"secret"`
+	} `yaml:"secrets"`
+}
+
+func (s *CDNConfig) SecretsMap() map[string]string {
+	if s == nil || len(s.Secrets) == 0 {
+		return nil
+	}
+	secrets := make(map[string]string, len(s.Secrets))
+	for _, secret := range s.Secrets {
+		if secret.Secret != "" && secret.Secret != "" {
+			secrets[secret.Header] = secret.Secret
+		}
+	}
+	return secrets
+}
+
 type Config struct {
 	InstanceID string           `yaml:"instance_id"`
 	LogLevel   string           `yaml:"log_level"`
@@ -86,6 +106,7 @@ type Config struct {
 	GeoDBPath          string                      `yaml:"geo_db_path,omitempty"`
 	IPRose             iprose.Config               `yaml:"iprose,omitempty"`
 	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
+	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.

@@ -134,16 +134,20 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("ipv4am", ipv4am)
 
-	var geoClient *geoip.Instance
+	var geoipService *geoip.Instance
 	if runtime.Features.WithGeoip() {
 		if runtime.Settings.GeoDBPath == "" {
 			zap.L().Warn("geoip db path os not specified")
 		} else {
-			geoClient, err = geoip.NewGeoip(runtime.Settings.GeoDBPath)
+			geoipService, err = geoip.NewGeoip(runtime.Settings.GeoDBPath)
 			if err != nil {
 				return err
 			}
 		}
+	}
+	geoipResolver := &geoip.GeoResolver{
+		Instance:   geoipService, // safe to have nil here
+		CDNSecrets: runtime.Settings.CDN.SecretsMap(),
 	}
 
 	// Create new peer manager
@@ -153,7 +157,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		wireguardController,
 		ipv4am,
 		eventLog,
-		geoClient,
+		geoipService,
 	)
 	if err != nil {
 		return err
@@ -182,6 +186,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			runtime.Settings.IPRose,
 			jwtAuthorizer,
 			statsService,
+			geoipResolver,
 		)
 		if err != nil {
 			return err
@@ -213,6 +218,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 				runtime.Settings.Domain.PrimaryName,
 			),
 			statsService,
+			geoipResolver,
 		)
 		if err != nil {
 			return err

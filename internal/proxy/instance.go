@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
@@ -29,6 +30,7 @@ type Instance struct {
 	proxyMarkHeader string
 	terminated      atomic.Bool
 	statsService    *stats.Service
+	geoResolver     *geoip.GeoResolver
 }
 
 type authInfo struct {
@@ -42,6 +44,7 @@ func New(
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	myDomains []string,
 	statsService *stats.Service,
+	geoResolver *geoip.GeoResolver,
 ) (*Instance, error) {
 	if config == nil {
 		return nil, xerror.EInternalError("No configuration", nil)
@@ -64,6 +67,7 @@ func New(
 		myDomains:       domains,
 		proxyMarkHeader: config.MarkHeaderPrefix + randomString(markHeaderLength),
 		statsService:    statsService,
+		geoResolver:     geoResolver,
 	}
 
 	return instance, nil
@@ -113,11 +117,13 @@ func (instance *Instance) doAuth(r *http.Request) (*authInfo, error) {
 		return nil, err
 	}
 
+	clientInfo := instance.geoResolver.ClientInfoFromRequest(r)
+
 	// TODO: Add Country
 	return &authInfo{
 		InstallationID: token.InstallationId,
 		UserID:         token.UserId,
-		Country:        "",
+		Country:        clientInfo.Country,
 	}, nil
 }
 

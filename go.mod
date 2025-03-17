@@ -20,8 +20,8 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vpnhouse/api v0.0.0-20240916134854-020f48ada450
-	github.com/vpnhouse/common-lib-go v0.0.0-20250310135642-a6cf43cfb2f4
-	github.com/vpnhouse/iprose-go v0.2.2-rc1.0.20250311113718-8a6d7f05a2b8
+	github.com/vpnhouse/common-lib-go v0.0.0-20250317053321-8bf2ececaa43
+	github.com/vpnhouse/iprose-go v0.2.2-rc1.0.20250317053447-46ce94f1e99c
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
@@ -98,7 +98,6 @@ require (
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
-	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.2 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.2 // indirect
 	golang.org/x/crypto v0.14.0 // indirect

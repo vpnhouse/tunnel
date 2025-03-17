@@ -102,11 +102,11 @@ func New(
 	wireguard *wireguard.Wireguard,
 	ip4am *ipam.IPAM,
 	eventLog eventlog.EventManager,
-	geoClient *geoip.Instance,
+	geoipService *geoip.Instance,
 ) (*Manager, error) {
 	statsService := &runtimePeerStatsService{
 		ResetInterval: runtime.Settings.GetSentEventInterval().Value(),
-		Geo:           geoClient,
+		Geo:           geoipService,
 	}
 	peerTrafficSender := NewPeerTrafficUpdateEventSender(runtime, eventLog, statsService, nil)
 
