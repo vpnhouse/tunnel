@@ -40,13 +40,13 @@ type Instance struct {
 	iprose        *server.IPRoseServer
 	authorizer    authorizer.JWTAuthorizer
 	config        Config
-	geoipResolver *geoip.GeoResolver,
+	geoipResolver *geoip.GeoResolver
 }
 
 func New(
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
-	statsService  *stats.Service,
+	statsService *stats.Service,
 	geoipResolver *geoip.GeoResolver,
 ) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
