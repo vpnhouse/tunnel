@@ -103,8 +103,8 @@ func (query *ProxyQuery) handleV2Connect(w http.ResponseWriter, r *http.Request)
 	var wg sync.WaitGroup
 	wg.Add(2)
 	sessionID := uuid.New()
-	go query.doPairedForward(&wg, clientConn, remoteConn, query.reporterRx(sessionID))
-	go query.doPairedForward(&wg, remoteConn, clientConn, query.reporterTx(sessionID))
+	go query.doPairedForward(&wg, clientConn, remoteConn, query.reporterTx(sessionID))
+	go query.doPairedForward(&wg, remoteConn, clientConn, query.reporterRx(sessionID))
 	wg.Wait()
 }
 
