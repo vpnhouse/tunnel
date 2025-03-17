@@ -40,14 +40,14 @@ type Instance struct {
 	iprose        *server.IPRoseServer
 	authorizer    authorizer.JWTAuthorizer
 	config        Config
-	geoipResolver *geoip.GeoResolver
+	geoipResolver *geoip.Resolver
 }
 
 func New(
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	statsService *stats.Service,
-	geoipResolver *geoip.GeoResolver,
+	geoipResolver *geoip.Resolver,
 ) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
@@ -55,9 +55,9 @@ func New(
 		zap.Duration("session timeout", config.SessionTimeout))
 
 	instance := &Instance{
-		authorizer:    authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
-		config:        config,
-		geoipResolver: geoipResolver,
+		authorizer:  authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
+		config:      config,
+		geoResolver: geoResolver,
 	}
 	var err error
 	instance.iprose, err = server.New(
@@ -108,7 +108,7 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 		installationID = "" // to indicate it's dummy
 	}
 
-	clientInfo := instance.geoResolver.ClientInfoFromRequest(r)
+	clientInfo := instance.geoipResolver.GetInfo(r)
 
 	return &server.UserInfo{
 		InstallationID: installationID,

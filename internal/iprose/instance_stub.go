@@ -23,7 +23,7 @@ func New(
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	statsService *stats.Service,
-	geoipResolver *geoip.GeoResolver,
+	geoipResolver *geoip.Resolver,
 ) (*Instance, error) {
 	return &Instance{}, nil
 }

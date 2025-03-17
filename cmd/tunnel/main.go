@@ -145,8 +145,8 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			}
 		}
 	}
-	geoipResolver := &geoip.GeoResolver{
-		Instance:   geoipService, // safe to have nil here
+	geoipResolver := &geoip.Resolver{
+		Geo:        geoipService, // safe to have nil here
 		CDNSecrets: runtime.Settings.CDN.SecretsMap(),
 	}
 
