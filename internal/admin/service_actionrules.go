@@ -39,6 +39,11 @@ func (s *Service) AddRestriction(ctx context.Context, req *AddRestrictionRequest
 		return err
 	}
 
+	zap.L().Info("action rule added",
+		zap.String("user_id", req.UserId),
+		zap.Int64("expires", req.ExpiredTo),
+		zap.String("action_type", string(types.ActionRuleRestrict)))
+
 	s.usersToKillSessions.Set(xutils.StringToBytes(req.UserId), nil)
 
 	return nil
@@ -49,6 +54,11 @@ func (s *Service) DeleteRestriction(ctx context.Context, req *DeleteRestrictionR
 	if err != nil {
 		return err
 	}
+
+	key := req.UserId + "/" + string(types.ActionRuleRestrict)
+	s.actionsCache.Remove(key)
+	zap.L().Info("action rule deleted",
+		zap.String("user_id", req.UserId), zap.String("action_type", string(types.ActionRuleRestrict)))
 
 	s.usersToKillSessions.Del(xutils.StringToBytes(req.UserId))
 
