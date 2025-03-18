@@ -73,7 +73,7 @@ func (s *CDNConfig) SecretsMap() map[string]string {
 	}
 	secrets := make(map[string]string, len(s.Secrets))
 	for _, secret := range s.Secrets {
-		if secret.Secret != "" && secret.Secret != "" {
+		if secret.Header != "" && secret.Secret != "" {
 			secrets[secret.Header] = secret.Secret
 		}
 	}
