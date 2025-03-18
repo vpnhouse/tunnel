@@ -6,6 +6,8 @@ import (
 
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/xerror"
+
+	"go.uber.org/zap"
 )
 
 type EntitlementType string
@@ -45,6 +47,10 @@ func (d *jwtAuthorizerEntitlement) Authenticate(ctx context.Context, tokenString
 	// Probably need check entitlement + platform_type
 	v, ok := claims.Entitlements[string(d.Entitlement)]
 	if !ok || fmt.Sprint(v) != "true" {
+		zap.L().Debug("entitlements",
+			zap.String("entitlement", string(d.Entitlement)),
+			zap.Any("entitlements", claims.Entitlements),
+		)
 		return nil, xerror.ENoLicense(fmt.Sprintf("no entitlement: %s", d.Entitlement))
 	}
 
