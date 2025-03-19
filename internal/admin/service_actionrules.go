@@ -79,7 +79,7 @@ func (s *Service) CheckUserByActionRules(ctx context.Context, userId string, ser
 		var actionRule types.ActionRule
 		v, err := s.actionsCache.GetSet(key, func() ([]byte, error) {
 			r := s.getActionRule(ctx, userId, actionType, &now)
-			if r != nil {
+			if r == nil {
 				r = &types.ActionRule{}
 			}
 			return json.Marshal(r)
