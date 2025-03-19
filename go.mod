@@ -10,7 +10,6 @@ require (
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/posener/h2conn v0.0.0-20231204025407-3997deeca0f0
@@ -20,8 +19,8 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vpnhouse/api v0.0.0-20240916134854-020f48ada450
-	github.com/vpnhouse/common-lib-go v0.0.0-20250317132506-653a5e9b9868
-	github.com/vpnhouse/iprose-go v0.2.2-rc1.0.20250317132615-d6dd2341fa59
+	github.com/vpnhouse/common-lib-go v0.0.0-20250319084216-89504e503e74
+	github.com/vpnhouse/iprose-go v0.2.2-rc1.0.20250319084402-bc4ab25c2ae7
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671

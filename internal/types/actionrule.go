@@ -14,13 +14,23 @@ const (
 )
 
 type ActionRule struct {
-	UserId    string         `db:"user_id"`
-	Action    ActionRuleType `db:"action"`
-	Expires   *int64         `db:"expires"`
-	RulesJson string         `db:"rules_json"`
+	UserId    string         `db:"user_id" json:"user_id,omitempty"`
+	Action    ActionRuleType `db:"action" json:"action,omitempty"`
+	Expires   *int64         `db:"expires" json:"expires,omitempty"`
+	RulesJson string         `db:"rules_json" json:"rules_json,omitempty"`
+}
+
+func (s *ActionRule) IsEmpty() bool {
+	if s == nil {
+		return true
+	}
+	return s.Action == ""
 }
 
 func (s *ActionRule) IsActive(now time.Time) bool {
+	if s.IsEmpty() {
+		return false
+	}
 	// No rule no action
 	if s == nil {
 		return false

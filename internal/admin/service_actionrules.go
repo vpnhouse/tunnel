@@ -2,7 +2,9 @@ package admin
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/vpnhouse/common-lib-go/xutils"
@@ -50,13 +52,14 @@ func (s *Service) AddRestriction(ctx context.Context, req *AddRestrictionRequest
 }
 
 func (s *Service) DeleteRestriction(ctx context.Context, req *DeleteRestrictionRequest) error {
-	err := s.storage.DeleteActionRules(req.UserId, types.ActionRuleRestrict)
+	now := time.Now().UTC()
+	err := s.storage.DeleteActionRules(ctx, req.UserId, []string{string(types.ActionRuleRestrict)}, &now)
 	if err != nil {
 		return err
 	}
 
-	key := req.UserId + "/" + string(types.ActionRuleRestrict)
-	s.actionsCache.Remove(key)
+	key := []byte(req.UserId + "/" + string(types.ActionRuleRestrict))
+	s.actionsCache.Del(key)
 	zap.L().Info("action rule deleted",
 		zap.String("user_id", req.UserId), zap.String("action_type", string(types.ActionRuleRestrict)))
 
@@ -72,14 +75,22 @@ func (s *Service) CheckUserByActionRules(ctx context.Context, userId string, ser
 	}
 	for actionType, actionCheckError := range ActionRulesCheckErrors {
 		// Can return nil if error or no rule for this user
-		key := userId + "/" + string(actionType)
-		actionRule, ok := s.actionsCache.Get(key)
-		if !ok {
-			actionRule = s.getActionRule(ctx, userId, actionType, &now)
-			s.actionsCache.Add(key, actionRule)
+		key := []byte(userId + "/" + string(actionType))
+		var actionRule types.ActionRule
+		v, err := s.actionsCache.GetSet(key, func() ([]byte, error) {
+			r := s.getActionRule(ctx, userId, actionType, &now)
+			if r != nil {
+				r = &types.ActionRule{}
+			}
+			return json.Marshal(r)
+		})
+		if err != nil {
+			return err
 		}
-		if actionRule == nil {
-			continue
+
+		err = json.Unmarshal(v, &actionRule)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal action rule")
 		}
 
 		if actionRule.IsActive(now) {

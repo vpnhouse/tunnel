@@ -6,12 +6,10 @@ import (
 	"sync"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/vpnhouse/common-lib-go/xcache"
 	"github.com/vpnhouse/common-lib-go/xutils"
 
 	"github.com/vpnhouse/tunnel/internal/storage"
-	"github.com/vpnhouse/tunnel/internal/types"
 )
 
 type Handler interface {
@@ -20,23 +18,18 @@ type Handler interface {
 
 type Service struct {
 	storage             *storage.Storage
-	actionsCache        *lru.Cache[string, *types.ActionRule]
+	actionsCache        *xcache.Cache
 	usersToKillSessions *xcache.Cache
 	lock                sync.Mutex
 	handlers            []Handler
 }
 
 func New(storage *storage.Storage) (*Service, error) {
-	actionsCache, err := lru.New[string, *types.ActionRule](1024)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create lru cache for actions: %w", err)
-	}
-
 	s := &Service{
-		storage:      storage,
-		actionsCache: actionsCache,
+		storage: storage,
 	}
 
+	var err error
 	s.usersToKillSessions, err = xcache.New(
 		32<<20, // 32 Mb
 		func(items *xcache.Items) {
@@ -50,7 +43,13 @@ func New(storage *storage.Storage) (*Service, error) {
 					h.KillActiveUserSessions(xutils.BytesToString(items.Keys[i]))
 				}
 			}
-		})
+		},
+	)
+
+	s.actionsCache, err = xcache.New(
+		32<<20, // 32 Mb
+		nil,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create restricted users cache for actions: %w", err)
 	}
@@ -64,16 +63,24 @@ func (s *Service) run() {
 	ctx := context.Background()
 	s.storage.CleanupExpiredActionRules(ctx)
 
-	cleanupTicker := time.NewTicker(time.Hour)
-	defer cleanupTicker.Stop()
+	cleanupExpiredTicker := time.NewTicker(time.Hour)
+	defer cleanupExpiredTicker.Stop()
+
+	cleanupCacheTicker := time.NewTicker(10 * time.Second)
+	defer cleanupCacheTicker.Stop()
 
 	restrictUsersTicker := time.NewTicker(time.Minute)
 	defer restrictUsersTicker.Stop()
 
 	for {
 		select {
-		case <-cleanupTicker.C:
-			s.storage.CleanupExpiredActionRules(ctx)
+		case <-cleanupExpiredTicker.C:
+			numCleaned := s.storage.CleanupExpiredActionRules(ctx)
+			if numCleaned > 0 {
+				s.actionsCache.Reset()
+			}
+		case <-cleanupCacheTicker.C:
+			s.actionsCache.Reset()
 		case <-restrictUsersTicker.C:
 			s.usersToKillSessions.Reset()
 		}

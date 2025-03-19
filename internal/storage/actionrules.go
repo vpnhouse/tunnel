@@ -28,27 +28,57 @@ func (storage *Storage) AddActionRule(ctx context.Context, action *types.ActionR
 	return nil
 }
 
-func (storage *Storage) DeleteActionRules(userId string, actionRuleType types.ActionRuleType) error {
+func (storage *Storage) DeleteActionRules(
+	ctx context.Context,
+	userId string,
+	actionRuleTypes []string,
+	now *time.Time,
+) error {
 	query := `
 		DELETE FROM
 			action_rules
 		WHERE
 		   user_id = :user_id
-		   AND action = :action
+		   AND action IN (:actions)
 	`
 
-	args := map[string]any{
-		"user_id": userId,
-		"action":  actionRuleType,
+	if now == nil {
+		nowTime := time.Now().UTC()
+		now = &nowTime
 	}
 
-	_, err := storage.db.NamedExec(query, args)
+	params := map[string]any{
+		"user_id": userId,
+		"actions": actionRuleTypes,
+	}
+
+	query, args, err := sqlx.Named(query, params)
 	if err != nil {
 		return xerror.EStorageError(
-			"can't delete action_rule",
+			"can't build delete action_rules query",
+			err,
+			zap.Timep("now", now),
+			zap.String("user_id", userId),
+		)
+	}
+	query, args, err = sqlx.In(query, args...)
+	if err != nil {
+		return xerror.EStorageError(
+			"can't build delete action_rules query",
+			err,
+			zap.Time("now", *now),
+			zap.String("user_id", userId),
+		)
+	}
+	query = storage.db.Rebind(query)
+
+	_, err = storage.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return xerror.EStorageError(
+			"can't delete action_rules",
 			err,
 			zap.String("user_id", userId),
-			zap.String("action_rule_type", string(actionRuleType)),
+			zap.Any("action_rule_types", actionRuleTypes),
 		)
 	}
 	return nil
@@ -91,7 +121,7 @@ func (storage *Storage) FindActionRules(
 		return nil, xerror.EStorageError(
 			"can't build action_rules query",
 			err,
-			zap.Time("now", *now),
+			zap.Timep("now", now),
 			zap.String("user_id", userId),
 		)
 	}
@@ -100,7 +130,7 @@ func (storage *Storage) FindActionRules(
 		return nil, xerror.EStorageError(
 			"can't build action_rules query",
 			err,
-			zap.Time("now", *now),
+			zap.Timep("now", now),
 			zap.String("user_id", userId),
 		)
 	}
@@ -111,7 +141,7 @@ func (storage *Storage) FindActionRules(
 		return nil, xerror.EStorageError(
 			"can't read action_rules",
 			err,
-			zap.Time("now", *now),
+			zap.Timep("now", now),
 			zap.String("user_id", userId),
 		)
 	}
@@ -134,7 +164,7 @@ func (storage *Storage) FindActionRules(
 	return actions, nil
 }
 
-func (storage *Storage) CleanupExpiredActionRules(ctx context.Context) {
+func (storage *Storage) CleanupExpiredActionRules(ctx context.Context) int64 {
 	query := `
 		DELETE FROM
 			action_rules
@@ -155,7 +185,7 @@ func (storage *Storage) CleanupExpiredActionRules(ctx context.Context) {
 			zap.Time("now", now),
 			zap.Error(err),
 		)
-		return
+		return 0
 	}
 
 	count, err := res.RowsAffected()
@@ -165,11 +195,13 @@ func (storage *Storage) CleanupExpiredActionRules(ctx context.Context) {
 			zap.Time("now", now),
 			zap.Error(err),
 		)
-		return
+		return 0
 	}
 
 	zap.L().Info(
 		"cleanup of expired action_rules completed",
 		zap.Int64("rows deleted", count),
 	)
+
+	return count
 }

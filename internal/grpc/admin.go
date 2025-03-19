@@ -44,7 +44,7 @@ func (s *AdminServer) Event(ctx context.Context, event *proto.EventRequest) (*pr
 		}
 	} else if event.GetAction().DeleteRestriction != nil {
 		err := s.AdminService.DeleteRestriction(ctx, &admin.DeleteRestrictionRequest{
-			UserId:         event.GetAction().GetDeleteRestriction().GetUserId(),
+			UserId: event.GetAction().GetDeleteRestriction().GetUserId(),
 		})
 		if err != nil {
 			return nil, err
