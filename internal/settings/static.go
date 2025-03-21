@@ -20,7 +20,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/validator"
 	"github.com/vpnhouse/common-lib-go/version"
-	"github.com/vpnhouse/common-lib-go/xdns"
+	xdns "github.com/vpnhouse/common-lib-go/xdns/server"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xnet"
@@ -60,6 +60,26 @@ type TLSSelfSignConfig struct {
 	Dir string `yaml:"dir,omitempty"`
 }
 
+type CDNConfig struct {
+	Secrets []struct {
+		Header string `yaml:"header"`
+		Secret string `yaml:"secret"`
+	} `yaml:"secrets"`
+}
+
+func (s *CDNConfig) SecretsMap() map[string]string {
+	if s == nil || len(s.Secrets) == 0 {
+		return nil
+	}
+	secrets := make(map[string]string, len(s.Secrets))
+	for _, secret := range s.Secrets {
+		if secret.Header != "" && secret.Secret != "" {
+			secrets[secret.Header] = secret.Secret
+		}
+	}
+	return secrets
+}
+
 type Config struct {
 	InstanceID string           `yaml:"instance_id"`
 	LogLevel   string           `yaml:"log_level"`
@@ -85,6 +105,8 @@ type Config struct {
 	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
 	GeoDBPath          string                      `yaml:"geo_db_path,omitempty"`
 	IPRose             iprose.Config               `yaml:"iprose,omitempty"`
+	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
+	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
@@ -237,6 +259,22 @@ func (s *PeerStatisticConfig) validate() {
 	}
 }
 
+type StatisticsConfig struct {
+	FlushInterval human.Interval `yaml:"flush_interval" valid:"interval"`
+}
+
+func (s *StatisticsConfig) validate() {
+	if s.FlushInterval.Value() < time.Second {
+		s.FlushInterval = human.MustParseInterval(DefaultFlushStatisticsInterval)
+	}
+}
+
+func defaultStatisticsConfig() StatisticsConfig {
+	return StatisticsConfig{
+		FlushInterval: human.MustParseInterval(DefaultFlushStatisticsInterval),
+	}
+}
+
 func LoadStatic(configDir string) (*Config, error) {
 	return staticConfigFromFS(afero.OsFs{}, configDir)
 }
@@ -372,6 +410,7 @@ func safeDefaults(rootDir string) *Config {
 		PortRestrictions:   ipam.DefaultPortRestrictions(),
 		PeerStatistics:     defaultPeerStatisticConfig(),
 		IPRose:             iprose.DefaultConfig,
+		Statistics:         defaultStatisticsConfig(),
 	}
 }
 
@@ -441,7 +480,7 @@ func (s *Config) Flush() error {
 func (s *Config) flush() error {
 	bs, _ := yaml.Marshal(s)
 
-	fd, err := os.OpenFile(s.path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	fd, err := os.OpenFile(s.path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return xerror.WInternalError("config", "failed to open config for writing", err, zap.String("path", s.path))
 	}

@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vpnhouse/common-lib-go/human"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/common-lib-go/human"
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
 )
@@ -195,6 +195,7 @@ func intoProto(peer *types.PeerInfo, sess *Session) *proto.PeerInfo {
 	p.Seconds = uint64(sess.Seconds)
 	p.ActivityID = sess.ActivityID.String()
 	p.Country = sess.Country
+	p.Protocol = ProtocolWireguard
 	peerStr := fmt.Sprintf("id=%s, sec=%d, rx=%d(+%d)[%d], tx=%d(+%d)[%d]",
 		p.ActivityID, p.Seconds, p.BytesRx, p.BytesDeltaRx, *peer.Upstream, p.BytesTx, p.BytesDeltaTx, *peer.Downstream)
 	zap.L().Debug("traffic change", zap.String("peer", peerStr))

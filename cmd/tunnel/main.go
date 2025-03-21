@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -20,7 +21,8 @@ import (
 	"github.com/vpnhouse/common-lib-go/rapidoc"
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/version"
-	"github.com/vpnhouse/common-lib-go/xdns"
+	xdns "github.com/vpnhouse/common-lib-go/xdns/server"
+	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
@@ -33,6 +35,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/proxy"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
+	"github.com/vpnhouse/tunnel/internal/stats"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"go.uber.org/zap"
@@ -83,11 +86,27 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			if err != nil {
 				return err
 			}
-			runtime.Services.RegisterService("eventLog", eventLog)
+			runtime.Services.RegisterService("eventlog", eventLog)
 		}
 	}
 
-	jwtAuthorizer, err := authorizer.NewJWT(dataStorage.AsKeystore())
+	adminService, err := admin.New(dataStorage)
+	if err != nil {
+		return fmt.Errorf("failed to create admin service: %w", err)
+	}
+	authClientOpt := authorizer.WithAuthClient(
+		func(ctx context.Context, clientClaims *auth.ClientClaims) error {
+			err := adminService.CheckUserByActionRules(ctx, clientClaims.UserId)
+			if err != nil {
+				zap.L().Debug("check user actions error",
+					zap.String("error", err.Error()), zap.String("user_id", clientClaims.UserId))
+				return xerror.EForbidden("user is restricted")
+			}
+			return nil
+		},
+	)
+
+	jwtAuthorizer, err := authorizer.NewJWT(dataStorage.AsKeystore(), authClientOpt)
 	if err != nil {
 		return err
 	}
@@ -115,24 +134,36 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	runtime.Services.RegisterService("ipv4am", ipv4am)
 
-	var geoClient *geoip.Instance
+	var geoipService *geoip.Instance
 	if runtime.Features.WithGeoip() {
 		if runtime.Settings.GeoDBPath == "" {
 			zap.L().Warn("geoip db path os not specified")
 		} else {
-			geoClient, err = geoip.NewGeoip(runtime.Settings.GeoDBPath)
+			geoipService, err = geoip.NewGeoip(runtime.Settings.GeoDBPath)
 			if err != nil {
 				return err
 			}
 		}
 	}
+	geoipResolver := &geoip.Resolver{
+		Geo:        geoipService, // safe to have nil here
+		CDNSecrets: runtime.Settings.CDN.SecretsMap(),
+	}
 
 	// Create new peer manager
-	sessionManager, err := manager.New(runtime, dataStorage, wireguardController, ipv4am, eventLog, geoClient)
+	sessionManager, err := manager.New(
+		runtime,
+		dataStorage,
+		wireguardController,
+		ipv4am,
+		eventLog,
+		geoipService,
+	)
 	if err != nil {
 		return err
 	}
 	runtime.Services.RegisterService("manager", sessionManager)
+	adminService.AddHandler(sessionManager)
 
 	var keyStore keystore.Keystore = keystore.DenyAllKeystore{}
 	if runtime.Features.WithFederation() {
@@ -143,12 +174,26 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	var iproseServer *iprose.Instance
 	if runtime.Features.WithIPRose() {
-		iproseServer, err = iprose.New(runtime.Settings.IPRose, jwtAuthorizer)
+		statsService, err := stats.New(
+			runtime.Settings.Statistics.FlushInterval.Value(),
+			eventLog,
+			"iprose",
+		)
+		if err != nil {
+			return err
+		}
+		iproseServer, err = iprose.New(
+			runtime.Settings.IPRose,
+			jwtAuthorizer,
+			statsService,
+			geoipResolver,
+		)
 		if err != nil {
 			return err
 		}
 		if iproseServer != nil {
 			runtime.Services.RegisterService("iprose", iproseServer)
+			adminService.AddHandler(iproseServer)
 		} else {
 			zap.L().Warn("IPRose servier is not started")
 		}
@@ -157,18 +202,30 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Create proxy server
 	var proxyServer *proxy.Instance
 	if runtime.Features.WithProxy() && runtime.Settings.Proxy != nil {
+		statsService, err := stats.New(
+			runtime.Settings.Statistics.FlushInterval.Value(),
+			eventLog,
+			"proxy",
+		)
+		if err != nil {
+			return err
+		}
 		proxyServer, err = proxy.New(
 			runtime.Settings.Proxy,
 			jwtAuthorizer,
 			append(
 				runtime.Settings.Domain.ExtraNames,
 				runtime.Settings.Domain.PrimaryName,
-			))
+			),
+			statsService,
+			geoipResolver,
+		)
 		if err != nil {
 			return err
 		}
 
 		runtime.Services.RegisterService("proxy", proxyServer)
+		adminService.AddHandler(proxyServer)
 	}
 
 	// Prepare tunneling HTTP API
@@ -240,7 +297,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
-			adminService := admin.New(sessionManager, iproseServer, dataStorage)
 			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog, keyStore, dataStorage, adminService)
 			if err != nil {
 				return fmt.Errorf("failed to create grpc server: %w", err)

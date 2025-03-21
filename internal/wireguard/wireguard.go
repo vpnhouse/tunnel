@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/validator"
 	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )

@@ -14,13 +14,13 @@ import (
 	commonAPI "github.com/vpnhouse/api/go/server/common"
 	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/version"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xnet"
 	"github.com/vpnhouse/common-lib-go/xtime"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 )
 

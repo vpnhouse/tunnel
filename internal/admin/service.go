@@ -2,49 +2,93 @@ package admin
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru/v2"
-	"go.uber.org/zap"
+	"github.com/vpnhouse/common-lib-go/xcache"
+	"github.com/vpnhouse/common-lib-go/xutils"
 
-	"github.com/vpnhouse/tunnel/internal/iprose"
-	"github.com/vpnhouse/tunnel/internal/manager"
 	"github.com/vpnhouse/tunnel/internal/storage"
-	"github.com/vpnhouse/tunnel/internal/types"
 )
 
-type Service struct {
-	// Manager to control over WG sessions stuff
-	mgr *manager.Manager
-	// Manager to control over IPRose sessions stuff
-	ipr *iprose.Instance
-
-	storage      *storage.Storage
-	actionsCache *lru.Cache[string, *types.ActionRule]
+type Handler interface {
+	KillActiveUserSessions(userId string)
 }
 
-func New(mgr *manager.Manager, ipr *iprose.Instance, storage *storage.Storage) *Service {
-	actionsCache, err := lru.New[string, *types.ActionRule](1024)
-	if err != nil {
-		zap.L().Panic("failed to create lru cache for actions")
+type Service struct {
+	storage             *storage.Storage
+	actionsCache        *xcache.Cache
+	usersToKillSessions *xcache.Cache
+	lock                sync.Mutex
+	handlers            []Handler
+}
+
+func New(storage *storage.Storage) (*Service, error) {
+	s := &Service{
+		storage: storage,
 	}
 
-	s := &Service{
-		mgr:          mgr,
-		ipr:          ipr,
-		storage:      storage,
-		actionsCache: actionsCache,
+	var err error
+	s.usersToKillSessions, err = xcache.New(
+		32<<20, // 32 Mb
+		func(items *xcache.Items) {
+			// This is triggered periodically by Reset() call (see run() method)
+			// Also can be called once the cache got full and start internal cleaning
+			s.lock.Lock()
+			handlers := s.handlers
+			s.lock.Unlock()
+			for i := range items.Keys {
+				for _, h := range handlers {
+					h.KillActiveUserSessions(xutils.BytesToString(items.Keys[i]))
+				}
+			}
+		},
+	)
+
+	s.actionsCache, err = xcache.New(
+		32<<20, // 32 Mb
+		nil,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create restricted users cache for actions: %w", err)
 	}
 
 	go s.run()
 
-	return s
+	return s, nil
 }
 
 func (s *Service) run() {
 	ctx := context.Background()
 	s.storage.CleanupExpiredActionRules(ctx)
-	for range time.Tick(time.Hour) {
-		s.storage.CleanupExpiredActionRules(ctx)
+
+	cleanupExpiredTicker := time.NewTicker(time.Hour)
+	defer cleanupExpiredTicker.Stop()
+
+	cleanupCacheTicker := time.NewTicker(10 * time.Second)
+	defer cleanupCacheTicker.Stop()
+
+	restrictUsersTicker := time.NewTicker(time.Minute)
+	defer restrictUsersTicker.Stop()
+
+	for {
+		select {
+		case <-cleanupExpiredTicker.C:
+			numCleaned := s.storage.CleanupExpiredActionRules(ctx)
+			if numCleaned > 0 {
+				s.actionsCache.Reset()
+			}
+		case <-cleanupCacheTicker.C:
+			s.actionsCache.Reset()
+		case <-restrictUsersTicker.C:
+			s.usersToKillSessions.Reset()
+		}
 	}
+}
+
+func (s *Service) AddHandler(handler Handler) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.handlers = append(s.handlers, handler)
 }

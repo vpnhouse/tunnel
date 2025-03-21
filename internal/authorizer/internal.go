@@ -5,6 +5,7 @@
 package authorizer
 
 import (
+	"context"
 	"sync/atomic"
 
 	"github.com/vpnhouse/common-lib-go/auth"
@@ -12,25 +13,45 @@ import (
 )
 
 type JWTAuthorizer interface {
-	Authenticate(tokenString string, myAudience string) (*auth.ClientClaims, error)
+	Authenticate(ctx context.Context, tokenString string, myAudience string) (*auth.ClientClaims, error)
+}
+
+type AuthClient func(ctx context.Context, clientClaims *auth.ClientClaims) error
+
+type JWTOption func(opts *JWTOptions)
+
+type JWTOptions struct {
+	AuthClient AuthClient
+}
+
+func WithAuthClient(authClient AuthClient) JWTOption {
+	return func(opts *JWTOptions) {
+		opts.AuthClient = authClient
+	}
 }
 
 var _ JWTAuthorizer = (*jwtAuthorizer)(nil)
 
 type jwtAuthorizer struct {
-	checker *auth.JWTChecker
-	running atomic.Bool
+	checker    *auth.JWTChecker
+	authClient AuthClient
+	running    atomic.Bool
 }
 
-func NewJWT(keyKeeper auth.KeyStore) (*jwtAuthorizer, error) {
+func NewJWT(keyKeeper auth.KeyStore, opts ...JWTOption) (*jwtAuthorizer, error) {
 	checker, err := auth.NewJWTChecker(keyKeeper)
-
 	if err != nil {
 		return nil, err
 	}
 
+	var options JWTOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	jwtAuth := &jwtAuthorizer{
-		checker: checker,
+		checker:    checker,
+		authClient: options.AuthClient,
 	}
 	jwtAuth.running.Store(true)
 
@@ -46,7 +67,7 @@ func (d *jwtAuthorizer) Running() bool {
 	return d.running.Load()
 }
 
-func (d *jwtAuthorizer) Authenticate(tokenString string, myAudience string) (*auth.ClientClaims, error) {
+func (d *jwtAuthorizer) Authenticate(ctx context.Context, tokenString string, myAudience string) (*auth.ClientClaims, error) {
 	var claims auth.ClientClaims
 
 	err := d.checker.Parse(tokenString, &claims)
@@ -56,6 +77,13 @@ func (d *jwtAuthorizer) Authenticate(tokenString string, myAudience string) (*au
 
 	if !claims.Audience.Has(myAudience) {
 		return nil, xerror.EAuthenticationFailed("invalid audience", nil)
+	}
+
+	if d.authClient != nil {
+		err := d.authClient(ctx, &claims)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &claims, nil

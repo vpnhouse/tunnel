@@ -6,16 +6,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/statutils"
 	"github.com/vpnhouse/common-lib-go/xtime"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-type peerChangeType int
-type peerChangeSummary int
+type (
+	peerChangeType    int
+	peerChangeSummary int
+)
 
 type speedValue struct {
 	Upstream   int64

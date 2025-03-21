@@ -11,8 +11,8 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/common-lib-go/xap"
+	"github.com/vpnhouse/tunnel/internal/extstat"
 	"go.uber.org/zap"
 )
 

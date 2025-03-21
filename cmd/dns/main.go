@@ -13,7 +13,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/vpnhouse/common-lib-go/xdns"
+	xdns "github.com/vpnhouse/common-lib-go/xdns/server"
 )
 
 var (

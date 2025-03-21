@@ -10,16 +10,18 @@ import (
 	"time"
 
 	"github.com/vishvananda/netlink"
+	"github.com/vpnhouse/common-lib-go/geoip"
+	"github.com/vpnhouse/common-lib-go/ipam"
+	"github.com/vpnhouse/common-lib-go/statutils"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
-	"github.com/vpnhouse/common-lib-go/geoip"
-	"github.com/vpnhouse/common-lib-go/ipam"
-	"github.com/vpnhouse/common-lib-go/statutils"
 	"go.uber.org/zap"
 )
+
+const ProtocolWireguard string = "wireguard"
 
 type CachedStatistics struct {
 	// PeersTotal is a number of peers
@@ -94,10 +96,17 @@ type Manager struct {
 	statistic atomic.Value // *CachedStatistics
 }
 
-func New(runtime *runtime.TunnelRuntime, storage *storage.Storage, wireguard *wireguard.Wireguard, ip4am *ipam.IPAM, eventLog eventlog.EventManager, geoClient *geoip.Instance) (*Manager, error) {
+func New(
+	runtime *runtime.TunnelRuntime,
+	storage *storage.Storage,
+	wireguard *wireguard.Wireguard,
+	ip4am *ipam.IPAM,
+	eventLog eventlog.EventManager,
+	geoipService *geoip.Instance,
+) (*Manager, error) {
 	statsService := &runtimePeerStatsService{
 		ResetInterval: runtime.Settings.GetSentEventInterval().Value(),
-		Geo:           geoClient,
+		Geo:           geoipService,
 	}
 	peerTrafficSender := NewPeerTrafficUpdateEventSender(runtime, eventLog, statsService, nil)
 
@@ -156,4 +165,9 @@ func (manager *Manager) GetCachedStatistics() *CachedStatistics {
 
 func (manager *Manager) GetRuntimePeerStat(peer *types.PeerInfo) *runtimePeerStat {
 	return manager.statsService.GetRuntimePeerStat(peer)
+}
+
+// admin.Handler implementation
+func (manager *Manager) KillActiveUserSessions(userId string) {
+	// TODO: add implementation
 }

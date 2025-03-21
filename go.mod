@@ -10,7 +10,6 @@ require (
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/posener/h2conn v0.0.0-20231204025407-3997deeca0f0
@@ -19,9 +18,9 @@ require (
 	github.com/spf13/afero v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
-	github.com/vpnhouse/api v0.0.0-20240916134854-020f48ada450
-	github.com/vpnhouse/common-lib-go v0.0.0-20250204050549-55896319957f
-	github.com/vpnhouse/iprose-go v0.2.0
+	github.com/vpnhouse/api v0.0.0-20250317041655-fe56a92f822e
+	github.com/vpnhouse/common-lib-go v0.0.0-20250321035813-68f542c5d2ba
+	github.com/vpnhouse/iprose-go v0.2.2-rc1.0.20250321044832-3d150474e7b2
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
@@ -36,7 +35,6 @@ require (
 	github.com/coredns/caddy v1.1.1 // indirect
 	github.com/coredns/coredns v1.9.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/erwint/ttlcache v1.6.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-acme/lego/v4 v4.6.0 // indirect
 	github.com/go-chi/cors v1.2.0 // indirect
@@ -46,7 +44,7 @@ require (
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021 // indirect
 	github.com/oschwald/maxminddb-golang v1.8.0 // indirect
 	github.com/slok/go-http-metrics v0.10.0 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.2 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.2
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 )
@@ -98,7 +96,6 @@ require (
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
-	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.2 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.2 // indirect
 	golang.org/x/crypto v0.14.0 // indirect

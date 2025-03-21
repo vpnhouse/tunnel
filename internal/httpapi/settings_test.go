@@ -12,12 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
-	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/tunnel/internal/settings"
 )
 
-type C = settings.Config
-type DC = xhttp.DomainConfig
+type (
+	C  = settings.Config
+	DC = xhttp.DomainConfig
+)
 
 const _direct = string(adminAPI.DomainConfigModeDirect)
 
@@ -37,7 +39,8 @@ func TestSetDomainConfig(t *testing.T) {
 			c:      &C{},
 			dc:     &DC{},
 			update: false,
-		}, {
+		},
+		{
 			c:      &C{Domain: &DC{}},
 			dc:     nil,
 			update: false,
