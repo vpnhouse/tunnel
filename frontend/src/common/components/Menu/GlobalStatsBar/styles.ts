@@ -4,7 +4,7 @@ const useStyles = makeStyles(({ palette, typography }) =>
   createStyles({
     root: {
       borderRadius: 12,
-      padding: 16,
+      paddingBottom: 16,
       backgroundColor: `${palette.background.default}60`,
       color: palette.text.primary,
       fontFamily: typography.fontFamily,
@@ -28,6 +28,24 @@ const useStyles = makeStyles(({ palette, typography }) =>
       '&:not(:last-child)': {
         marginBottom: 8
       }
+    },
+    tabsContainer: {
+      marginBottom: 16
+    },
+    tabs: {
+      minHeight: 32,
+      '& .MuiTab-root': {
+        minHeight: 32,
+        padding: '6px 12px',
+        fontSize: 12
+      },
+      '& .MuiButtonBase-root': {
+        minWidth: '0px'
+      }
+    },
+    statsContent: {
+      marginTop: 8,
+      padding: '0px 16px'
     }
   }));
 

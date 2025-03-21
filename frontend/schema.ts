@@ -3,462 +3,978 @@
  * Do not make direct changes to the file.
  */
 
+export interface paths {
+    '/api/tunnel/admin/peers': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get list of peers */
+        get: operations['admin-list-peers'];
+        put?: never;
+        /** Create peer */
+        post: operations['admin-create-peer'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/tunnel/admin/peers/shared': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** create a peer for sharing via the unique link */
+        post: operations['admin-create-shared-peer'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/tunnel/admin/peers/{id}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** Get peer info */
+        get: operations['admin-get-peer'];
+        /** Update peer */
+        put: operations['admin-update-peer'];
+        post?: never;
+        /** Delete peer */
+        delete: operations['admin-delete-peer'];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/tunnel/admin/settings': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current server settings */
+        get: operations['admin-get-settings'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update server settings */
+        patch: operations['admin-update-settings'];
+        trace?: never;
+    };
+    '/api/tunnel/admin/auth': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Authorize as the node admin */
+        get: operations['admin-do-auth'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/tunnel/admin/reload': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reloads service with new configuration */
+        get: operations['admin-reload-service'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/tunnel/admin/status': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current service status */
+        get: operations['admin-get-status'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/tunnel/admin/initial-setup': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set initial parameters */
+        post: operations['admin-initial-setup'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/tunnel/admin/connection-info/wireguard': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get peer-independent wireguard configuration from a server */
+        get: operations['admin-connection-info-wireguard'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/tunnel/admin/ip-pool/suggest': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suggest an available IP address by the server pool */
+        get: operations['admin-ippool-suggest'];
+        put?: never;
+        /** Check that the IP address is used by the server pool */
+        post: operations['admin-ippool-is-used'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/tunnel/public/activate-peer/{key}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        /** Chech the shared peer status before the activation request */
+        get: operations['public-peer-status'];
+        put?: never;
+        /** Activate the shared peer via the unique URL */
+        post: operations['public-peer-activate'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
+export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /** Peer representation. */
-    Peer: {
-      /** Label of the peer. */
-      label?: string | null;
-      type?: components['schemas']['PeerType'];
-      info_wireguard?: components['schemas']['PeerWireguard'];
-      identifiers?: external['common.yaml']['components']['schemas']['ConnectionIdentifiers'];
-      /** JWT information data. */
-      claims?: string | null;
-      /** Tunneling IPv4 address of a peer. */
-      ipv4?: string | null;
-      /** Peer expiration time. */
-      expires?: string | null;
-      /** The date when the peer was created. */
-      created?: string;
-      /** The date when the peer was updated last time. */
-      updated?: string;
-    };
-    /** Wireguard-specific tunnel information. */
-    PeerWireguard: {
-      /** Wireguard public key. */
-      public_key?: string;
-    };
-    /** Server-side configuration. */
-    Settings: {
-      /** Logging level. */
-      log_level?: 'debug' | 'info' | 'warning' | 'error';
-      /** Admin password (write-only, never returned). */
-      admin_password?: string;
-      /** Wireguard listening port. */
-      wireguard_listen_port?: number;
-      /** Wireguard keepalive interval. */
-      wireguard_keepalive?: number;
-      /** Wireguard subnet. */
-      wireguard_subnet?: string;
-      /** Public ipv4 address of a wireguard server. */
-      wireguard_server_ipv4?: string;
-      /** Public UDP port of a wireguard server. */
-      wireguard_server_port?: number;
-      /** Wireguard public key (read only). */
-      wireguard_public_key?: string;
-      ping_interval?: number;
-      connection_timeout?: number;
-      /** HTTP listening IP:Port pair. */
-      http_listen_addr?: string;
-      /** Array of DNS servers. */
-      dns?: string[];
-    };
-    /** Connection information for wireguard peers. */
-    ConnectInfoWireguard: {
-      /** Server public key. */
-      server_public_key: string;
-      /** Public IPv4 of a wireguard server. */
-      server_ipv4: string;
-      /** Public wireguard port. */
-      server_port: number;
-      /** Client's tunnel IPv4 address. */
-      tunnel_ipv4: string;
-      /** Keepalive interval to be set on client side. */
-      keepalive: number;
-      /** Array of subnet, allowed to be sent to tunnel. */
-      allowed_ips: string[];
-      /** List of DNS servers. */
-      dns: string[];
-      ping_interval: number;
-    };
-    /** Peer tunnel type. */
-    PeerType: 'wireguard';
-    AdminAuthResponse: {
-      /** JWT for accessing other administrative endpoints. */
-      access_token: string;
-    };
-    /** Current operation status. */
-    ServiceStatusResponse: {
-      /** Indicate, whether service requires restart to apply latest settings. */
-      restart_required: boolean;
-    };
-    /** Information to configure client on client side. */
-    ClientConnectResponse: {
-      info_wireguard?: components['schemas']['ConnectInfoWireguard'];
-    };
-    TrustedKey: string;
-    PeerRecord: {
-      id: number;
-      peer: components['schemas']['Peer'];
-    };
-    TrustedKeyRecord: {
-      id: string;
-      key: components['schemas']['TrustedKey'];
-    };
-  };
-  responses: {
-    /** Example response */
-    PeerInfo: {
-      content: {
-        'application/json': components['schemas']['Peer'];
-      };
-    };
-    /** Example response */
-    SettingsInfo: {
-      content: {
-        'application/json': components['schemas']['Settings'];
-      };
-    };
-    /** Example response */
-    TrustedKeyInfo: {
-      content: {
-        'text/plain': string;
-      };
-    };
-  };
-}
-
-export interface operations {
-  /** Get list of peers */
-  'list-peers': {
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['PeerRecord'][];
+    schemas: {
+        /**
+         * Settings
+         * @description Server-side configuration.
+         */
+        Settings: {
+            /**
+             * Format: password
+             * @description Admin password (write-only, never returned).
+             * @example My$uperp@$$@0rd
+             */
+            admin_password?: string;
+            /**
+             * @description Wireguard listen port inside the container.
+             *     In 99% cases it matches the `wireguard_server_port` value.
+             *
+             * @example 3000
+             */
+            wireguard_listen_port?: number;
+            /**
+             * @description Public UDP port of a wireguard server.
+             *     This value is announced to peers, in 99% cases it is the same as the `wireguard_listen_port`.
+             *     May differs from the `wireguard_listen_port`'s value if NATed (especially with docker).
+             *
+             * @example 3000
+             */
+            wireguard_server_port?: number;
+            /**
+             * @description Keepalive interval for wireguard peers.
+             * @example 60
+             */
+            wireguard_keepalive?: number;
+            /**
+             * @description Subnet for wireguard peers.
+             * @example 10.42.0.0/16
+             */
+            wireguard_subnet?: string;
+            /**
+             * Format: ipv4
+             * @description Public ipv4 address of a wireguard server.
+             * @example 1.2.3.4
+             */
+            wireguard_server_ipv4?: string;
+            /**
+             * @description Wireguard public key (read only).
+             * @example n4btQ30d0OxK12rIzbN5mWk2MGZm8EWxrrk6LFro320=
+             */
+            readonly wireguard_public_key?: string;
+            /** @example 300 */
+            ping_interval?: number;
+            /** @example 600 */
+            connection_timeout?: number;
+            /**
+             * @description HTTP listening IP:Port pair.
+             * @example 0.0.0.0:80
+             */
+            http_listen_addr?: string;
+            /** @description DNS servers to announce to a peer */
+            dns?: string[];
+            domain?: components['schemas']['DomainConfig'];
+            /** @description allow to send anonymous hearbeats */
+            send_stats?: boolean;
         };
-      };
-      /** Unauthorized */
-      401: unknown;
-      /** Forbidden */
-      403: unknown;
-      /** Internal Server Error */
-      500: unknown;
-    };
-  };
-  /** Create new peer */
-  'add-peer': {
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['PeerRecord'];
+        /** ResponseAdminAuth */
+        AdminAuth: {
+            /** @description JWT for accessing other administrative endpoints. */
+            readonly access_token: string;
         };
-      };
-      400: external['common.yaml']['components']['responses']['ResponseError'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      409: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-      507: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Peer'];
-      };
-    };
-  };
-  /** Get peer information */
-  'get-peer': {
-    parameters: {
-      path: {
-        id: number;
-      };
-    };
-    responses: {
-      200: components['responses']['PeerInfo'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      404: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-  };
-  /** Update peer info */
-  'change-peer': {
-    parameters: {
-      path: {
-        id: number;
-      };
-    };
-    responses: {
-      200: components['responses']['PeerInfo'];
-      400: external['common.yaml']['components']['responses']['ResponseError'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      404: external['common.yaml']['components']['responses']['ResponseError'];
-      409: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Peer'];
-      };
-    };
-  };
-  /** Delete peer */
-  'delete-peer': {
-    parameters: {
-      path: {
-        id: number;
-      };
-    };
-    responses: {
-      200: external['common.yaml']['components']['responses']['OperationSuccessful'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      404: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-  };
-  /** Get trusted key */
-  'get-trusted': {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    responses: {
-      200: components['responses']['TrustedKeyInfo'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      404: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-  };
-  /** Update trusted key */
-  'change-trusted': {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    responses: {
-      200: components['responses']['TrustedKeyInfo'];
-      400: external['common.yaml']['components']['responses']['ResponseError'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      404: external['common.yaml']['components']['responses']['ResponseError'];
-      409: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-    requestBody: {
-      content: {
-        'text/plain': string;
-      };
-    };
-  };
-  /** Create new trusted key */
-  'add-trusted': {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    responses: {
-      200: components['responses']['TrustedKeyInfo'];
-      400: external['common.yaml']['components']['responses']['ResponseError'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      409: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-      507: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-    requestBody: {
-      content: {
-        'text/plain': string;
-      };
-    };
-  };
-  /** Delete trusted key */
-  'delete-trusted': {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    responses: {
-      200: external['common.yaml']['components']['responses']['OperationSuccessful'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      404: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-  };
-  /** Get current server settings */
-  'get-settings': {
-    parameters: {};
-    responses: {
-      200: components['responses']['SettingsInfo'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      404: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-  };
-  /** Update server settings */
-  'set-settings': {
-    parameters: {};
-    responses: {
-      200: components['responses']['SettingsInfo'];
-      400: external['common.yaml']['components']['responses']['ResponseError'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Settings'];
-      };
-    };
-  };
-  /** Authorize administrator */
-  'admin-auth': {
-    parameters: {};
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['AdminAuthResponse'];
+        /**
+         * ServiceStatusResponse
+         * @description Holds current staus flags of the service
+         */
+        ServiceStatus: {
+            /** @description Indicate, whether service requires restart to apply latest settings. */
+            restart_required: boolean;
+            peers_total?: number;
+            peers_connected?: number;
+            peers_active_1h?: number;
+            peers_active_1d?: number;
+            /** Format: int64 */
+            traffic_up?: number;
+            /** Format: int64 */
+            traffic_down?: number;
+            /**
+             * Format: int64
+             * @description Upload speed accross all peers in bytes per second
+             */
+            traffic_up_speed?: number;
+            /**
+             * Format: int64
+             * @description Download speed accross all peers in bytes per second
+             */
+            traffic_down_speed?: number;
         };
-      };
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      404: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-  };
-  /** Reloads service with new configuration */
-  reload: {
-    parameters: {};
-    responses: {
-      200: external['common.yaml']['components']['responses']['OperationSuccessful'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-  };
-  /** Returns current server status */
-  'get-status': {
-    parameters: {};
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['ServiceStatusResponse'];
+        /**
+         * Peer
+         * @description Peer representation.
+         */
+        Peer: {
+            /**
+             * @description Label of the peer.
+             * @example Home PC
+             */
+            label?: string | null;
+            info_wireguard?: components['schemas']['PeerWireguard'];
+            identifiers?: components['schemas']['ConnectionIdentifiers'];
+            /** @description JWT information data. */
+            claims?: string | null;
+            /**
+             * Format: ipv4
+             * @description Tunneling IPv4 address of a peer.
+             * @example 10.42.3.33
+             */
+            ipv4?: string | null;
+            /**
+             * @description Network policy: isolate the peer (internet access only)
+             *     or allow to talk to its network neighbours (like in LANs)
+             *
+             * @enum {integer|null}
+             */
+            net_access_policy?: 0 | 1 | 2 | null;
+            /** @description How much of bandwidth the client is allowed to consume.
+             *     Takes no effect if the traffic control subsystem is
+             *     disabled on a node.
+             *     [!] Bits per Second, must follow SI.
+             *      */
+            rate_limit?: number | null;
+            /**
+             * Format: date-time
+             * @description Peer expiration time.
+             * @example 2021-05-28T13:43:10Z
+             */
+            expires?: string | null;
+            /**
+             * Format: date-time
+             * @description The date when the peer was created.
+             * @example 2021-05-28T13:23:15Z
+             */
+            created?: string;
+            /**
+             * Format: date-time
+             * @description The date when the peer was updated last time.
+             * @example 2021-05-28T13:23:15Z
+             */
+            updated?: string;
+            /**
+             * Format: date-time
+             * @description Last date the peer had traffic activity.
+             * @example 2021-05-28T13:23:15Z
+             */
+            activity?: string;
+            /**
+             * Format: int64
+             * @description Peer upload traffic in bytes
+             */
+            traffic_up?: number;
+            /**
+             * Format: int64
+             * @description Peer download traffic in bytes
+             */
+            traffic_down?: number;
+            /**
+             * Format: int64
+             * @description Peer upload speed in bytes per second
+             */
+            traffic_up_speed?: number;
+            /**
+             * Format: int64
+             * @description Peer download speed in bytes per second
+             */
+            traffic_down_speed?: number;
         };
-      };
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-  };
-  /** Connect client peer */
-  'client-connect': {
-    parameters: {};
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['ClientConnectResponse'];
+        /**
+         * Peer repr for a list responses
+         * @example {
+         *       "id": 42,
+         *       "peer": {
+         *         "label": "Home PC",
+         *         "type": "wireguard",
+         *         "info_wireguard": {
+         *           "public_key": "ljs1lRH1YtZPlppYl1gQVX+JTNmTQsX57cIDf7oB6Qc="
+         *         },
+         *         "identifiers": {
+         *           "user_id": "Project/Authorizer/user@org",
+         *           "installation_id": "d1a1b2e2-d84b-4537-9a93-c4d3cd412598",
+         *           "session_id": "de9e0337-fb16-4669-b07d-9f261c329461"
+         *         },
+         *         "claims": "string",
+         *         "ipv4": "10.42.3.33",
+         *         "expires": "2021-05-28T13:43:10Z",
+         *         "created": "2021-05-28T13:23:15Z",
+         *         "updated": "2021-05-28T13:23:15Z",
+         *         "activity": "2021-05-28T13:23:15Z",
+         *         "traffic_up": 123404321,
+         *         "traffic_down": 896123404321,
+         *         "traffic_up_speed": 1234560,
+         *         "traffic_down_speed": 0
+         *       }
+         *     }
+         */
+        PeerRecord: {
+            /**
+             * Format: int64
+             * @example 42
+             */
+            id: number;
+            peer: components['schemas']['Peer'];
         };
-      };
-      400: external['common.yaml']['components']['responses']['ResponseError'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          type: components['schemas']['PeerType'];
-          info_wireguard?: components['schemas']['PeerWireguard'];
-          identifiers: external['common.yaml']['components']['schemas']['ConnectionIdentifiers'];
-          location?: string;
+        /** initial setup request */
+        InitialSetupRequest: {
+            admin_password: string;
+            server_ip_mask: string;
+            /** @description allow to send anonymous hearbeats and install notifications */
+            send_stats?: boolean;
+            domain?: components['schemas']['DomainConfig'];
         };
-      };
-    };
-  };
-  /** Disconnect client peer */
-  'client-disconnect': {
-    parameters: {};
-    responses: {
-      200: external['common.yaml']['components']['responses']['OperationSuccessful'];
-      400: external['common.yaml']['components']['responses']['ResponseError'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-    requestBody: {
-      content: {
-        'application/json': external['common.yaml']['components']['schemas']['ConnectionIdentifiers'];
-      };
-    };
-  };
-  /** Update peer expiration time */
-  'client-ping': {
-    parameters: {};
-    responses: {
-      200: external['common.yaml']['components']['responses']['OperationSuccessful'];
-      400: external['common.yaml']['components']['responses']['ResponseError'];
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-    requestBody: {
-      content: {
-        'application/json': external['common.yaml']['components']['schemas']['ConnectionIdentifiers'];
-      };
-    };
-  };
-  /** List trusted keys */
-  'list-trusted': {
-    parameters: {};
-    responses: {
-      /** OK */
-      200: {
-        content: {
-          'application/json': components['schemas']['TrustedKeyRecord'][];
+        /** @description Domain name, reverse proxy, and SSL configuration,
+         *     used for the initial configuration.
+         *      */
+        DomainConfig: {
+            /**
+             * @description Shows how the http traffic delivered to the service.
+             *     The "direct" meand that we serve 80/443 by ourselves, so
+             *     we can also manage the SSL certificates.
+             *     The "reverse-proxy" means that we're behind the reverse proxy,
+             *     like nginx. We wont manage and serve the SSL traffic in that case.
+             *
+             * @enum {string}
+             */
+            mode: 'direct' | 'reverse-proxy';
+            /** @description Domain name for the service, required.
+             *     In the "direct" mode we'll issue the SSL certificate for that domain name,
+             *     in "reverse-proxy" mode we need this name to build the extenral links.
+             *     If no configuraton is provided (InitialSetupRequest->domain is empty) - the external IP is used.
+             *      */
+            domain_name: string;
+            /** @description We'll try to issue the SSL certificate if set.
+             *     For the "direct" mode only.
+             *      */
+            issue_ssl: boolean;
+            /**
+             * @description How the reverse-proxy serving our traffic for the external clients.
+             *     So the schema + domain_name produces a valid link to the service.
+             *     For the "reverse-proxy" mode only.
+             *
+             * @enum {string}
+             */
+            schema: 'http' | 'https';
         };
-      };
-      401: external['common.yaml']['components']['responses']['ResponseError'];
-      403: external['common.yaml']['components']['responses']['ResponseError'];
-      500: external['common.yaml']['components']['responses']['ResponseError'];
-    };
-  };
-}
-
-export interface external {
-  'common.yaml': {
-    paths: {};
-    components: {
-      schemas: {
+        IpPoolAddress: {
+            ip_address: string;
+        };
+        /** @description Peer-independent wireguard configuration from a server */
+        WireguardOptions: {
+            /** @description Network subnet/mask for wireguard clients, e.g 10.235.0.0/24 */
+            subnet: string;
+            /**
+             * @description Server public key.
+             * @example b0o7b8vXx9EH3uLJucOJUed0slvSppv7RCmC8jXRr1o=
+             */
+            server_public_key: string;
+            /**
+             * Format: ipv4
+             * @description Public IPv4 of a wireguard server.
+             * @example 1.2.3.4
+             */
+            server_ipv4: string;
+            /**
+             * @description Public wireguard port.
+             * @example 3000
+             */
+            server_port: number;
+            /**
+             * @description Keepalive interval to be set on client side.
+             * @example 60
+             */
+            keepalive: number;
+            /** @description List of subnets, allowed to be sent to tunnel. */
+            allowed_ips: string[];
+            /** @description List of DNS servers. */
+            dns: string[];
+        };
+        /** @description Returns the status of the shared peer.
+         *     "not_activated" - no configuration has been given, we can
+         *       activate it immeadietly.
+         *     "activated" - the peer has already been activated,
+         *       we must ask a user about a re-activation (previously
+         *       issued credentials will be invalidated).
+         *      */
+        PeerActivation: {
+            /** @enum {string} */
+            status: 'not_activated' | 'activated';
+        };
+        /**
+         * PeerWireguard
+         * @description Wireguard-specific tunnel information.
+         */
+        PeerWireguard: {
+            /**
+             * @description Wireguard public key.
+             * @example ljs1lRH1YtZPlppYl1gQVX+JTNmTQsX57cIDf7oB6Qc=
+             */
+            public_key?: string;
+        };
+        /** ConnectionIdentifiers */
         ConnectionIdentifiers: {
-          user_id?: string | null;
-          installation_id?: string | null;
-          session_id?: string | null;
+            /** @example Project/Authorizer/user@org */
+            user_id?: string | null;
+            /**
+             * Format: uuid
+             * @example d1a1b2e2-d84b-4537-9a93-c4d3cd412598
+             */
+            installation_id?: string | null;
+            /**
+             * Format: uuid
+             * @example de9e0337-fb16-4669-b07d-9f261c329461
+             */
+            session_id?: string | null;
         };
-        /** Generic error response. */
+        /**
+         * Error
+         * @description Generic error response.
+         */
         Error: {
-          /** Machine-readable error code. */
-          result: string;
-          /** User-friendly error description. */
-          error?: string;
-          /** Message, which we can put to application logs. */
-          details?: string;
-          /** The name of field, caused error. */
-          field?: string;
+            /**
+             * @description Machine-readable error code.
+             * @example INVALID_PEER
+             * @enum {string}
+             */
+            result: 'INTERNAL_ERROR' | 'INVALID_ARGUMENT' | 'NOT_FOUND' | 'ENTRY_EXISTS' | 'STORAGE_ERROR' | 'TUNNEL_ERROR' | 'UNAUTHORIZED' | 'AUTH_FAILED' | 'INSUFFICIENT_STORAGE' | 'SERVICE_UNAVAILABLE' | 'CONFIGURATION_REQUIRED' | 'FORBIDDEN' | 'INVALID_CONFIGURATION' | 'TOO_LONG' | 'TOO_EARLY' | 'NO_LICENSE';
+            /**
+             * @description User-friendly error description.
+             * @example invalid peer info
+             */
+            error?: string;
+            /**
+             * @description Message, which we can put to application logs.
+             * @example invalid character '\\n' in string literal
+             */
+            details?: string;
+            /** @description The name of field, caused error. */
+            field?: string;
         };
-      };
-      responses: {
-        /** Operation successful */
-        OperationSuccessful: unknown;
-        /** Example response */
-        ResponseError: {
-          content: {
-            'application/json': external['common.yaml']['components']['schemas']['Error'];
-          };
-        };
-      };
     };
-    operations: {};
-  };
+    responses: {
+        /** @description Example response */
+        PeerInfo: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Peer'];
+            };
+        };
+        /** @description A link to activate the shared peer */
+        PeerLink: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': {
+                    link: string;
+                };
+            };
+        };
+        /** @description Full information about the Wireguard connection
+         *     for the activated peer. Used to build QR code and config
+         *     on the publicly available activation page.
+         *      */
+        PeerActivationResponse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': {
+                    peer: components['schemas']['PeerRecord'];
+                    wireguard_options: components['schemas']['WireguardOptions'];
+                };
+            };
+        };
+        PeerActivationStatus: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['PeerActivation'];
+            };
+        };
+        /** @description Example response */
+        SettingsInfo: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Settings'];
+            };
+        };
+        /** @description Peer-independent wireguard configuration from a server */
+        ServerWireguardOptions: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['WireguardOptions'];
+            };
+        };
+        /** @description returns suggested IP address */
+        IpPoolSuggestResult: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['IpPoolAddress'];
+            };
+        };
+        /** @description return credentials of authorized session */
+        AdminAuthResponse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['AdminAuth'];
+            };
+        };
+        /** @description returns current status flags */
+        ServiceStatusResponse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['ServiceStatus'];
+            };
+        };
+        /** @description Example response */
+        ResponseError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description Operation successful */
+        OperationSuccessful: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
+    };
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
+}
+export type $defs = Record<string, never>;
+export interface operations {
+    'admin-list-peers': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['PeerRecord'][];
+                };
+            };
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-create-peer': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                'application/json': components['schemas']['Peer'];
+            };
+        };
+        responses: {
+            200: components['responses']['PeerInfo'];
+            400: components['responses']['ResponseError'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            409: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+            507: components['responses']['ResponseError'];
+        };
+    };
+    'admin-create-shared-peer': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                'application/json': components['schemas']['Peer'];
+            };
+        };
+        responses: {
+            200: components['responses']['PeerLink'];
+            400: components['responses']['ResponseError'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            409: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+            507: components['responses']['ResponseError'];
+        };
+    };
+    'admin-get-peer': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components['responses']['PeerInfo'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            404: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-update-peer': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                'application/json': components['schemas']['Peer'];
+            };
+        };
+        responses: {
+            200: components['responses']['PeerInfo'];
+            400: components['responses']['ResponseError'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            404: components['responses']['ResponseError'];
+            409: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-delete-peer': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components['responses']['OperationSuccessful'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            404: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-get-settings': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components['responses']['SettingsInfo'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            404: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-update-settings': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                'application/json': components['schemas']['Settings'];
+            };
+        };
+        responses: {
+            200: components['responses']['SettingsInfo'];
+            400: components['responses']['ResponseError'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-do-auth': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components['responses']['AdminAuthResponse'];
+            401: components['responses']['ResponseError'];
+            404: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-reload-service': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components['responses']['OperationSuccessful'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-get-status': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components['responses']['ServiceStatusResponse'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-initial-setup': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                'application/json': components['schemas']['InitialSetupRequest'];
+            };
+        };
+        responses: {
+            200: components['responses']['OperationSuccessful'];
+            400: components['responses']['ResponseError'];
+            401: components['responses']['ResponseError'];
+            403: components['responses']['ResponseError'];
+            409: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-connection-info-wireguard': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components['responses']['ServerWireguardOptions'];
+            401: components['responses']['ResponseError'];
+            409: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-ippool-suggest': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components['responses']['IpPoolSuggestResult'];
+            404: components['responses']['ResponseError'];
+            409: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'admin-ippool-is-used': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                'application/json': components['schemas']['IpPoolAddress'];
+            };
+        };
+        responses: {
+            200: components['responses']['OperationSuccessful'];
+            404: components['responses']['ResponseError'];
+            409: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'public-peer-status': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components['responses']['PeerActivationStatus'];
+            404: components['responses']['ResponseError'];
+            409: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
+    'public-peer-activate': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                'application/json': components['schemas']['PeerWireguard'];
+            };
+        };
+        responses: {
+            200: components['responses']['PeerActivationResponse'];
+            404: components['responses']['ResponseError'];
+            409: components['responses']['ResponseError'];
+            500: components['responses']['ResponseError'];
+        };
+    };
 }
