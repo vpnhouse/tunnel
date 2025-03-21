@@ -10,9 +10,9 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 )
 

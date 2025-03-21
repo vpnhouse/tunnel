@@ -16,18 +16,16 @@ import (
 	commonAPI "github.com/vpnhouse/api/go/server/common"
 	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xtime"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-var (
-	unsafeUUIDSpace, _ = uuid.FromBytes([]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF})
-)
+var unsafeUUIDSpace, _ = uuid.FromBytes([]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF})
 
 // ClientConnect implements endpoint for POST /api/client/connect
 func (tun *TunnelAPI) ClientConnect(w http.ResponseWriter, r *http.Request) {

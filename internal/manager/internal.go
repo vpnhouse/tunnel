@@ -8,11 +8,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/vpnhouse/tunnel/internal/eventlog"
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/ippool"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xtime"
+	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
@@ -129,7 +129,6 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 
 		return nil
 	}()
-
 	// rollback an action on error
 	if err != nil {
 		if peer.Ipv4 != nil {
@@ -220,7 +219,6 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		wgOK = true
 		return ipOK, dbOK, wgOK, err
 	}()
-
 	// Reverting back
 	if err != nil {
 		if dbOK {

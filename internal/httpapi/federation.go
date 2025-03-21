@@ -10,9 +10,9 @@ import (
 
 	"github.com/vpnhouse/api/go/server/federation"
 	mgmtAPI "github.com/vpnhouse/api/go/server/tunnel_mgmt"
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 )
 

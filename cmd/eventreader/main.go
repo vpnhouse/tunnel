@@ -8,8 +8,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/vpnhouse/tunnel/pkg/eventlog"
 	"github.com/vpnhouse/common-lib-go/xap"
+	"github.com/vpnhouse/tunnel/pkg/eventlog"
 )
 
 const defaultServerPort = "8089"
@@ -51,8 +51,8 @@ func runClient(serverHost string, serverPort string, authSecret string) {
 		"test",
 		serverHost,
 		offsetSync,
-		//eventlog.WithSelfSignedTLS(),
-		//eventlog.WithNoSSL(),
+		// eventlog.WithSelfSignedTLS(),
+		// eventlog.WithNoSSL(),
 		eventlog.WithTunnelPort(serverPort), // can be omitted
 		eventlog.WithAuthSecret(authSecret),
 		eventlog.WithStopIdleTimeout(10*time.Second),
