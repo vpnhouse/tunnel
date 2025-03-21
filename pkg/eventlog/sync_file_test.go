@@ -40,7 +40,7 @@ func TestEventlogSyncFileAcquireLockTtl(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 100; i++ {
-			acquired, err := eventSync.Acquire(instanceID1, tunnelID1, time.Second)
+			acquired, err := eventSync.Acquire(instanceID1, tunnelID1, 3*time.Second)
 			require.NoError(t, err, "failed to acquire offset sync lock du to error: %s", instanceID1)
 			if acquired {
 				acquired1++
@@ -51,7 +51,7 @@ func TestEventlogSyncFileAcquireLockTtl(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 100; i++ {
-			acquired, err := eventSync.Acquire(instanceID2, tunnelID1, time.Second)
+			acquired, err := eventSync.Acquire(instanceID2, tunnelID1, 3*time.Second)
 			require.NoError(t, err, "failed to acquire offset sync lock due to error: %s", instanceID2)
 			if acquired {
 				acquired2++
