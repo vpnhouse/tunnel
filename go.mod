@@ -18,9 +18,9 @@ require (
 	github.com/spf13/afero v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
-	github.com/vpnhouse/api v0.0.0-20240916134854-020f48ada450
-	github.com/vpnhouse/common-lib-go v0.0.0-20250319084216-89504e503e74
-	github.com/vpnhouse/iprose-go v0.2.2-rc1.0.20250319084402-bc4ab25c2ae7
+	github.com/vpnhouse/api v0.0.0-20250317041655-fe56a92f822e
+	github.com/vpnhouse/common-lib-go v0.0.0-20250321035813-68f542c5d2ba
+	github.com/vpnhouse/iprose-go v0.2.2-rc1.0.20250321044832-3d150474e7b2
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
@@ -35,7 +35,6 @@ require (
 	github.com/coredns/caddy v1.1.1 // indirect
 	github.com/coredns/coredns v1.9.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/erwint/ttlcache v1.6.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-acme/lego/v4 v4.6.0 // indirect
 	github.com/go-chi/cors v1.2.0 // indirect
