@@ -101,11 +101,13 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 	var userID string
 	var installationID string
 	if claims != nil {
-		userID = claims.UserId
+		userID = claims.Subject
 		installationID = claims.InstallationId
 	} else {
-		userID = uuid.New().String()
-		installationID = "" // to indicate it's dummy
+		// must be in form of subject "<project_id>/<auth_method_id>/<external_user_id>"
+		userID = strings.Join([]{uuid.New().String(), uuid.New().String(), uuid.New().String()}, "/")
+		// to indicate it's dummy
+		installationID = ""
 	}
 
 	clientInfo := instance.geoipResolver.GetInfo(r)
