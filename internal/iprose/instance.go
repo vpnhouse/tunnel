@@ -105,7 +105,7 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 		installationID = claims.InstallationId
 	} else {
 		// must be in form of subject "<project_id>/<auth_method_id>/<external_user_id>"
-		userID = strings.Join([]{uuid.New().String(), uuid.New().String(), uuid.New().String()}, "/")
+		userID = strings.Join([]string{uuid.New().String(), uuid.New().String(), uuid.New().String()}, "/")
 		// to indicate it's dummy
 		installationID = ""
 	}

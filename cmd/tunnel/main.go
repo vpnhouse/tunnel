@@ -96,10 +96,10 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	authClientOpt := authorizer.WithAuthClient(
 		func(ctx context.Context, clientClaims *auth.ClientClaims) error {
-			err := adminService.CheckUserByActionRules(ctx, clientClaims.UserId)
+			err := adminService.CheckUserByActionRules(ctx, clientClaims.Subject)
 			if err != nil {
 				zap.L().Debug("check user actions error",
-					zap.String("error", err.Error()), zap.String("user_id", clientClaims.UserId))
+					zap.String("error", err.Error()), zap.String("user_id", clientClaims.Subject))
 				return xerror.EForbidden("user is restricted")
 			}
 			return nil
