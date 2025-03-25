@@ -124,10 +124,9 @@ func (instance *Instance) doAuth(r *http.Request) (*authInfo, error) {
 		zap.String("country", clientInfo.Country),
 	)
 
-	// TODO: Add Country
 	return &authInfo{
 		InstallationID: token.InstallationId,
-		UserID:         token.UserId,
+		UserID:         token.Subject,
 		Country:        clientInfo.Country,
 	}, nil
 }
