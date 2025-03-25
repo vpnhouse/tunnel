@@ -32,6 +32,7 @@ func New(flushInterval time.Duration, eventlogService eventlog.EventManager, pro
 			BytesRx:        report.DeltaRx,
 			Seconds:        report.DeltaT,
 			Created:        &proto.Timestamp{Sec: int64(report.Created)},
+			Updated:        &proto.Timestamp{Sec: int64(report.Created + report.DeltaT)},
 			ActivityID:     report.SessionID,
 		})
 		if err != nil {
