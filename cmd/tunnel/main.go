@@ -100,7 +100,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			if err != nil {
 				zap.L().Debug("check user actions error",
 					zap.String("error", err.Error()), zap.String("user_id", clientClaims.Subject))
-				return xerror.EForbidden("user is restricted")
+				return xerror.ENLimitExceeded("user is restricted")
 			}
 			return nil
 		},
