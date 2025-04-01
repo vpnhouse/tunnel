@@ -8,7 +8,6 @@ import (
 	"embed"
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/vpnhouse/common-lib-go/xerror"
@@ -31,7 +30,7 @@ type Storage struct {
 	keyCache     map[string]types.AuthorizerKey
 }
 
-func New(path string, authKeyCacheInterval time.Duration) (*Storage, error) {
+func New(path string) (*Storage, error) {
 	db, err := xstorage.NewSqlite3(path, migrations)
 	if err != nil {
 		return nil, err

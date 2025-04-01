@@ -81,13 +81,12 @@ func (s *CDNConfig) SecretsMap() map[string]string {
 }
 
 type Config struct {
-	InstanceID           string           `yaml:"instance_id"`
-	LogLevel             string           `yaml:"log_level"`
-	SQLitePath           string           `yaml:"sqlite_path" valid:"path,required"`
-	AuthKeyCacheInterval human.Interval   `yaml:"auth_key_cache_interval" valid:"interval"`
-	Rapidoc              bool             `yaml:"rapidoc"`
-	Wireguard            wireguard.Config `yaml:"wireguard"`
-	HTTP                 HttpConfig       `yaml:"http"`
+	InstanceID string           `yaml:"instance_id"`
+	LogLevel   string           `yaml:"log_level"`
+	SQLitePath string           `yaml:"sqlite_path" valid:"path,required"`
+	Rapidoc    bool             `yaml:"rapidoc"`
+	Wireguard  wireguard.Config `yaml:"wireguard"`
+	HTTP       HttpConfig       `yaml:"http"`
 
 	// optional configuration
 	Proxy              *proxy.Config               `yaml:"proxy,omitempty"`
@@ -308,8 +307,7 @@ func loadStaticConfig(fs afero.Fs, path string) (*Config, error) {
 
 	// TODO: Add loading safe defaults to struct before applying stored configuration
 	c := &Config{
-		IPRose:               iprose.DefaultConfig,
-		AuthKeyCacheInterval: human.MustParseInterval(DefaultAuthKeyCacheInterval),
+		IPRose: iprose.DefaultConfig,
 	}
 	if err := yaml.NewDecoder(fd).Decode(c); err != nil {
 		return nil, xerror.EInternalError("failed to unmarshal config", err)
@@ -404,17 +402,16 @@ func safeDefaults(rootDir string) *Config {
 		HTTP: HttpConfig{
 			ListenAddr: ":80",
 		},
-		LogLevel:             "debug",
-		Rapidoc:              true,
-		SQLitePath:           filepath.Join(rootDir, "db.sqlite3"),
-		AuthKeyCacheInterval: human.MustParseInterval(DefaultAuthKeyCacheInterval),
-		Wireguard:            wireguard.DefaultConfig(),
-		AdminAPI:             adminAPIConfig,
-		ManagementKeystore:   keystorePath,
-		PortRestrictions:     ipam.DefaultPortRestrictions(),
-		PeerStatistics:       defaultPeerStatisticConfig(),
-		IPRose:               iprose.DefaultConfig,
-		Statistics:           defaultStatisticsConfig(),
+		LogLevel:           "debug",
+		Rapidoc:            true,
+		SQLitePath:         filepath.Join(rootDir, "db.sqlite3"),
+		Wireguard:          wireguard.DefaultConfig(),
+		AdminAPI:           adminAPIConfig,
+		ManagementKeystore: keystorePath,
+		PortRestrictions:   ipam.DefaultPortRestrictions(),
+		PeerStatistics:     defaultPeerStatisticConfig(),
+		IPRose:             iprose.DefaultConfig,
+		Statistics:         defaultStatisticsConfig(),
 	}
 }
 
