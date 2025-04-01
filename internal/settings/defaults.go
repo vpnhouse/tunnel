@@ -5,5 +5,6 @@ const (
 	DefaultTrafficChangeSendEventInterval = "5m"
 	DefaultMaxUpstreamTrafficChange       = "50Mb"
 	DefaultMaxDownstreamTrafficChange     = "50Mb"
-	DefaultFlushStatisticsInterval        = "5m"
+
+	DefaultFlushStatisticsInterval = "5m"
 )

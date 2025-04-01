@@ -305,7 +305,6 @@ func loadStaticConfig(fs afero.Fs, path string) (*Config, error) {
 
 	defer fd.Close()
 
-	// TODO: Add loading safe defaults to struct before applying stored configuration
 	c := &Config{
 		IPRose: iprose.DefaultConfig,
 	}
