@@ -14,6 +14,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xstorage"
 	"github.com/vpnhouse/tunnel/internal/types"
+	"go.uber.org/zap"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -36,10 +37,20 @@ func New(path string, authKeyCacheInterval time.Duration) (*Storage, error) {
 		return nil, err
 	}
 
-	return &Storage{
+	storage := &Storage{
 		db:       db,
 		keyCache: map[string]types.AuthorizerKey{},
-	}, nil
+	}
+
+	keys, err := storage.readAuthorizedKeys()
+	if err != nil {
+		zap.L().Error("Failed to read authorizer keys, waiting for remote update", zap.Error(err))
+		return storage, nil
+	} else {
+		storage.cachePutAuthorizerKeys(keys)
+	}
+
+	return storage, nil
 }
 
 func (storage *Storage) Shutdown() error {
