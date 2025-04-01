@@ -3,17 +3,17 @@ package admin
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xutils"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 )
 
 var ActionRulesCheckErrors = map[types.ActionRuleType]error{
-	types.ActionRuleRestrict: errors.New(string(types.ActionRuleRestrict)),
+	types.ActionRuleRestrict: xerror.ENLimitExceeded("user is restricted"),
 }
 
 type AddRestrictionRequest struct {
@@ -46,7 +46,7 @@ func (s *Service) AddRestriction(ctx context.Context, req *AddRestrictionRequest
 		zap.Int64("expires", req.ExpiredTo),
 		zap.String("action_type", string(types.ActionRuleRestrict)))
 
-	s.usersToKillSessions.Set(xutils.StringToBytes(req.UserId), nil)
+	_ = s.usersToKillSessions.Set(xutils.StringToBytes(req.UserId), nil)
 
 	return nil
 }

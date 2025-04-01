@@ -816,10 +816,10 @@ github.com/vishvananda/netlink v1.1.0 h1:1iyaYNBLmP6L0220aDnYQpo1QEV4t4hJ+xEEhhJ
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df h1:OviZH7qLw/7ZovXvuNyL3XQl8UFofeikI1NW1Gypu7k=
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
-github.com/vpnhouse/api v0.0.0-20250226082607-b3dcf0ae9b78 h1:Ic6c4s/LPri9o9ZRw5kzO8gzJ6XXa/XGOf7ySeM9uNo=
-github.com/vpnhouse/api v0.0.0-20250226082607-b3dcf0ae9b78/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
-github.com/vpnhouse/common-lib-go v0.0.0-20250321035813-68f542c5d2ba h1:9szyMbYCEwasG5rk+ql4iZ4YIWulHyO0GgQDkU1jMxg=
-github.com/vpnhouse/common-lib-go v0.0.0-20250321035813-68f542c5d2ba/go.mod h1:dNW8HLEIkU5e0v0J9BLhS0WtZ/k+yWdCYbVm/DIO6DI=
+github.com/vpnhouse/api v0.0.0-20250401073232-569d75f3a98b h1:IHmvOf/NJ6E98UfAyGf+416bCaBAnQT7248KuLr55P0=
+github.com/vpnhouse/api v0.0.0-20250401073232-569d75f3a98b/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
+github.com/vpnhouse/common-lib-go v0.0.0-20250401073442-f06087dc7da8 h1:CPAzr6dCzsN+TOXP0orkzRz+LZltFT/WfhWDJw2y0Ms=
+github.com/vpnhouse/common-lib-go v0.0.0-20250401073442-f06087dc7da8/go.mod h1:Lei2mCyH3h2VBqYYTwvX/L8z7hI74CeK+GhBs2UD63I=
 github.com/vpnhouse/iprose-go v0.2.2-rc1.0.20250321044832-3d150474e7b2 h1:pLwS0hfNLb0XaFQSrUpkoUtnOa+Oxxqbmi//SnraJmQ=
 github.com/vpnhouse/iprose-go v0.2.2-rc1.0.20250321044832-3d150474e7b2/go.mod h1:B1jFO7BCftyOnNYTDovvcVtTJ2sifL5Gke4TX3Q1iw8=
 github.com/vultr/govultr/v2 v2.7.1/go.mod h1:BvOhVe6/ZpjwcoL6/unkdQshmbS9VGbowI4QT+3DGVU=

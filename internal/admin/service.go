@@ -45,6 +45,9 @@ func New(storage *storage.Storage) (*Service, error) {
 			}
 		},
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create restricted users cache for sessions to kill: %w", err)
+	}
 
 	s.actionsCache, err = xcache.New(
 		32<<20, // 32 Mb
