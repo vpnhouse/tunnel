@@ -6,8 +6,6 @@ package storage
 
 import (
 	"crypto/rsa"
-	"database/sql"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/vpnhouse/common-lib-go/auth"
@@ -16,9 +14,28 @@ import (
 	"go.uber.org/zap"
 )
 
-// UpdateAuthorizerKeys updates or inserts the given keys.
-// The methods do not validate the key content.
-func (storage *Storage) UpdateAuthorizerKeys(keys []types.AuthorizerKey) error {
+func (storage *Storage) readAuthorizedKeys() ([]types.AuthorizerKey, error) {
+	const q = `select id, source, key from authorizer_keys`
+	rows, err := storage.db.Query(q)
+	if err != nil {
+		return nil, xerror.EStorageError("failed to query authorizer keys", err)
+	}
+
+	defer rows.Close()
+
+	var keys []types.AuthorizerKey
+	for rows.Next() {
+		var key types.AuthorizerKey
+		if err := rows.Scan(&key.ID, &key.Source, &key.Key); err != nil {
+			return nil, xerror.EStorageError("failed to scan into the types.AuthorizerKey", err)
+		}
+		keys = append(keys, key)
+	}
+
+	return keys, nil
+}
+
+func (storage *Storage) writeAuthorizerKeys(keys []types.AuthorizerKey) error {
 	if len(keys) == 0 {
 		// grumble about the api misuse
 		return xerror.EInvalidArgument("empty key list given", nil)
@@ -45,55 +62,10 @@ func (storage *Storage) UpdateAuthorizerKeys(keys []types.AuthorizerKey) error {
 		return err
 	}
 
-	storage.authKeyCache.Purge()
 	return nil
 }
 
-func (storage *Storage) GetAuthorizerKeyByID(id string) (types.AuthorizerKey, error) {
-	storage.authKeyLock.Lock()
-	defer storage.authKeyLock.Unlock()
-
-	cachedKeyPtr, cached := storage.authKeyCache.Get(id)
-	if cached {
-		cachedKey := cachedKeyPtr.(types.AuthorizerKey)
-		return cachedKey, nil
-	}
-
-	var key types.AuthorizerKey
-	const q = `select id, source, key from authorizer_keys where id = $1`
-	if err := storage.db.QueryRow(q, id).Scan(&key.ID, &key.Source, &key.Key); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return types.AuthorizerKey{}, xerror.EEntryNotFound("no such key", nil)
-		}
-		return types.AuthorizerKey{}, xerror.EStorageError("failed to query for a key with a given id", err)
-	}
-
-	storage.authKeyCache.SetWithTTL(id, key, storage.authKeyCacheTtl)
-	return key, nil
-}
-
-func (storage *Storage) ListAuthorizerKeys() ([]types.AuthorizerKey, error) {
-	const q = `select id, source, key from authorizer_keys`
-	rows, err := storage.db.Query(q)
-	if err != nil {
-		return nil, xerror.EStorageError("failed to query authorizer keys", err)
-	}
-
-	defer rows.Close()
-
-	var keys []types.AuthorizerKey
-	for rows.Next() {
-		var key types.AuthorizerKey
-		if err := rows.Scan(&key.ID, &key.Source, &key.Key); err != nil {
-			return nil, xerror.EStorageError("failed to scan into the types.AuthorizerKey", err)
-		}
-		keys = append(keys, key)
-	}
-
-	return keys, nil
-}
-
-func (storage *Storage) DeleteAuthorizerKey(id string) error {
+func (storage *Storage) deleteAuthorizerKey(id string) error {
 	if len(id) == 0 {
 		return xerror.EInvalidArgument("empty id given", nil)
 	}
@@ -103,6 +75,77 @@ func (storage *Storage) DeleteAuthorizerKey(id string) error {
 		return xerror.EStorageError("failed to delete authorizer key", nil)
 	}
 
+	return nil
+}
+
+func (storage *Storage) cachePutAuthorizerKeys(keys []types.AuthorizerKey) {
+	storage.keyCacheLock.Lock()
+	defer storage.keyCacheLock.Unlock()
+
+	for idx := range keys {
+		storage.keyCache[keys[idx].ID] = keys[idx]
+	}
+}
+
+func (storage *Storage) cacheListAuthorizedKeys() []types.AuthorizerKey {
+	storage.keyCacheLock.RLock()
+	defer storage.keyCacheLock.RUnlock()
+
+	result := make([]types.AuthorizerKey, len(storage.keyCache))
+	idx := 0
+	for _, v := range storage.keyCache {
+		result[idx] = v
+		idx++
+	}
+
+	return result
+}
+
+func (storage *Storage) cacheGetAuthorizerKey(id string) (types.AuthorizerKey, error) {
+	storage.keyCacheLock.RLock()
+	defer storage.keyCacheLock.RUnlock()
+
+	key, found := storage.keyCache[id]
+	if !found {
+		return types.AuthorizerKey{}, xerror.EEntryNotFound("no such key", nil)
+	}
+
+	return key, nil
+}
+
+func (storage *Storage) cacheDeleteAuthorizerKey(id string) {
+	storage.keyCacheLock.Lock()
+	defer storage.keyCacheLock.Unlock()
+
+	delete(storage.keyCache, id)
+}
+
+func (storage *Storage) UpdateAuthorizerKeys(keys []types.AuthorizerKey) error {
+	err := storage.writeAuthorizerKeys(keys)
+	if err != nil {
+		return err
+	}
+
+	storage.cachePutAuthorizerKeys(keys)
+	return nil
+}
+
+func (storage *Storage) GetAuthorizerKeyByID(id string) (types.AuthorizerKey, error) {
+	return storage.cacheGetAuthorizerKey(id)
+}
+
+func (storage *Storage) ListAuthorizerKeys() ([]types.AuthorizerKey, error) {
+
+	return storage.cacheListAuthorizedKeys(), nil
+}
+
+func (storage *Storage) DeleteAuthorizerKey(id string) error {
+	err := storage.deleteAuthorizerKey(id)
+	if err != nil {
+		return err
+	}
+
+	storage.cacheDeleteAuthorizerKey(id)
 	return nil
 }
 

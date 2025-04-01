@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/erwint/ttlcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xstorage"
+	"github.com/vpnhouse/tunnel/internal/types"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -26,9 +26,8 @@ var ErrNotFound = errors.New("not found")
 type Storage struct {
 	db *sqlx.DB
 
-	authKeyLock     sync.Mutex
-	authKeyCache    *ttlcache.Cache
-	authKeyCacheTtl time.Duration
+	keyCacheLock sync.RWMutex
+	keyCache     map[string]types.AuthorizerKey
 }
 
 func New(path string, authKeyCacheInterval time.Duration) (*Storage, error) {
@@ -38,14 +37,12 @@ func New(path string, authKeyCacheInterval time.Duration) (*Storage, error) {
 	}
 
 	return &Storage{
-		db:              db,
-		authKeyCache:    ttlcache.NewCache(),
-		authKeyCacheTtl: authKeyCacheInterval,
+		db:       db,
+		keyCache: map[string]types.AuthorizerKey{},
 	}, nil
 }
 
 func (storage *Storage) Shutdown() error {
-	storage.authKeyCache.Close()
 	err := storage.db.Close()
 	if err != nil {
 		return xerror.EStorageError("failed close database", err)
