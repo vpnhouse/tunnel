@@ -22,7 +22,6 @@ import (
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/version"
 	xdns "github.com/vpnhouse/common-lib-go/xdns/server"
-	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/tunnel/internal/admin"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
@@ -98,9 +97,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		func(ctx context.Context, clientClaims *auth.ClientClaims) error {
 			err := adminService.CheckUserByActionRules(ctx, clientClaims.Subject)
 			if err != nil {
-				zap.L().Debug("check user actions error",
+				zap.L().Debug("user has active action with error",
 					zap.String("error", err.Error()), zap.String("user_id", clientClaims.Subject))
-				return xerror.ENLimitExceeded("user is restricted")
+				return err
 			}
 			return nil
 		},
