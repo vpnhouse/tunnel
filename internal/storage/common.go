@@ -32,12 +32,10 @@ func New(path string) (*Storage, error) {
 		return nil, err
 	}
 
-	storage := &Storage{
+	return &Storage{
 		db:   db,
 		keys: *keys.NewCachedKeys(db),
-	}
-
-	return storage, nil
+	}, nil
 }
 
 func (storage *Storage) Shutdown() error {
