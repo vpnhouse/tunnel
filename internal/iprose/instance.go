@@ -112,11 +112,6 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 	}
 
 	clientInfo := instance.geoipResolver.GetInfo(r)
-	zap.L().Debug("iprose: client info",
-		zap.Stringer("request", xhttp.RequestStringer(r)),
-		zap.String("country", clientInfo.Country),
-	)
-
 	return &server.UserInfo{
 		InstallationID: installationID,
 		UserID:         userID,
