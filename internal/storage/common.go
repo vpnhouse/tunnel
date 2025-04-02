@@ -11,6 +11,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xstorage"
+	"github.com/vpnhouse/tunnel/internal/storage/keycache"
+	"go.uber.org/zap"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -21,7 +23,8 @@ var migrations embed.FS
 var ErrNotFound = errors.New("not found")
 
 type Storage struct {
-	db *sqlx.DB
+	db       *sqlx.DB
+	keycache *keycache.Instance
 }
 
 func New(path string) (*Storage, error) {
@@ -30,9 +33,19 @@ func New(path string) (*Storage, error) {
 		return nil, err
 	}
 
-	return &Storage{
-		db: db,
-	}, nil
+	storage := &Storage{
+		db:       db,
+		keycache: keycache.New(),
+	}
+
+	keys, err := storage.dbReadAuthorizerKeys()
+	if err != nil {
+		zap.L().Error("Failed to read authorizer keys, waiting for remote update", zap.Error(err))
+	} else {
+		storage.keycache.Put(keys)
+	}
+
+	return storage, nil
 }
 
 func (storage *Storage) Shutdown() error {
