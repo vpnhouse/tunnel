@@ -15,21 +15,29 @@ import (
 )
 
 func (storage *Storage) dbReadAuthorizerKeys() ([]types.AuthorizerKey, error) {
-	const q = `select id, source, key from authorizer_keys`
-	rows, err := storage.db.Query(q)
+	q := `select id, source, key from authorizer_keys`
+
+	rows := []struct {
+		ID     string `db:"id"`
+		Source string `db:"source"`
+		Key    string `db:"key"`
+	}{}
+	err := storage.db.Select(&rows, q)
 	if err != nil {
-		return nil, xerror.EStorageError("failed to query authorizer keys", err)
+		return nil, xerror.EStorageError("failed to get authorizer keys", err)
 	}
 
-	defer rows.Close()
+	if len(rows) == 0 {
+		return nil, nil
+	}
 
-	var keys []types.AuthorizerKey
-	for rows.Next() {
-		var key types.AuthorizerKey
-		if err := rows.Scan(&key.ID, &key.Source, &key.Key); err != nil {
-			return nil, xerror.EStorageError("failed to scan into the types.AuthorizerKey", err)
-		}
-		keys = append(keys, key)
+	keys := make([]types.AuthorizerKey, 0, len(rows))
+	for _, row := range rows {
+		keys = append(keys, types.AuthorizerKey{
+			ID:     row.ID,
+			Source: row.Source,
+			Key:    row.Source,
+		})
 	}
 
 	return keys, nil
@@ -45,13 +53,17 @@ func (storage *Storage) dbWriteAuthorizerKeys(keys []types.AuthorizerKey) error 
 	if err != nil {
 		return xerror.EStorageError("failed to start transaction", err)
 	}
+	defer tx.Rollback() //nolint:errcheck
 
-	const q = `insert into authorizer_keys(id, source, key) values ($1, $2, $3)
-				on conflict(id) do update set source=$2,key=$3`
+	q := `
+		insert into authorizer_keys(id, source, key) 
+		values ($1, $2, $3)
+		on conflict(id) do update set source=$2,key=$3
+	`
 
 	for _, key := range keys {
-		if _, err := tx.Exec(q, key.ID, key.Source, key.Key); err != nil {
-			_ = tx.Rollback()
+		_, err := tx.Exec(q, key.ID, key.Source, key.Key)
+		if err != nil {
 			return xerror.EStorageError("failed to insert key", err,
 				zap.String("id", key.ID), zap.String("source", key.Source))
 		}
@@ -59,19 +71,20 @@ func (storage *Storage) dbWriteAuthorizerKeys(keys []types.AuthorizerKey) error 
 
 	err = tx.Commit()
 	if err != nil {
-		return err
+		return xerror.EStorageError("failed to commit key changes", err)
 	}
 
 	return nil
 }
 
 func (storage *Storage) dbDeleteAuthorizerKey(id string) error {
-	if len(id) == 0 {
-		return xerror.EInvalidArgument("empty id given", nil)
+	if id == "" {
+		return xerror.EInvalidArgument("key id is empty", nil)
 	}
 
-	const q = `delete from authorizer_keys where id = $1`
-	if _, err := storage.db.Exec(q, id); err != nil {
+	q := `delete from authorizer_keys where id = $1`
+	_, err := storage.db.Exec(q, id)
+	if err != nil {
 		return xerror.EStorageError("failed to delete authorizer key", nil)
 	}
 
@@ -104,7 +117,6 @@ func (storage *Storage) DeleteAuthorizerKey(id string) error {
 
 	storage.keycache.Delete(id)
 	return nil
-
 }
 
 func (storage *Storage) AsKeystore() auth.KeyStore {

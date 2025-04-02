@@ -31,11 +31,9 @@ func (i *Instance) List() []types.AuthorizerKey {
 	i.keyCacheLock.RLock()
 	defer i.keyCacheLock.RUnlock()
 
-	result := make([]types.AuthorizerKey, len(i.keyCache))
-	idx := 0
+	result := make([]types.AuthorizerKey, 0, len(i.keyCache))
 	for _, v := range i.keyCache {
-		result[idx] = v
-		idx++
+		result = append(result, v)
 	}
 
 	return result
@@ -45,8 +43,8 @@ func (i *Instance) Get(id string) (types.AuthorizerKey, error) {
 	i.keyCacheLock.RLock()
 	defer i.keyCacheLock.RUnlock()
 
-	key, found := i.keyCache[id]
-	if !found {
+	key, ok := i.keyCache[id]
+	if !ok {
 		return types.AuthorizerKey{}, xerror.EEntryNotFound("no such key", nil)
 	}
 
