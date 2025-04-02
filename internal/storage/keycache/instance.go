@@ -1,11 +1,24 @@
-package keys
+package keycache
 
 import (
+	"sync"
+
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/tunnel/internal/types"
 )
 
-func (i *CachedKeys) cachePut(keys []types.AuthorizerKey) {
+type Instance struct {
+	keyCacheLock sync.RWMutex
+	keyCache     map[string]types.AuthorizerKey
+}
+
+func New() *Instance {
+	return &Instance{
+		keyCache: map[string]types.AuthorizerKey{},
+	}
+}
+
+func (i *Instance) Put(keys []types.AuthorizerKey) {
 	i.keyCacheLock.Lock()
 	defer i.keyCacheLock.Unlock()
 
@@ -14,7 +27,7 @@ func (i *CachedKeys) cachePut(keys []types.AuthorizerKey) {
 	}
 }
 
-func (i *CachedKeys) cacheList() []types.AuthorizerKey {
+func (i *Instance) List() []types.AuthorizerKey {
 	i.keyCacheLock.RLock()
 	defer i.keyCacheLock.RUnlock()
 
@@ -28,7 +41,7 @@ func (i *CachedKeys) cacheList() []types.AuthorizerKey {
 	return result
 }
 
-func (i *CachedKeys) cacheGet(id string) (types.AuthorizerKey, error) {
+func (i *Instance) Get(id string) (types.AuthorizerKey, error) {
 	i.keyCacheLock.RLock()
 	defer i.keyCacheLock.RUnlock()
 
@@ -40,7 +53,7 @@ func (i *CachedKeys) cacheGet(id string) (types.AuthorizerKey, error) {
 	return key, nil
 }
 
-func (i *CachedKeys) cacheDelete(id string) {
+func (i *Instance) Delete(id string) {
 	i.keyCacheLock.Lock()
 	defer i.keyCacheLock.Unlock()
 
