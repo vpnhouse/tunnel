@@ -7,7 +7,7 @@ import {
   PeerCardsValidationType
 } from './PeerCard.types';
 
-export const PEER_FIELD_CAN_BE_NULL: Array<keyof Partial<FlatPeerType>> = [
+export const PEER_FIELD_CAN_BE_NULL: Array<keyof Partial<FlatPeerType> | 'user_id' | 'installation_id' | 'session_id'> = [
   'label',
   'claims',
   'ipv4',
@@ -24,7 +24,7 @@ export const INVALID_SYMBOLS: PeerCardPatternsType = {
   installation_id: /[^0-9a-fA-F-]/
 };
 
-export const SYMBOL_ERRORS: PeerErrorType = {
+export const SYMBOL_ERRORS: PeerErrorType & { public_key: string, session_id: string, installation_id: string } = {
   public_key: 'Only letters, digits and symbols +/= are allowed',
   ipv4: 'Only digits and dots are allowed',
   session_id: 'Only hexadecimal digits and symbol - are allowed',
