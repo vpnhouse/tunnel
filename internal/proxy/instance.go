@@ -13,7 +13,6 @@ import (
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xlimits"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
-	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -119,11 +118,6 @@ func (instance *Instance) doAuth(r *http.Request) (*authInfo, error) {
 	}
 
 	clientInfo := instance.geoipResolver.GetInfo(r)
-	zap.L().Debug("proxy: client info",
-		zap.Stringer("request", xhttp.RequestStringer(r)),
-		zap.String("country", clientInfo.Country),
-	)
-
 	return &authInfo{
 		InstallationID: token.InstallationId,
 		UserID:         token.Subject,
