@@ -8,6 +8,8 @@ import (
 	"errors"
 	"net"
 	"os"
+	"slices"
+	"strings"
 	"sync/atomic"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -51,6 +53,7 @@ func (g *grpcServer) Shutdown() error {
 
 // New creates and starts gRPC services.
 func New(
+	primaryDomainName string,
 	config settings.GRPCConfig,
 	eventLog eventlog.EventManager,
 	keystore keystore.Keystore,
@@ -62,7 +65,16 @@ func New(
 	var withTls grpc.ServerOption
 	switch {
 	case config.TLSSelfSign != nil:
-		withTls, ca, err = tlsSelfSignCredentialsAndCA(config.TLSSelfSign)
+		if primaryDomainName == "" && len(config.TLSSelfSign.AllowedNames) == 0 {
+			return nil, errors.New("please, specify tls allowed names or primary domain name")
+		}
+		names := make([]string, 0, len(config.TLSSelfSign.AllowedNames)+1)
+		if primaryDomainName != "" {
+			names = append(names, primaryDomainName)
+		}
+		names = append(names, config.TLSSelfSign.AllowedNames...)
+		names = slices.CompactFunc(names, strings.EqualFold)
+		withTls, ca, err = tlsSelfSignCredentialsAndCA(names, config.TLSSelfSign)
 	default:
 	}
 	if err != nil {
@@ -109,7 +121,7 @@ func New(
 	return wrapper, nil
 }
 
-func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *settings.TLSSelfSignConfig) (grpc.ServerOption, string, error) {
+func tlsSelfSignCredentialsAndCA(domainNames []string, tlsSelfSignConfig *settings.TLSSelfSignConfig) (grpc.ServerOption, string, error) {
 	zap.L().Debug("storage directory", zap.String("dir", tlsSelfSignConfig.Dir))
 
 	signCA, wasGenerated, err := loadOrGenerateCASign(tlsSelfSignConfig)
@@ -117,7 +129,7 @@ func tlsSelfSignCredentialsAndCA(tlsSelfSignConfig *settings.TLSSelfSignConfig) 
 		return nil, "", err
 	}
 
-	sign, err := loadOrGenerateServerSign(tlsSelfSignConfig, signCA, wasGenerated)
+	sign, err := loadOrGenerateServerSign(domainNames, tlsSelfSignConfig, signCA, wasGenerated)
 	if err != nil {
 		return nil, "", err
 	}
@@ -169,7 +181,7 @@ func loadOrGenerateCASign(tlsSelfSignConfig *settings.TLSSelfSignConfig) (*tlsut
 	return signCA, true, nil
 }
 
-func loadOrGenerateServerSign(tlsSelfSignConfig *settings.TLSSelfSignConfig, signCA *tlsutils.Sign, forceGenerate bool) (*tlsutils.Sign, error) {
+func loadOrGenerateServerSign(domainNames []string, tlsSelfSignConfig *settings.TLSSelfSignConfig, signCA *tlsutils.Sign, forceGenerate bool) (*tlsutils.Sign, error) {
 	var sign *tlsutils.Sign
 	var err error
 	if tlsSelfSignConfig.Dir != "" && forceGenerate == false {
@@ -205,7 +217,7 @@ func loadOrGenerateServerSign(tlsSelfSignConfig *settings.TLSSelfSignConfig, sig
 		tlsutils.WithRsaSigner(4096),
 		tlsutils.WithIPAddresses(allowedIPs...),
 		tlsutils.WithLocalIPAddresses(),
-		tlsutils.WithDNSNames(tlsSelfSignConfig.AllowedNames...),
+		tlsutils.WithDNSNames(domainNames...),
 	}
 
 	sign, err = tlsutils.GenerateSign(opts...)

@@ -15,7 +15,7 @@ func TestSelfSignGrpcOptions(t *testing.T) {
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tempDir)
-	options, ca, err := tlsSelfSignCredentialsAndCA(&settings.TLSSelfSignConfig{Dir: tempDir})
+	options, ca, err := tlsSelfSignCredentialsAndCA([]string{"localhost"}, &settings.TLSSelfSignConfig{Dir: tempDir})
 
 	require.NoError(t, err, "failed to generate self sign options")
 	require.False(t, ca == "", "ca is empty")
