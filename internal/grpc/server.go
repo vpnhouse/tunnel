@@ -71,6 +71,7 @@ func New(
 			names = append(names, primaryDomainName)
 		}
 		names = append(names, config.TLSSelfSign.AllowedNames...)
+		names = slices.CompactFunc(names, strings.EqualFold)
 		withTls, ca, err = tlsSelfSignCredentialsAndCA(names, config.TLSSelfSign)
 	default:
 	}
