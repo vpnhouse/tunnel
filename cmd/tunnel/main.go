@@ -296,7 +296,11 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	if runtime.Features.WithGRPC() {
 		if runtime.Settings.GRPC != nil {
-			grpcServices, err := grpc.New(*runtime.Settings.GRPC, eventLog, keyStore, dataStorage, adminService)
+			primaryName := ""
+			if runtime.Settings.Domain != nil {
+				primaryName = runtime.Settings.Domain.PrimaryName
+			}
+			grpcServices, err := grpc.New(primaryName, *runtime.Settings.GRPC, eventLog, keyStore, dataStorage, adminService)
 			if err != nil {
 				return fmt.Errorf("failed to create grpc server: %w", err)
 			}
