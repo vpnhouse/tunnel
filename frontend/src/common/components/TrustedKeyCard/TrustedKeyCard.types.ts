@@ -13,15 +13,15 @@ export type TrustedKeysEventTargetType = EventTarget & HTMLInputElement & {
 };
 
 export type TrustedKeysPatternsType = {
-  [key in TrustedKeysFieldsType]?: RegExp;
+  [key: string]: RegExp;
 };
 
 export type TrustedKeysValidationType = {
-  [key in TrustedKeysFieldsType]: (field: TrustedKeysFieldsType, value: string) => string;
+  [key: string]: (field: TrustedKeysFieldsType, value: string) => string;
 };
 
 export type PatternErrorType = {
-  [key in TrustedKeysFieldsType]?: string;
+  [key: string]: string;
 } & {
   required: string;
 };

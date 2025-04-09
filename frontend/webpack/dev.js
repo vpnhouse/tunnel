@@ -3,7 +3,7 @@ const { merge } = require('webpack-merge');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const common = require('./common');
-const apiUrl = process.env.npm_config_api ?? 'http://localhost:80';
+const apiUrl = process.env.npm_config_api ?? 'https://vu-de-2.vpnhouse.net';
 
 printApiBanner(apiUrl);
 

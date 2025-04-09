@@ -20,3 +20,20 @@ export const BYTES_MEASURE_LIMITS = [
     label: 'TB'
   }
 ];
+
+export const FETCH_STATS_INTERVAL = 5000;
+
+export const TABS = [
+  {
+    value: 'all',
+    label: 'All'
+  },
+  {
+    value: 'wireguard',
+    label: 'Wireguard'
+  },
+  {
+    value: 'iprose',
+    label: 'IPRose'
+  }
+];

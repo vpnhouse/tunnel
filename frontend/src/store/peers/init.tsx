@@ -147,23 +147,18 @@ getPeersWireguardFx.failData.watch(
 
 savePeerFx.doneData.watch((result) => {
   const { id, peer, private_key } = result;
-  const { info_wireguard, identifiers, ...rest } = peer;
 
   savePeer({
     peerInfo: {
       id,
-      info_wireguard: {
-        ...info_wireguard,
-        private_key
-      },
-      ...identifiers,
-      ...rest
+      private_key,
+      ...peer
     },
     isEditing: false
   });
   getPeersWireguardFx({
     private_key,
-    label: rest.label,
+    label: peer.label,
     ipv4: peer.ipv4 as string
   });
 });
@@ -201,14 +196,11 @@ deletePeerFx.failData.watch((error) => {
 
 changePeerFx.done.watch(({ params, result }) => {
   const { id } = params;
-  const { info_wireguard, identifiers, ...rest } = result;
 
   changePeer({
     peerInfo: {
       id,
-      ...info_wireguard,
-      ...identifiers,
-      ...rest
+      ...result
     },
     isEditing: false
   });
