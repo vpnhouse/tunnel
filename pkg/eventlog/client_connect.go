@@ -21,7 +21,7 @@ import (
 func (s *Client) connect() error {
 	if s.opts.SelfSigned {
 		return s.connectSelfSignedTLS()
-	} else if s.client == nil {
+	} else if s.conn == nil {
 		return s.connectTLS()
 	}
 	return nil
