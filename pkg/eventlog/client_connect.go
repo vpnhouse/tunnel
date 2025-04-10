@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 
@@ -42,6 +42,7 @@ func (s *Client) connectSelfSignedTLS() error {
 	if err != nil {
 		return fmt.Errorf("request tunnel CA failed: %w", err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("request tunnel CA failed: %s", resp.Status)
@@ -56,8 +57,7 @@ func (s *Client) connectSelfSignedTLS() error {
 		return errors.New("request tunnel CA failed: invalid response tunnel key")
 	}
 
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("request tunnel CA failed: error read response body: %w", err)
 	}
@@ -129,7 +129,7 @@ func (s *Client) connectWithCreds(creds credentials.TransportCredentials) error 
 		return fmt.Errorf("failed to init grps client: %w", err)
 	}
 
-	s.client = proto.NewEventLogServiceClient(cc)
+	s.conn = cc
 	return nil
 }
 
@@ -153,7 +153,9 @@ func (s *Client) fetchEventsClient(ctx context.Context) (proto.EventLogService_F
 		return nil, err
 	}
 
-	fetchEventsClient, err := s.client.FetchEvents(ctx, req, grpc.Header(&header))
+	client := proto.NewEventLogServiceClient(s.conn)
+
+	fetchEventsClient, err := client.FetchEvents(ctx, req, grpc.Header(&header))
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +176,9 @@ func (s *Client) eventFetchedClient(ctx context.Context) (proto.EventLogService_
 	md := metadata.New(map[string]string{federationAuthHeader: s.opts.AuthSecret})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 	var header metadata.MD
-	eventFetchedClient, err := s.client.EventFetched(ctx, grpc.Header(&header))
+
+	client := proto.NewEventLogServiceClient(s.conn)
+	eventFetchedClient, err := client.EventFetched(ctx, grpc.Header(&header))
 	if err != nil {
 		return nil, err
 	}
