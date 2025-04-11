@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/vpnhouse/common-lib-go/human"
-	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 
 type Client struct {
 	opts         options
-	client       proto.EventLogServiceClient
+	conn         *grpc.ClientConn
 	out          chan *ClientEvent
 	once         sync.Once
 	stop         chan struct{}
@@ -100,4 +100,10 @@ func (s *Client) Events() chan *ClientEvent {
 func (s *Client) Close() {
 	close(s.stop)
 	<-s.done
+	if s.conn != nil {
+		err := s.conn.Close()
+		if err != nil {
+			zap.L().Error("failed to close client connection", zap.Error(err), zap.String("addr", s.opts.TunnelID))
+		}
+	}
 }
