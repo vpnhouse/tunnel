@@ -4,7 +4,7 @@ const useStyles = makeStyles(({ palette }) =>
   createStyles({
     root: {
       height: '100%',
-      width: 240,
+      width: 310,
       boxSizing: 'border-box',
       backgroundColor: palette.background.paper,
       display: 'flex',

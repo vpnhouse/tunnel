@@ -55,8 +55,11 @@ const PeerCard: FC<PropsType> = ({
     const keys = window?.wireguard.generateKeypair();
     setPeer(() => ({
       ...peerInfo,
-      public_key: peerInfo?.info_wireguard?.public_key || keys.publicKey,
-      private_key: peerInfo?.info_wireguard?.private_key || keys.privateKey,
+      info_wireguard: {
+        ...peerInfo?.info_wireguard,
+        public_key: peerInfo?.info_wireguard?.public_key || keys.publicKey
+      },
+      private_key: peerInfo?.private_key || keys.privateKey,
       label: peerInfo?.label || 'Device name'
     }));
   }, [peerInfo]);

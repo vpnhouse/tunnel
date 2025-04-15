@@ -1,14 +1,14 @@
 import { components } from '@schema';
 
-type PeerIdentifiersType = components['schemas']['ConnectionIdentifiers'];
 export type PeerType = components['schemas']['Peer'];
 export type PeerRecordType = components['schemas']['PeerRecord'];
 
 export type FlatPeerType = Pick<PeerRecordType, 'id'>
-  & Omit<PeerType, 'info_wireguard' | 'identifiers'>
-  & PeerIdentifiersType
-  & PeerKeys
-  & PeersWireguard;
+  & PeerType
+  & {
+    private_key?: string,
+    [key: string]: any,
+  };
 
 export type PeerErrorType = {
   [key in keyof Partial<FlatPeerType>]: string;
@@ -31,7 +31,7 @@ export type PeersWireguard = {
 }
 
 export type PeerKeys = {
-  public_key: string;
+  public_key?: string;
   private_key: string;
 }
 
