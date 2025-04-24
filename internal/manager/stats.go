@@ -19,11 +19,6 @@ type (
 	peerChangeSummary int
 )
 
-type speedValue struct {
-	Upstream   int64
-	Downstream int64
-}
-
 const (
 	peerChangeNone          peerChangeType = 0
 	peerChangeFirstActivity peerChangeType = 1

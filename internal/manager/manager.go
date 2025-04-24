@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/vishvananda/netlink"
 	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/ipam"
 	"github.com/vpnhouse/common-lib-go/statutils"
@@ -22,60 +21,6 @@ import (
 )
 
 const ProtocolWireguard string = "wireguard"
-
-type CachedStatistics struct {
-	// PeersTotal is a number of peers
-	// being authorized to connect to this node
-	PeersTotal int
-	// PeersWithTraffic is a number of peers
-	// being actually connected to this node
-	PeersWithTraffic int
-	// PeersActiveLastHour is number of peers
-	// having any exchange during last hour
-	PeersActiveLastHour int
-	// PeersActiveLastDay is number of peers
-	// having any exchange during last 24 hours
-	PeersActiveLastDay int
-	// Wireguard link statistic, may be nil
-	LinkStat *netlink.LinkStatistics
-	// Upstream traffic totally  (bytes)
-	Upstream int64
-	// Upstream speed totally (bytes per second)
-	UpstreamSpeed int64
-	// Downstream traffic totally (bytes)
-	Downstream int64
-	// Downstream speed totally (bytes per second)
-	DownstreamSpeed int64
-
-	// The time in seconds then statistics was collected
-	Collected int64
-}
-
-func (s *CachedStatistics) CalcSpeed(prevStats *CachedStatistics) *speedValue {
-	if s.Collected == 0 || prevStats.Collected >= s.Collected || prevStats == nil {
-		return nil
-	}
-
-	seconds := s.Collected - prevStats.Collected
-
-	if seconds == 0 {
-		return nil
-	}
-
-	var upstreamSpeed int64
-	if s.Upstream >= prevStats.Upstream {
-		upstreamSpeed = (s.Upstream - prevStats.Upstream) / seconds
-	}
-
-	var downstreamSpeed int64
-	if s.Downstream >= prevStats.Downstream {
-		downstreamSpeed = (s.Downstream - prevStats.Downstream) / seconds
-	}
-	return &speedValue{
-		Upstream:   upstreamSpeed,
-		Downstream: downstreamSpeed,
-	}
-}
 
 type Manager struct {
 	runtime           *runtime.TunnelRuntime
@@ -159,7 +104,7 @@ func (manager *Manager) Running() bool {
 	return manager.running.Load().(bool)
 }
 
-func (manager *Manager) GetCachedStatistics() *CachedStatistics {
+func (manager *Manager) GetCachedStatistics1() *CachedStatistics {
 	return manager.statistic.Load().(*CachedStatistics)
 }
 

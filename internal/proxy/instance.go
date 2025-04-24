@@ -1,17 +1,20 @@
 package proxy
 
 import (
+	"net"
 	"net/http"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/common-lib-go/xerror"
-	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xlimits"
+	"github.com/vpnhouse/common-lib-go/xproxy"
+	"github.com/vpnhouse/common-lib-go/xrand"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 )
 
@@ -23,20 +26,38 @@ type Config struct {
 }
 
 type Instance struct {
-	config          *Config
-	authorizer      authorizer.JWTAuthorizer
-	users           *xlimits.Blocker
-	myDomains       map[string]struct{}
-	proxyMarkHeader string
-	terminated      atomic.Bool
-	statsService    *stats.Service
-	geoipResolver   *geoip.Resolver
+	config         *Config
+	authorizer     authorizer.JWTAuthorizer
+	fetcher        xproxy.Instance
+	users          *xlimits.Blocker
+	myDomains      map[string]struct{}
+	markHeaderName string
+	terminated     atomic.Bool
+	statsService   *stats.Service
+	geoipResolver  *geoip.Resolver
 }
 
-type authInfo struct {
-	InstallationID string
-	UserID         string
-	Country        string
+type query struct {
+	sessionID      uuid.UUID
+	installationID string
+	userID         string
+	country        string
+
+	releaser   func()
+	reporterTx func()
+	reporterRx func()
+}
+
+type transport struct {
+	httpClient http.Client
+}
+
+func (transport *transport) Dial(addr string) (net.Conn, error) {
+	return net.Dial("tcp", addr)
+}
+
+func (transport *transport) HttpClient() *http.Client {
+	return &transport.httpClient
 }
 
 func New(
@@ -60,14 +81,33 @@ func New(
 		markHeaderLength = 8
 	}
 
+	markHeaderName := config.MarkHeaderPrefix + xrand.RandomString(markHeaderLength)
+	transport := &transport{
+		httpClient: *http.DefaultClient,
+	}
+
 	instance := &Instance{
-		config:          config,
-		authorizer:      authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
-		users:           xlimits.NewBlocker(config.ConnLimit),
-		myDomains:       domains,
-		proxyMarkHeader: config.MarkHeaderPrefix + randomString(markHeaderLength),
-		statsService:    statsService,
-		geoipResolver:   geoipResolver,
+		config:     config,
+		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
+
+		users:          xlimits.NewBlocker(config.ConnLimit),
+		myDomains:      domains,
+		markHeaderName: markHeaderName,
+		statsService:   statsService,
+		geoipResolver:  geoipResolver,
+	}
+
+	instance.fetcher = xproxy.Instance{
+		MarkHeaderName: markHeaderName,
+		Transport:      transport,
+		AuthCallback: func(r *http.Request) (description any, err error) {
+			return instance.doAuth(r)
+		},
+		ReleaseCallback: func(description any) {
+			instance.doRelease(description.(*query))
+		},
+		StatsReportRx: instance.doReportRx,
+		StatsReportTx: instance.doReportTx,
 	}
 
 	return instance, nil
@@ -92,7 +132,7 @@ func (instance *Instance) isMyRequest(r *http.Request) bool {
 }
 
 func (instance *Instance) cycledProxy(r *http.Request) bool {
-	_, cycled := r.Header[instance.proxyMarkHeader]
+	_, cycled := r.Header[instance.markHeaderName]
 	return cycled
 }
 
@@ -101,12 +141,12 @@ func (instance *Instance) ProxyHandler(next http.Handler) http.Handler {
 		if (instance.isMyRequest(r) || instance.cycledProxy(r)) && (r.Method != http.MethodConnect) {
 			next.ServeHTTP(w, r)
 		} else {
-			instance.doProxy(w, r)
+			instance.fetcher.ServeHTTP(w, r)
 		}
 	})
 }
 
-func (instance *Instance) doAuth(r *http.Request) (*authInfo, error) {
+func (instance *Instance) doAuth(r *http.Request) (*query, error) {
 	userToken, ok := extractProxyAuthToken(r)
 	if !ok {
 		return nil, xerror.WAuthenticationFailed("proxy", "no auth token", nil)
@@ -118,52 +158,56 @@ func (instance *Instance) doAuth(r *http.Request) (*authInfo, error) {
 	}
 
 	clientInfo := instance.geoipResolver.GetInfo(r)
-	return &authInfo{
-		InstallationID: token.InstallationId,
-		UserID:         token.Subject,
-		Country:        clientInfo.Country,
+	user, err := instance.users.Acquire(r.Context(), token.Subject)
+	if err != nil {
+		return nil, err
+	}
+
+	return &query{
+		sessionID:      uuid.New(),
+		installationID: token.InstallationId,
+		userID:         token.Subject,
+		country:        clientInfo.Country,
+		releaser: func() {
+			instance.users.Release(token.Subject, user)
+		},
+		reporterRx: func() {
+
+		},
+		reporterTx: func() {
+
+		},
 	}, nil
 }
 
-func (instance *Instance) doProxy(w http.ResponseWriter, r *http.Request) {
-	authInfo, err := instance.doAuth(r)
-	if err != nil {
-		w.Header()["Proxy-Authenticate"] = []string{"Basic realm=\"proxy\""}
-		w.WriteHeader(http.StatusProxyAuthRequired)
-		w.Write([]byte("Proxy authentication required"))
+func (instance *Instance) doRelease(authInfo *query) {
+	authInfo.releaser()
+}
+
+func (instance *Instance) doReportRx(description any, n uint64) {
+	if instance.statsService == nil {
 		return
 	}
 
-	user, err := instance.users.Acquire(r.Context(), authInfo.UserID)
-	if err != nil {
-		http.Error(w, "Limit exceeded", http.StatusTooManyRequests)
-		xhttp.WriteJsonError(w, err)
+	query := description.(*query)
+	instance.statsService.ReportStats(query.sessionID, n, 0, func(sessionID uuid.UUID, sessionData *stats.SessionData) {
+		sessionData.InstallationID = query.installationID
+		sessionData.UserID = query.userID
+		sessionData.Country = query.country
+	})
+}
+
+func (instance *Instance) doReportTx(description any, n uint64) {
+	if instance.statsService == nil {
 		return
 	}
-	defer instance.users.Release(authInfo.UserID, user)
 
-	query := &ProxyQuery{
-		auth:          authInfo,
-		id:            queryCounter.Add(1),
-		proxyInstance: instance,
-	}
-
-	if r.Method == "CONNECT" {
-		if r.ProtoMajor == 1 {
-			query.handleV1Connect(w, r)
-			return
-		}
-
-		if r.ProtoMajor == 2 {
-			query.handleV2Connect(w, r)
-			return
-		}
-
-		http.Error(w, "Unsupported protocol version", http.StatusHTTPVersionNotSupported)
-		return
-	} else {
-		query.handleProxy(w, r)
-	}
+	query := description.(*query)
+	instance.statsService.ReportStats(query.sessionID, 0, n, func(sessionID uuid.UUID, sessionData *stats.SessionData) {
+		sessionData.InstallationID = query.installationID
+		sessionData.UserID = query.userID
+		sessionData.Country = query.country
+	})
 }
 
 // admin.Handler implementation
