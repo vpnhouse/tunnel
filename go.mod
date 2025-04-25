@@ -12,15 +12,14 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/mattn/go-sqlite3 v1.14.10
-	github.com/posener/h2conn v0.0.0-20231204025407-3997deeca0f0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/rubenv/sql-migrate v1.0.0
 	github.com/spf13/afero v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
-	github.com/vpnhouse/api v0.0.0-20250424072130-4ab60aff34ad
-	github.com/vpnhouse/common-lib-go v0.0.0-20250424090217-3c980a07c471
-	github.com/vpnhouse/iprose-go v0.2.2-rc2.0.20250424055126-3d6136e36419
+	github.com/vpnhouse/api v0.0.0-20250425043634-7811595c19b4
+	github.com/vpnhouse/common-lib-go v0.0.0-20250425041920-7a3011dfdc97
+	github.com/vpnhouse/iprose-go v0.2.2-rc2.0.20250425043612-1e701905b7de
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
@@ -90,6 +89,7 @@ require (
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/posener/h2conn v0.0.0-20231204025407-3997deeca0f0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
