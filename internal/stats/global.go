@@ -73,6 +73,15 @@ func (s *TrafficStats) Report(proto string, diffUpstream, diffDownstream int64, 
 	record.At = time.Now()
 }
 
+func (s *TrafficStats) Running() bool {
+	select {
+	case <-s.shutdown:
+		return false
+	default:
+		return true
+	}
+}
+
 func (s *TrafficStats) Shutdown() {
 	s.lock.Lock()
 	defer s.lock.Unlock()
