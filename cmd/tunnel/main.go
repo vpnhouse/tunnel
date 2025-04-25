@@ -149,6 +149,14 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		CDNSecrets: runtime.Settings.CDN.SecretsMap(),
 	}
 
+	// Create new statistics service
+	statService := stats.NewService(
+		runtime.Settings.Statistics.FlushInterval.Value(),
+		eventLog,
+		dataStorage,
+	)
+	runtime.Services.RegisterService("statService", statService)
+
 	// Create new peer manager
 	sessionManager, err := manager.New(
 		runtime,
@@ -173,18 +181,13 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	var iproseServer *iprose.Instance
 	if runtime.Features.WithIPRose() {
-		statsService, err := stats.New(
-			runtime.Settings.Statistics.FlushInterval.Value(),
-			eventLog,
-			"iprose",
-		)
 		if err != nil {
 			return err
 		}
 		iproseServer, err = iprose.New(
 			runtime.Settings.IPRose,
 			jwtAuthorizer,
-			statsService,
+			eventLog,
 			geoipResolver,
 		)
 		if err != nil {
@@ -201,11 +204,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Create proxy server
 	var proxyServer *proxy.Instance
 	if runtime.Features.WithProxy() && runtime.Settings.Proxy != nil {
-		statsService, err := stats.New(
-			runtime.Settings.Statistics.FlushInterval.Value(),
-			eventLog,
-			"proxy",
-		)
+
 		if err != nil {
 			return err
 		}
@@ -216,7 +215,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 				runtime.Settings.Domain.ExtraNames,
 				runtime.Settings.Domain.PrimaryName,
 			),
-			statsService,
+			eventLog,
 			geoipResolver,
 		)
 		if err != nil {

@@ -6,8 +6,8 @@ package iprose
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/common-lib-go/geoip"
-	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/internal/eventlog"
 )
 
 type (
@@ -22,7 +22,7 @@ var DefaultConfig = Config{}
 func New(
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
-	statsService *stats.Service,
+	eventlog eventlog.EventManager,
 	geoipResolver *geoip.Resolver,
 ) (*Instance, error) {
 	return &Instance{}, nil

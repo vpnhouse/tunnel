@@ -17,6 +17,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/iprose-go/pkg/server"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"go.uber.org/zap"
 )
 
@@ -47,13 +48,19 @@ type Instance struct {
 func New(
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
-	statsService *stats.Service,
+	eventlog eventlog.EventManager,
 	geoipResolver *geoip.Resolver,
 ) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
 		zap.Int("queue size", config.QueueSize),
 		zap.Duration("session timeout", config.SessionTimeout))
+
+	statsService, err := stats.New(
+		runtime.Settings.Statistics.FlushInterval.Value(),
+		eventLog,
+		"iprose",
+	)
 
 	instance := &Instance{
 		authorizer:    authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),

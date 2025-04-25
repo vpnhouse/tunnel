@@ -16,6 +16,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/xproxy"
 	"github.com/vpnhouse/common-lib-go/xrand"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/internal/eventlog"
 )
 
 type Config struct {
@@ -35,6 +36,7 @@ type Instance struct {
 	terminated     atomic.Bool
 	statsService   *stats.Service
 	geoipResolver  *geoip.Resolver
+	eventlog       eventlog.EventManager
 }
 
 type query struct {
@@ -64,12 +66,18 @@ func New(
 	config *Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	myDomains []string,
-	statsService *stats.Service,
+	eventlog eventlog.EventManager,
 	geoipResolver *geoip.Resolver,
 ) (*Instance, error) {
 	if config == nil {
 		return nil, xerror.EInternalError("No configuration", nil)
 	}
+
+	statsService, err := stats.New(
+		runtime.Settings.Statistics.FlushInterval.Value(),
+		eventLog,
+		"proxy",
+	)
 
 	domains := make(map[string]struct{})
 	for _, domain := range myDomains {
@@ -87,9 +95,8 @@ func New(
 	}
 
 	instance := &Instance{
-		config:     config,
-		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
-
+		config:         config,
+		authorizer:     authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		users:          xlimits.NewBlocker(config.ConnLimit),
 		myDomains:      domains,
 		markHeaderName: markHeaderName,
