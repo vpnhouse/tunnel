@@ -1,8 +1,8 @@
 package stats
 
 import (
-	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,7 +10,6 @@ import (
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/storage"
-	"github.com/vpnhouse/tunnel/proto"
 
 	"go.uber.org/zap"
 )
@@ -29,30 +28,38 @@ type Stats struct {
 	DownstreamSpeed uint64
 }
 
+type pendingStats struct {
+	upstream, downstream atomic.Uint64
+}
+
+type totalStats struct {
+	upstream, downstream uint64
+	at                   time.Time
+}
+
 type protoRecord struct {
-	stats   Stats
+	export  Stats
+	pending pendingStats
+	total   totalStats
 	extraCb ExtraStatsCb
 	service *stats.Service
 }
 
-type protoRecordMap map[string]*protoRecord
-
 type StatsService struct {
-	lock          sync.Mutex
-	flushInterval time.Duration
-	storage       *storage.Storage
-	eventlog      eventlog.EventManager
-	shutdown      chan struct{}
-	records       protoRecordMap
+	lock     sync.RWMutex
+	settings *Settings
+	storage  *storage.Storage
+	eventlog eventlog.EventManager
+	shutdown chan struct{}
+	records  map[string]*protoRecord
 }
 
-func NewService(flushInterval time.Duration, eventLog eventlog.EventManager, storage *storage.Storage) *StatsService {
+func NewService(settings *Settings, eventLog eventlog.EventManager, storage *storage.Storage) *StatsService {
 	s := &StatsService{
-		flushInterval: flushInterval,
-		storage:       storage,
-		eventlog:      eventLog,
-		shutdown:      make(chan struct{}),
-		records:       make(protoRecordMap),
+		storage:  storage,
+		eventlog: eventLog,
+		shutdown: make(chan struct{}),
+		records:  make(map[string]*protoRecord),
 	}
 
 	s.load()
@@ -62,12 +69,13 @@ func NewService(flushInterval time.Duration, eventLog eventlog.EventManager, sto
 }
 
 func (s *StatsService) Stats() map[string]Stats {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 
 	result := map[string]Stats{}
 	for k, v := range s.records {
-		result[k] = v.stats
+		result[k] = v.export
+
 	}
 
 	return result
@@ -82,7 +90,7 @@ func (s *StatsService) Register(proto string, extraCb ExtraStatsCb) (*stats.Serv
 		return nil, xerror.EInternalError("Protocol already registered", nil, zap.String("proto", proto))
 	}
 
-	service, err := stats.New(s.flushInterval,
+	service, err := stats.New(s.settings.flushInterval(),
 		func(report *stats.Report) {
 			s.onFlush(proto, report)
 		},
@@ -100,50 +108,9 @@ func (s *StatsService) Register(proto string, extraCb ExtraStatsCb) (*stats.Serv
 	return record.service, nil
 }
 
-func (s *StatsService) pushLog(protocol string, report *stats.Report) {
-	err := s.eventlog.Push(eventlog.PeerTraffic, &proto.PeerInfo{
-		SessionID:      report.SessionID,
-		UserID:         report.UserID,
-		InstallationID: report.InstallationID,
-		Country:        report.Country,
-		Protocol:       protocol,
-		BytesDeltaTx:   report.DeltaTx,
-		BytesRx:        report.DeltaRx,
-		Seconds:        report.DeltaTNano / 1e9,
-		Created:        &proto.Timestamp{Sec: int64(report.CreatedNano / 1e9)},
-		Updated:        &proto.Timestamp{Sec: int64(report.CreatedNano+report.DeltaTNano) / 1e9},
-		ActivityID:     report.SessionID,
-	})
-	if err != nil {
-		// Avoid error stack trace details - simply pur error description
-		zap.L().Error("error sending event traffic", zap.String("error", err.Error()))
-	}
-
-}
-
-func (s *StatsService) onFlush(proto string, report *stats.Report) {
-	// We must go to background to avoid double lock when onFlush is combined with Report call
-	go func() {
-		s.lock.Lock()
-		defer s.lock.Unlock()
-
-		record, ok := s.records[proto]
-		if !ok || record.service == nil {
-			zap.L().Error("Ignoring onFlush event: protocol is not registered", zap.String("proto", proto))
-			return
-		}
-
-		record.stats.UpstreamBytes += report.DeltaRx
-		record.stats.DownstreamBytes += report.DeltaTx
-		record.stats.ExtraStats = record.extraCb()
-		record.stats.UpstreamSpeed = (report.DeltaRx * 1e3) / (report.DeltaTNano / 1e6)
-		record.stats.DownstreamSpeed = (report.DeltaTx * 1e3) / (report.DeltaTNano / 1e6)
-	}()
-}
-
 func (s *StatsService) Report(proto string, sessionID uuid.UUID, drx, dtx uint64, onSessionDataRequired stats.OnData) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 
 	record, ok := s.records[proto]
 	if !ok {
@@ -172,56 +139,8 @@ func (s *StatsService) Shutdown() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.save()
 	close(s.shutdown)
+	s.save()
+
 	return nil
-}
-
-func (s *StatsService) worker() {
-	for {
-		select {
-		case <-s.shutdown:
-			return
-		case <-time.NewTicker(time.Minute).C:
-			s.lock.Lock()
-			s.save()
-			s.lock.Unlock()
-		}
-	}
-}
-
-func (s *StatsService) load() {
-	metrics, err := s.storage.GetMetricsLike([]string{"upstream_%", "downstream_%"})
-	if err != nil {
-		zap.L().Error("Can't load statistics", zap.Error(err))
-	}
-
-	for name, value := range metrics {
-		sp := strings.SplitN(name, "_", 2)
-		if len(sp) != 2 {
-			zap.L().Error("Invalid metrics record", zap.String("name", name), zap.Int64("value", value))
-			continue
-		}
-
-		direction := sp[0]
-		proto := sp[1]
-
-		if direction == "upstream" {
-			s.records[proto].stats.DownstreamBytes = uint64(value)
-		} else if direction == "downstream" {
-			s.records[proto].stats.DownstreamBytes = uint64(value)
-		} else {
-			zap.L().Error("Ignoring unknown metrics record", zap.String("name", name), zap.Int64("value", value))
-			continue
-		}
-	}
-}
-
-func (s *StatsService) save() {
-	metrics := map[string]int64{}
-	for k, v := range s.records {
-		metrics["upstream_"+k] = int64(v.stats.UpstreamBytes)
-		metrics["downstream_"+k] = int64(v.stats.UpstreamBytes)
-	}
-	s.storage.SetMetrics(metrics)
 }

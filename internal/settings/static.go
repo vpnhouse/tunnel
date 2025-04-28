@@ -29,6 +29,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/iprose"
 	"github.com/vpnhouse/tunnel/internal/proxy"
+	"github.com/vpnhouse/tunnel/internal/stats"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -91,6 +92,7 @@ type Config struct {
 	// optional configuration
 	Proxy              *proxy.Config               `yaml:"proxy,omitempty"`
 	ExternalStats      *extstat.Config             `yaml:"external_stats,omitempty"`
+	Stats              *stats.Settings             `yanl:"stats,omitempty"`
 	NetworkPolicy      *NetworkAccessPolicy        `yaml:"network,omitempty"`
 	SSL                *xhttp.SSLConfig            `yaml:"ssl,omitempty"`
 	Domain             *xhttp.DomainConfig         `yaml:"domain,omitempty"`

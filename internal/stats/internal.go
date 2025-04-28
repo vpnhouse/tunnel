@@ -1,0 +1,127 @@
+package stats
+
+import (
+	"strings"
+	"time"
+
+	"github.com/vpnhouse/common-lib-go/stats"
+	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/proto"
+	"go.uber.org/zap"
+)
+
+func (s *StatsService) pushLog(protocol string, report *stats.Report) {
+	err := s.eventlog.Push(eventlog.PeerTraffic, &proto.PeerInfo{
+		SessionID:      report.SessionID,
+		UserID:         report.UserID,
+		InstallationID: report.InstallationID,
+		Country:        report.Country,
+		Protocol:       protocol,
+		BytesDeltaTx:   report.DeltaTx,
+		BytesRx:        report.DeltaRx,
+		Seconds:        report.DeltaTNano / 1e9,
+		Created:        &proto.Timestamp{Sec: int64(report.CreatedNano / 1e9)},
+		Updated:        &proto.Timestamp{Sec: int64(report.CreatedNano+report.DeltaTNano) / 1e9},
+		ActivityID:     report.SessionID,
+	})
+	if err != nil {
+		// Avoid error stack trace details - simply put error description
+		zap.L().Error("error sending event traffic", zap.String("error", err.Error()))
+	}
+
+}
+
+func (s *StatsService) onFlush(proto string, report *stats.Report) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	record, ok := s.records[proto]
+	if !ok || record.service == nil {
+		zap.L().Error("Ignoring onFlush event: protocol is not registered", zap.String("proto", proto))
+		return
+	}
+
+	record.pending.upstream.Add(report.DeltaRx)
+	record.pending.downstream.Add(report.DeltaTx)
+
+	s.pushLog(proto, report)
+}
+
+func (s *StatsService) worker() {
+	for {
+		select {
+		case <-s.shutdown:
+			return
+		case <-time.NewTicker(s.settings.exportInterval()).C:
+			s.lock.RLock()
+			s.export()
+			s.save()
+			s.lock.RUnlock()
+		}
+	}
+}
+
+func (s *StatsService) export() {
+	now := time.Now()
+	for _, record := range s.records {
+		deltaUp := record.pending.upstream.Swap(0)
+		deltaDown := record.pending.downstream.Swap(0)
+
+		record.total.upstream += deltaUp
+		record.total.downstream += deltaDown
+
+		record.export = Stats{
+			ExtraStats:      record.extraCb(),
+			UpstreamBytes:   record.total.upstream,
+			DownstreamBytes: record.total.downstream,
+			UpstreamSpeed:   speed(deltaUp, now, record.total.at),
+			DownstreamSpeed: speed(deltaDown, now, record.total.at),
+		}
+
+		record.total.at = now
+	}
+}
+
+func (s *StatsService) load() {
+	metrics, err := s.storage.GetMetricsLike([]string{"upstream_%", "downstream_%"})
+	if err != nil {
+		zap.L().Error("Can't load statistics", zap.Error(err))
+		return
+	}
+
+	now := time.Now()
+	for name, value := range metrics {
+		sp := strings.SplitN(name, "_", 2)
+		if len(sp) != 2 {
+			zap.L().Error("Invalid metrics record", zap.String("name", name), zap.Int64("value", value))
+			continue
+		}
+
+		direction := sp[0]
+		proto := sp[1]
+
+		s.records[proto].total.at = now
+		if direction == "upstream" {
+			s.records[proto].total.upstream = uint64(value)
+		} else if direction == "downstream" {
+			s.records[proto].total.downstream = uint64(value)
+		} else {
+			zap.L().Error("Ignoring unknown metrics record", zap.String("name", name), zap.Int64("value", value))
+			continue
+		}
+	}
+}
+
+func (s *StatsService) save() {
+	metrics := map[string]int64{}
+	for k, v := range s.records {
+		metrics["upstream_"+k] = int64(v.total.upstream)
+		metrics["downstream_"+k] = int64(v.total.downstream)
+	}
+	s.storage.SetMetrics(metrics)
+}
+
+func speed(delta uint64, now, since time.Time) uint64 {
+	deltaTMilli := now.Sub(since).Milliseconds()
+	return (delta * 1000) / uint64(deltaTMilli)
+}
