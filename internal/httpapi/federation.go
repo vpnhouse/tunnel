@@ -19,21 +19,16 @@ import (
 func (tun *TunnelAPI) FederationPing(w http.ResponseWriter, r *http.Request) {
 	zap.L().Debug("ping")
 	xhttp.JSONResponse(w, func() (interface{}, error) {
-		stats := tun.manager.GetCachedStatistics()
-		reply := mgmtAPI.PingResponse{
-			PeersTotal:       stats.PeersTotal,
-			PeersWithTraffic: stats.PeersWithTraffic,
-		}
-		if stats.LinkStat != nil {
-			reply.IfRxBytes = int(stats.LinkStat.RxBytes)
-			reply.IfRxPackets = int(stats.LinkStat.RxPackets)
-			reply.IfRxErrors = int(stats.LinkStat.RxErrors)
+		global, _ := tun.stats.Stats()
 
-			reply.IfTxBytes = int(stats.LinkStat.TxBytes)
-			reply.IfTxPackets = int(stats.LinkStat.TxPackets)
-			reply.IfTxErrors = int(stats.LinkStat.TxErrors)
-		}
-		return reply, nil
+		return mgmtAPI.PingResponse{
+			PeersTotal:  global.PeersTotal,
+			PeersActive: global.PeersActive,
+			TxBytes:     int64(global.UpstreamBytes),
+			RxBytes:     int64(global.DownstreamBytes),
+			TxSpeed:     int64(global.UpstreamBytes),
+			RxSpeed:     int64(global.DownstreamSpeed),
+		}, nil
 	})
 }
 

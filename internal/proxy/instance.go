@@ -10,14 +10,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/geoip"
-	"github.com/vpnhouse/common-lib-go/stats"
+	"github.com/vpnhouse/common-lib-go/keycounter"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xlimits"
 	"github.com/vpnhouse/common-lib-go/xproxy"
 	"github.com/vpnhouse/common-lib-go/xrand"
+	"github.com/vpnhouse/common-lib-go/xstats"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
-	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/stats"
 )
+
+const ProtoName = "proxy"
 
 type Config struct {
 	ConnLimit              int           `yaml:"conn_limit"`
@@ -34,14 +37,14 @@ type Instance struct {
 	myDomains      map[string]struct{}
 	markHeaderName string
 	terminated     atomic.Bool
-	statsService   *stats.Service
+	statsService   *xstats.Service
 	geoipResolver  *geoip.Resolver
-	eventlog       eventlog.EventManager
+	sessionCounter *keycounter.KeyCounter[string]
 }
 
 type query struct {
 	sessionID      uuid.UUID
-	installationID string
+	installationID uuid.UUID
 	userID         string
 	country        string
 
@@ -66,18 +69,12 @@ func New(
 	config *Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	myDomains []string,
-	eventlog eventlog.EventManager,
+	statsService *stats.Service,
 	geoipResolver *geoip.Resolver,
 ) (*Instance, error) {
 	if config == nil {
 		return nil, xerror.EInternalError("No configuration", nil)
 	}
-
-	statsService, err := stats.New(
-		runtime.Settings.Statistics.FlushInterval.Value(),
-		eventLog,
-		"proxy",
-	)
 
 	domains := make(map[string]struct{})
 	for _, domain := range myDomains {
@@ -94,14 +91,32 @@ func New(
 		httpClient: *http.DefaultClient,
 	}
 
+	sessionCounter := keycounter.New[string]()
+
+	var statsReporter *xstats.Service
+	if statsService != nil {
+		var err error
+		statsReporter, err = statsService.Register(ProtoName, func() stats.ExtraStats {
+			peers := sessionCounter.Count()
+			return stats.ExtraStats{
+				PeersTotal:  peers,
+				PeersActive: peers,
+			}
+		})
+		if err != nil {
+			return nil, xerror.EInternalError("Can't register proxy on stat service", err)
+		}
+	}
+
 	instance := &Instance{
 		config:         config,
 		authorizer:     authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
 		users:          xlimits.NewBlocker(config.ConnLimit),
 		myDomains:      domains,
 		markHeaderName: markHeaderName,
-		statsService:   statsService,
+		statsService:   statsReporter,
 		geoipResolver:  geoipResolver,
+		sessionCounter: sessionCounter,
 	}
 
 	instance.fetcher = xproxy.Instance{
@@ -170,10 +185,13 @@ func (instance *Instance) doAuth(r *http.Request) (*query, error) {
 		return nil, err
 	}
 
+	userID := token.Subject
+	instance.sessionCounter.Inc(userID)
+
 	return &query{
-		sessionID:      uuid.New(),
-		installationID: token.InstallationId,
-		userID:         token.Subject,
+		sessionID:      uuid.MustParse(token.Id),
+		installationID: uuid.MustParse(token.InstallationId),
+		userID:         userID,
 		country:        clientInfo.Country,
 		releaser: func() {
 			instance.users.Release(token.Subject, user)
@@ -189,6 +207,13 @@ func (instance *Instance) doAuth(r *http.Request) (*query, error) {
 
 func (instance *Instance) doRelease(authInfo *query) {
 	authInfo.releaser()
+	instance.sessionCounter.Dec(authInfo.userID)
+}
+
+func (q *query) onStatsSessionData(sessionID uuid.UUID, sessionData *xstats.SessionData) {
+	sessionData.InstallationID = q.installationID.String()
+	sessionData.UserID = q.userID
+	sessionData.Country = q.country
 }
 
 func (instance *Instance) doReportRx(description any, n uint64) {
@@ -197,11 +222,7 @@ func (instance *Instance) doReportRx(description any, n uint64) {
 	}
 
 	query := description.(*query)
-	instance.statsService.ReportStats(query.sessionID, n, 0, func(sessionID uuid.UUID, sessionData *stats.SessionData) {
-		sessionData.InstallationID = query.installationID
-		sessionData.UserID = query.userID
-		sessionData.Country = query.country
-	})
+	instance.statsService.ReportStats(query.sessionID, n, 0, query.onStatsSessionData)
 }
 
 func (instance *Instance) doReportTx(description any, n uint64) {
@@ -210,11 +231,7 @@ func (instance *Instance) doReportTx(description any, n uint64) {
 	}
 
 	query := description.(*query)
-	instance.statsService.ReportStats(query.sessionID, 0, n, func(sessionID uuid.UUID, sessionData *stats.SessionData) {
-		sessionData.InstallationID = query.installationID
-		sessionData.UserID = query.userID
-		sessionData.Country = query.country
-	})
+	instance.statsService.ReportStats(query.sessionID, 0, n, query.onStatsSessionData)
 }
 
 // admin.Handler implementation

@@ -5,28 +5,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/common-lib-go/xstats"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/storage"
 
 	"go.uber.org/zap"
 )
-
-type ExtraStats struct {
-	Peers int
-}
-
-type ExtraStatsCb func() ExtraStats
-
-type Stats struct {
-	ExtraStats
-	UpstreamBytes   uint64
-	DownstreamBytes uint64
-	UpstreamSpeed   uint64
-	DownstreamSpeed uint64
-}
 
 type pendingStats struct {
 	upstream, downstream atomic.Uint64
@@ -42,10 +27,10 @@ type protoRecord struct {
 	pending pendingStats
 	total   totalStats
 	extraCb ExtraStatsCb
-	service *stats.Service
+	service *xstats.Service
 }
 
-type StatsService struct {
+type Service struct {
 	lock     sync.RWMutex
 	settings *Settings
 	storage  *storage.Storage
@@ -54,8 +39,8 @@ type StatsService struct {
 	records  map[string]*protoRecord
 }
 
-func NewService(settings *Settings, eventLog eventlog.EventManager, storage *storage.Storage) *StatsService {
-	s := &StatsService{
+func NewService(settings *Settings, eventLog eventlog.EventManager, storage *storage.Storage) *Service {
+	s := &Service{
 		storage:  storage,
 		eventlog: eventLog,
 		shutdown: make(chan struct{}),
@@ -68,20 +53,23 @@ func NewService(settings *Settings, eventLog eventlog.EventManager, storage *sto
 	return s
 }
 
-func (s *StatsService) Stats() map[string]Stats {
+func (s *Service) Stats() (Stats, map[string]Stats) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
+
+	global := Stats{}
 
 	result := map[string]Stats{}
 	for k, v := range s.records {
 		result[k] = v.export
+		global.Add(&v.export)
 
 	}
 
-	return result
+	return global, result
 }
 
-func (s *StatsService) Register(proto string, extraCb ExtraStatsCb) (*stats.Service, error) {
+func (s *Service) Register(proto string, extraCb ExtraStatsCb) (*xstats.Service, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -90,8 +78,8 @@ func (s *StatsService) Register(proto string, extraCb ExtraStatsCb) (*stats.Serv
 		return nil, xerror.EInternalError("Protocol already registered", nil, zap.String("proto", proto))
 	}
 
-	service, err := stats.New(s.settings.flushInterval(),
-		func(report *stats.Report) {
+	service, err := xstats.New(s.settings.flushInterval(),
+		func(report *xstats.Report) {
 			s.onFlush(proto, report)
 		},
 	)
@@ -108,25 +96,7 @@ func (s *StatsService) Register(proto string, extraCb ExtraStatsCb) (*stats.Serv
 	return record.service, nil
 }
 
-func (s *StatsService) Report(proto string, sessionID uuid.UUID, drx, dtx uint64, onSessionDataRequired stats.OnData) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	record, ok := s.records[proto]
-	if !ok {
-		zap.L().Error("Failed to lookup record for protocol", zap.String("proto", proto))
-		return
-	}
-
-	if record.service == nil {
-		zap.L().Error("Reporting on unregistered protocol is ignored", zap.String("proto", proto))
-		return
-	}
-
-	record.service.ReportStats(sessionID, drx, dtx, onSessionDataRequired)
-}
-
-func (s *StatsService) Running() bool {
+func (s *Service) Running() bool {
 	select {
 	case <-s.shutdown:
 		return false
@@ -135,7 +105,7 @@ func (s *StatsService) Running() bool {
 	}
 }
 
-func (s *StatsService) Shutdown() error {
+func (s *Service) Shutdown() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

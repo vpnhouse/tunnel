@@ -11,9 +11,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/ippool"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xtime"
-	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
@@ -56,7 +54,6 @@ func (manager *Manager) restorePeers() {
 
 		_ = manager.wireguard.SetPeer(peer)
 		allPeersGauge.Inc()
-		manager.peerTrafficSender.Add(peer)
 	}
 }
 
@@ -71,13 +68,6 @@ func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
 	errs = multierr.Append(errs, err)
 
 	allPeersGauge.Dec()
-	if err := manager.eventLog.Push(eventlog.PeerRemove, peer.IntoProto()); err != nil {
-		// do not return an error here because it's not related to the method itself.
-		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerRemove)))
-	}
-
-	manager.peerTrafficSender.Remove(peer)
-
 	return errs
 }
 
@@ -143,12 +133,6 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 	}
 
 	allPeersGauge.Inc()
-	if err := manager.eventLog.Push(eventlog.PeerAdd, peer.IntoProto()); err != nil {
-		// do not return an error here because it's not related to the method itself.
-		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerAdd)))
-	}
-	manager.peerTrafficSender.Add(peer)
-
 	return nil
 }
 
@@ -240,12 +224,6 @@ func (manager *Manager) updatePeer(newPeer *types.PeerInfo) error {
 		return err
 	}
 
-	// TODO(nikonov): report an actual traffic on update
-	if err := manager.eventLog.Push(eventlog.PeerUpdate, newPeer.IntoProto()); err != nil {
-		// do not return an error here because it's not related to the method itself.
-		zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerUpdate)))
-	}
-
 	return nil
 }
 
@@ -274,98 +252,18 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 	return peers[0], nil
 }
 
-func (manager *Manager) syncPeerStats() {
+func (manager *Manager) sync() {
+	manager.syncLinkStats()
+	manager.syncPeerStats()
+}
+
+func (manager *Manager) syncLinkStats() {
 	linkStats, err := manager.wireguard.GetLinkStatistic()
 	if err == nil {
 		// non-nil error will be logged
 		// by the common.Error inside the method.
 		updatePrometheusFromLinkStats(linkStats)
 	}
-
-	// ignore error because it logged by the common.Error wrapper.
-	// it is safe to call reportTrafficByPeer with nil map.
-	wireguardPeers, _ := manager.wireguard.GetPeers()
-
-	peers, err := manager.peers()
-	if err != nil {
-		return
-	}
-
-	now := time.Now()
-	// Update peer stats according to current metrics in wireguard peers
-	results := manager.statsService.UpdatePeersStats(now, peers, wireguardPeers)
-
-	// Save stats of the updated peers
-	for _, peer := range results.UpdatedPeers {
-		// Store updated peers
-		err = manager.storage.UpdatePeerStats(now, peer)
-		if err != nil {
-			zap.L().Error("failed to update peer stats", zap.Error(err))
-			continue
-		}
-	}
-
-	// Send notifications about peers with first connection
-	for _, peer := range results.FirstConnectedPeers {
-		// Send event containing updated peer
-		err := manager.eventLog.Push(eventlog.PeerFirstConnect, peer.IntoProto())
-		if err != nil {
-			zap.L().Error("failed to push event", zap.Error(err), zap.Uint32("type", uint32(proto.EventType_PeerFirstConnect)))
-		}
-	}
-
-	// Notify with the peers with traffic updates
-	manager.peerTrafficSender.Send(results.TrafficUpdatedPeers)
-
-	// Delete expired peers
-	for _, peer := range results.ExpiredPeers {
-		err = manager.unsetPeer(peer)
-		if err != nil {
-			zap.L().Error("failed to unset expired peer", zap.Error(err))
-		}
-	}
-
-	oldStats := manager.GetCachedStatistics()
-
-	diffUpstream := linkStats.RxBytes
-	diffDownstream := linkStats.TxBytes
-	if oldStats.LinkStat != nil {
-		diffUpstream -= oldStats.LinkStat.RxBytes
-		diffDownstream -= oldStats.LinkStat.TxBytes
-	}
-
-	newStats := &CachedStatistics{
-		PeersTotal:          results.NumPeers,
-		PeersWithTraffic:    results.NumPeersWithHadshakes,
-		PeersActiveLastHour: results.NumPeersActiveLastHour,
-		PeersActiveLastDay:  results.NumPeersActiveLastDay,
-		LinkStat:            linkStats,
-		Upstream:            oldStats.Upstream + int64(diffUpstream),
-		Downstream:          oldStats.Downstream + int64(diffDownstream),
-		Collected:           time.Now().Unix(),
-	}
-
-	speed := newStats.CalcSpeed(oldStats)
-	if speed != nil {
-		newStats.UpstreamSpeed = manager.upstreamSpeedAvg.Push(speed.Upstream)
-		newStats.DownstreamSpeed = manager.downstreamSpeedAvg.Push(speed.Downstream)
-	}
-
-	zap.L().Debug("STATS",
-		zap.Int("total", results.NumPeers),
-		zap.Int("connected", results.NumPeersWithHadshakes),
-		zap.Int("active_1h", results.NumPeersActiveLastHour),
-		zap.Int("active_1d", results.NumPeersActiveLastDay),
-		zap.Int("rx_bytes", int(linkStats.RxBytes)),
-		zap.Int("rx_packets", int(linkStats.RxPackets)),
-		zap.Int("tx_bytes", int(linkStats.TxBytes)),
-		zap.Int("tx_packets", int(linkStats.TxPackets)))
-
-	peersWithHandshakesGauge.Set(float64(results.NumPeersWithHadshakes))
-	manager.storage.SetUpstreamMetric(newStats.Upstream)
-	manager.storage.SetDownstreamMetric(newStats.Downstream)
-
-	manager.statistic.Store(newStats)
 }
 
 func (manager *Manager) background() {
@@ -378,7 +276,7 @@ func (manager *Manager) background() {
 	}()
 
 	manager.lock.Lock()
-	manager.syncPeerStats()
+	manager.sync()
 	manager.lock.Unlock()
 
 	for {
@@ -388,7 +286,7 @@ func (manager *Manager) background() {
 			return
 		case <-syncPeerTicker.C:
 			manager.lock.Lock()
-			manager.syncPeerStats()
+			manager.sync()
 			manager.lock.Unlock()
 		}
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
-	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/stats"
 )
 
 type (
@@ -22,7 +22,7 @@ var DefaultConfig = Config{}
 func New(
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
-	eventlog eventlog.EventManager,
+	statsService *stats.Service,
 	geoipResolver *geoip.Resolver,
 ) (*Instance, error) {
 	return &Instance{}, nil

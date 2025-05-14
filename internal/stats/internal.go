@@ -4,13 +4,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vpnhouse/common-lib-go/stats"
+	"github.com/vpnhouse/common-lib-go/xstats"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/proto"
 	"go.uber.org/zap"
 )
 
-func (s *StatsService) pushLog(protocol string, report *stats.Report) {
+func (s *Service) pushLog(protocol string, report *xstats.Report) {
 	err := s.eventlog.Push(eventlog.PeerTraffic, &proto.PeerInfo{
 		SessionID:      report.SessionID,
 		UserID:         report.UserID,
@@ -31,7 +31,7 @@ func (s *StatsService) pushLog(protocol string, report *stats.Report) {
 
 }
 
-func (s *StatsService) onFlush(proto string, report *stats.Report) {
+func (s *Service) onFlush(proto string, report *xstats.Report) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -47,7 +47,7 @@ func (s *StatsService) onFlush(proto string, report *stats.Report) {
 	s.pushLog(proto, report)
 }
 
-func (s *StatsService) worker() {
+func (s *Service) worker() {
 	for {
 		select {
 		case <-s.shutdown:
@@ -61,7 +61,7 @@ func (s *StatsService) worker() {
 	}
 }
 
-func (s *StatsService) export() {
+func (s *Service) export() {
 	now := time.Now()
 	for _, record := range s.records {
 		deltaUp := record.pending.upstream.Swap(0)
@@ -72,17 +72,17 @@ func (s *StatsService) export() {
 
 		record.export = Stats{
 			ExtraStats:      record.extraCb(),
-			UpstreamBytes:   record.total.upstream,
-			DownstreamBytes: record.total.downstream,
-			UpstreamSpeed:   speed(deltaUp, now, record.total.at),
-			DownstreamSpeed: speed(deltaDown, now, record.total.at),
+			UpstreamBytes:   int64(record.total.upstream),
+			DownstreamBytes: int64(record.total.downstream),
+			UpstreamSpeed:   int64(speed(deltaUp, now, record.total.at)),
+			DownstreamSpeed: int64(speed(deltaDown, now, record.total.at)),
 		}
 
 		record.total.at = now
 	}
 }
 
-func (s *StatsService) load() {
+func (s *Service) load() {
 	metrics, err := s.storage.GetMetricsLike([]string{"upstream_%", "downstream_%"})
 	if err != nil {
 		zap.L().Error("Can't load statistics", zap.Error(err))
@@ -112,7 +112,7 @@ func (s *StatsService) load() {
 	}
 }
 
-func (s *StatsService) save() {
+func (s *Service) save() {
 	metrics := map[string]int64{}
 	for k, v := range s.records {
 		metrics["upstream_"+k] = int64(v.total.upstream)

@@ -151,7 +151,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	// Create new statistics service
 	statService := stats.NewService(
-		runtime.Settings.Statistics.FlushInterval.Value(),
+		runtime.Settings.Stats,
 		eventLog,
 		dataStorage,
 	)
@@ -163,7 +163,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		dataStorage,
 		wireguardController,
 		ipv4am,
-		eventLog,
+		statService,
 		geoipService,
 	)
 	if err != nil {
@@ -187,7 +187,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		iproseServer, err = iprose.New(
 			runtime.Settings.IPRose,
 			jwtAuthorizer,
-			eventLog,
+			statService,
 			geoipResolver,
 		)
 		if err != nil {
@@ -215,7 +215,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 				runtime.Settings.Domain.ExtraNames,
 				runtime.Settings.Domain.PrimaryName,
 			),
-			eventLog,
+			statService,
 			geoipResolver,
 		)
 		if err != nil {
@@ -227,7 +227,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	// Prepare tunneling HTTP API
-	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am)
+	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am, statService)
 
 	xHttpAddr := runtime.Settings.HTTP.ListenAddr
 	xhttpOpts := []xhttp.Option{xhttp.WithLogger()}
