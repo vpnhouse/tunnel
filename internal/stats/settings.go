@@ -13,7 +13,7 @@ type Settings struct {
 }
 
 func (s *Settings) flushInterval() time.Duration {
-	if s.FlushInterval == 0 {
+	if s == nil || s.FlushInterval == 0 {
 		return defaultFlushInterval
 	}
 
@@ -21,7 +21,7 @@ func (s *Settings) flushInterval() time.Duration {
 }
 
 func (s *Settings) exportInterval() time.Duration {
-	if s.ExportInterval == 0 {
+	if s == nil || s.ExportInterval == 0 {
 		return defaultExportInterval
 	}
 

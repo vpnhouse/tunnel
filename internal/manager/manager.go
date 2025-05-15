@@ -7,10 +7,12 @@ package manager
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/ipam"
 	"github.com/vpnhouse/common-lib-go/statutils"
+	"github.com/vpnhouse/common-lib-go/xstats"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/stats"
 	"github.com/vpnhouse/tunnel/internal/storage"
@@ -19,18 +21,20 @@ import (
 	"go.uber.org/zap"
 )
 
+const ProtoName = "wireguard"
+
 type Manager struct {
-	runtime      *runtime.TunnelRuntime
-	lock         sync.RWMutex
-	storage      *storage.Storage
-	wireguard    *wireguard.Wireguard
-	ip4am        *ipam.IPAM
-	statsService *stats.Service
-	geoipService *geoip.Instance
-	wgStats      atomic.Pointer[wgStats]
-	running      atomic.Value
-	stop         chan struct{}
-	done         chan struct{}
+	runtime       *runtime.TunnelRuntime
+	lock          sync.RWMutex
+	storage       *storage.Storage
+	wireguard     *wireguard.Wireguard
+	ip4am         *ipam.IPAM
+	statsReporter *xstats.Service
+	geoipService  *geoip.Instance
+	wgStats       atomic.Pointer[wgStats]
+	running       atomic.Value
+	stop          chan struct{}
+	done          chan struct{}
 
 	upstreamSpeedAvg   *statutils.AvgValue
 	downstreamSpeedAvg *statutils.AvgValue
@@ -49,14 +53,35 @@ func New(
 		storage:            storage,
 		wireguard:          wireguard,
 		ip4am:              ip4am,
-		statsService:       statsService,
 		geoipService:       geoipService,
 		stop:               make(chan struct{}),
 		done:               make(chan struct{}),
 		upstreamSpeedAvg:   statutils.NewAvgValue(10),
 		downstreamSpeedAvg: statutils.NewAvgValue(10),
 	}
+	var err error
+	manager.statsReporter, err = statsService.Register(ProtoName, func() stats.ExtraStats {
+		peers, err := manager.peers()
+		if err != nil {
+			return stats.ExtraStats{}
+		}
 
+		now := time.Now()
+		var active int
+		for _, peer := range peers {
+			if peer.Activity != nil && now.Sub(*peer.Activity.TimePtr()) < time.Minute {
+				active += 1
+			}
+		}
+
+		return stats.ExtraStats{
+			PeersTotal:  len(peers),
+			PeersActive: active,
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
 	manager.restorePeers()
 	manager.running.Store(true)
 

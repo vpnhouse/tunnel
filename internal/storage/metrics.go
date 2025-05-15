@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/vpnhouse/common-lib-go/xerror"
+	"go.uber.org/zap"
 )
 
 func (storage *Storage) GetMetric(name string) (int64, error) {
@@ -22,7 +23,7 @@ func (storage *Storage) GetMetric(name string) (int64, error) {
 
 func (storage *Storage) GetMetricsLike(patterns []string) (map[string]int64, error) {
 	q := `SELECT name, value FROM metrics WHERE`
-	args := make([]string, len(patterns))
+	args := make([]any, len(patterns))
 	for idx, p := range patterns {
 		args = append(args, p)
 		if idx == 0 {
@@ -32,7 +33,7 @@ func (storage *Storage) GetMetricsLike(patterns []string) (map[string]int64, err
 		}
 	}
 
-	rows, err := storage.db.Query(q, args)
+	rows, err := storage.db.Query(q, args...)
 	if err != nil {
 		return nil, xerror.EStorageError("failed to query metric", err)
 	}
@@ -53,23 +54,29 @@ func (storage *Storage) GetMetricsLike(patterns []string) (map[string]int64, err
 }
 
 func (storage *Storage) SetMetrics(metrics map[string]int64) error {
-	args := make([]map[string]interface{}, len(metrics))
-	for name, value := range metrics {
-		args = append(args, map[string]interface{}{
-			"name":  name,
-			"value": value,
-		})
+	if len(metrics) == 0 {
+		zap.L().Warn("Skipping store of empty metrics")
+		return nil
+	}
+	values := ""
+	first := true
+	for k, v := range metrics {
+		if !first {
+			values += ", "
+		}
+		values += fmt.Sprintf("('%s', %d)", k, v)
+		first = false
 	}
 
-	const query = `
-		INSERT INTO metrics(name, value) 
-		VALUES (:name, :value)
-		ON CONFLICT(name) 
+	query := `
+		INSERT INTO metrics(name, value) VALUES ` +
+		values + `
+		ON CONFLICT(name)
 			DO UPDATE
 			SET value = EXCLUDED.value`
 
-	if _, err := storage.db.NamedExec(query, metrics); err != nil {
-		return xerror.EStorageError("failed to insert metric", err)
+	if _, err := storage.db.Exec(query); err != nil {
+		return xerror.EStorageError("failed to insert metric", err, zap.String("query", query))
 	}
 
 	return nil

@@ -4,6 +4,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/vpnhouse/common-lib-go/xstats"
+	"github.com/vpnhouse/common-lib-go/xtime"
 	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -33,8 +36,10 @@ func (manager *Manager) syncPeerStats() {
 	}
 
 	oldStats := manager.wgStats.Load()
+	if oldStats == nil {
+		oldStats = &wgStats{}
+	}
 	newStats := make(wgStats)
-	updatedPeers := make([]*types.PeerInfo, 0)
 	expiredPeers := make([]*types.PeerInfo, 0)
 	now := time.Now()
 	numPeersWithHadshakes := 0
@@ -71,25 +76,12 @@ func (manager *Manager) syncPeerStats() {
 			continue
 		}
 
-		newPeerStats, peerChanged := manager.handlePeerStats((*oldStats)[*peer.WireguardPublicKey], peer, wgPeer, now)
-		if peerChanged {
-			updatedPeers = append(updatedPeers, peer)
-		}
-
+		oldPeerStats := (*oldStats)[*peer.WireguardPublicKey]
+		newPeerStats := manager.handlePeerStats(oldPeerStats, peer, wgPeer, now)
 		newStats[*peer.WireguardPublicKey] = newPeerStats
 	}
 
 	manager.wgStats.Store(&newStats)
-
-	// Save stats of the updated peers
-	for _, peer := range updatedPeers {
-		// Store updated peers
-		err = manager.storage.UpdatePeerStats(now, peer)
-		if err != nil {
-			zap.L().Error("failed to update peer stats", zap.Error(err))
-			continue
-		}
-	}
 
 	// Delete expired peers
 	for _, peer := range expiredPeers {
@@ -116,8 +108,8 @@ func (manager *Manager) peerCountry(peer *types.PeerInfo, wgPeer *wgtypes.Peer) 
 	return country
 }
 
-func (manager *Manager) handlePeerStats(oldPeerStats PeerStats, peer *types.PeerInfo, wgPeer *wgtypes.Peer, now time.Time) (PeerStats, bool) {
-	peerStats := PeerStats{
+func (manager *Manager) handlePeerStats(oldPeerStats PeerStats, peer *types.PeerInfo, wgPeer *wgtypes.Peer, now time.Time) (peerStats PeerStats) {
+	peerStats = PeerStats{
 		updated: now,
 		Country: manager.peerCountry(peer, wgPeer),
 	}
@@ -138,5 +130,42 @@ func (manager *Manager) handlePeerStats(oldPeerStats PeerStats, peer *types.Peer
 		}
 	}
 
-	return peerStats, diffUpstream == 0 && diffDownstream == 0
+	if diffUpstream == 0 && diffDownstream == 0 {
+		return
+	}
+
+	getOrZero := func(v *uuid.UUID) uuid.UUID {
+		if v == nil {
+			return uuid.UUID{}
+		} else {
+			return *v
+		}
+	}
+
+	manager.statsReporter.ReportStats(getOrZero(peer.SessionId), uint64(diffUpstream), uint64(diffDownstream), func(_ uuid.UUID, out *xstats.SessionData) {
+		out.Country = peerStats.Country
+		if peer.InstallationId != nil {
+			out.InstallationID = getOrZero(peer.InstallationId).String()
+		}
+		if peer.UserId != nil {
+			out.UserID = *peer.UserId
+		}
+	})
+
+	if peer.Upstream == nil {
+		peer.Upstream = &diffUpstream
+	} else {
+		*peer.Upstream += diffUpstream
+	}
+
+	if peer.Downstream == nil {
+		peer.Downstream = &diffDownstream
+	} else {
+		*peer.Downstream += diffDownstream
+	}
+
+	peer.Activity = xtime.FromTimePtr(&now)
+	manager.storage.UpdatePeerStats(now, peer)
+
+	return
 }
