@@ -47,7 +47,6 @@ func NewService(settings *Settings, eventLog eventlog.EventManager, storage *sto
 		records:  make(map[string]*protoRecord),
 	}
 
-	s.load()
 	go s.worker()
 
 	return s
@@ -93,6 +92,8 @@ func (s *Service) Register(proto string, extraCb ExtraStatsCb) (*xstats.Service,
 		extraCb: extraCb,
 	}
 	s.records[proto] = record
+	s.loadMetrics(proto)
+	s.export()
 	return record.service, nil
 }
 

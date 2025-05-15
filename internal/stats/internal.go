@@ -82,8 +82,8 @@ func (s *Service) export() {
 	}
 }
 
-func (s *Service) load() {
-	metrics, err := s.storage.GetMetricsLike([]string{"upstream_%", "downstream_%"})
+func (s *Service) loadMetrics(proto string) {
+	metrics, err := s.storage.GetMetrics([]string{"upstream_" + proto, "downstream_" + proto})
 	if err != nil {
 		zap.L().Error("Can't load statistics", zap.Error(err))
 		return
@@ -123,5 +123,8 @@ func (s *Service) save() {
 
 func speed(delta uint64, now, since time.Time) uint64 {
 	deltaTMilli := now.Sub(since).Milliseconds()
+	if deltaTMilli == 0 {
+		return 0
+	}
 	return (delta * 1000) / uint64(deltaTMilli)
 }

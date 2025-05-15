@@ -21,19 +21,17 @@ func (storage *Storage) GetMetric(name string) (int64, error) {
 	return value, nil
 }
 
-func (storage *Storage) GetMetricsLike(patterns []string) (map[string]int64, error) {
+func (storage *Storage) GetMetrics(names []string) (map[string]int64, error) {
 	q := `SELECT name, value FROM metrics WHERE`
-	args := make([]any, len(patterns))
-	for idx, p := range patterns {
-		args = append(args, p)
+	for idx, p := range names {
 		if idx == 0 {
-			q += fmt.Sprintf(" name like '$%d'", idx+1)
+			q += fmt.Sprintf(" name = '%s'", p)
 		} else {
-			q += fmt.Sprintf(" or name like '$%d'", idx+1)
+			q += fmt.Sprintf(" or name = '%s'", p)
 		}
 	}
 
-	rows, err := storage.db.Query(q, args...)
+	rows, err := storage.db.Query(q)
 	if err != nil {
 		return nil, xerror.EStorageError("failed to query metric", err)
 	}
