@@ -3,8 +3,8 @@ package stats
 import "time"
 
 const (
-	defaultFlushInterval  = time.Minute
-	defaultExportInterval = 5 * time.Minute
+	defaultFlushInterval  = 20 * time.Second
+	defaultExportInterval = time.Minute
 )
 
 type Settings struct {

@@ -21,7 +21,9 @@ type PeerStats struct {
 	DownstreamSpeed int64  // bytes per second
 	Country         string // user country
 
-	updated time.Time
+	updated       time.Time
+	wgReceived    int64
+	wgTransmitted int64
 }
 
 func (manager *Manager) syncPeerStats() {
@@ -114,11 +116,13 @@ func (manager *Manager) handlePeerStats(oldPeerStats PeerStats, peer *types.Peer
 		Country: manager.peerCountry(peer, wgPeer),
 	}
 
-	diffUpstream := wgPeer.ReceiveBytes - oldPeerStats.Upstream
-	diffDownstream := wgPeer.TransmitBytes - oldPeerStats.Downstream
+	diffUpstream := wgPeer.ReceiveBytes - oldPeerStats.wgReceived
+	diffDownstream := wgPeer.TransmitBytes - oldPeerStats.wgTransmitted
 
 	peerStats.Upstream += diffUpstream
 	peerStats.Downstream += diffDownstream
+	peerStats.wgReceived = wgPeer.ReceiveBytes
+	peerStats.wgTransmitted = wgPeer.TransmitBytes
 
 	if !oldPeerStats.updated.IsZero() {
 		diffTimeMilli := now.Sub(oldPeerStats.updated).Milliseconds()
