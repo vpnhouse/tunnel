@@ -15,22 +15,22 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
-	"github.com/vpnhouse/tunnel/internal/eventlog"
-	"github.com/vpnhouse/tunnel/internal/extstat"
-	"github.com/vpnhouse/tunnel/internal/grpc"
-	"github.com/vpnhouse/tunnel/internal/iprose"
-	"github.com/vpnhouse/tunnel/internal/proxy"
-	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"github.com/vpnhouse/common-lib-go/human"
 	"github.com/vpnhouse/common-lib-go/ipam"
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/validator"
 	"github.com/vpnhouse/common-lib-go/version"
-	"github.com/vpnhouse/common-lib-go/xdns"
+	xdns "github.com/vpnhouse/common-lib-go/xdns/server"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xnet"
 	"github.com/vpnhouse/common-lib-go/xrand"
+	"github.com/vpnhouse/tunnel/internal/eventlog"
+	"github.com/vpnhouse/tunnel/internal/extstat"
+	"github.com/vpnhouse/tunnel/internal/iprose"
+	"github.com/vpnhouse/tunnel/internal/proxy"
+	"github.com/vpnhouse/tunnel/internal/stats"
+	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"gopkg.in/hlandau/passlib.v1"
@@ -47,6 +47,40 @@ type NetworkAccessPolicy struct {
 	RateLimit *ipam.RateLimiterConfig `yaml:"rate_limit,omitempty"`
 }
 
+type GRPCConfig struct {
+	// Addr to listen for gRPC connections
+	Addr        string             `yaml:"addr"`
+	TunnelKey   string             `yaml:"tunnel_key,omitempty"`
+	TLSSelfSign *TLSSelfSignConfig `yaml:"tls_self_sign,omitempty"`
+}
+
+type TLSSelfSignConfig struct {
+	AllowedIPs   []string `yaml:"allowed_ips,omitempty"`
+	AllowedNames []string `yaml:"allowed_names,omitempty"`
+	// Storage directory is used to keep load self signed certs
+	Dir string `yaml:"dir,omitempty"`
+}
+
+type CDNConfig struct {
+	Secrets []struct {
+		Header string `yaml:"header"`
+		Secret string `yaml:"secret"`
+	} `yaml:"secrets"`
+}
+
+func (s *CDNConfig) SecretsMap() map[string]string {
+	if s == nil || len(s.Secrets) == 0 {
+		return nil
+	}
+	secrets := make(map[string]string, len(s.Secrets))
+	for _, secret := range s.Secrets {
+		if secret.Header != "" && secret.Secret != "" {
+			secrets[secret.Header] = secret.Secret
+		}
+	}
+	return secrets
+}
+
 type Config struct {
 	InstanceID string           `yaml:"instance_id"`
 	LogLevel   string           `yaml:"log_level"`
@@ -58,12 +92,13 @@ type Config struct {
 	// optional configuration
 	Proxy              *proxy.Config               `yaml:"proxy,omitempty"`
 	ExternalStats      *extstat.Config             `yaml:"external_stats,omitempty"`
+	Stats              *stats.Settings             `yanl:"stats,omitempty"`
 	NetworkPolicy      *NetworkAccessPolicy        `yaml:"network,omitempty"`
 	SSL                *xhttp.SSLConfig            `yaml:"ssl,omitempty"`
 	Domain             *xhttp.DomainConfig         `yaml:"domain,omitempty"`
 	AdminAPI           *AdminAPIConfig             `yaml:"admin_api,omitempty"`
 	PublicAPI          *PublicAPIConfig            `yaml:"public_api,omitempty"`
-	GRPC               *grpc.Config                `yaml:"grpc,omitempty"`
+	GRPC               *GRPCConfig                 `yaml:"grpc,omitempty"`
 	Sentry             *sentry.Config              `yaml:"sentry,omitempty"`
 	EventLog           *eventlog.StorageConfig     `yaml:"event_log,omitempty"`
 	ManagementKeystore string                      `yaml:"management_keystore,omitempty" valid:"path"`
@@ -72,6 +107,8 @@ type Config struct {
 	PeerStatistics     *PeerStatisticConfig        `yaml:"peer_statistics,omitempty"`
 	GeoDBPath          string                      `yaml:"geo_db_path,omitempty"`
 	IPRose             iprose.Config               `yaml:"iprose,omitempty"`
+	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
+	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
@@ -224,6 +261,22 @@ func (s *PeerStatisticConfig) validate() {
 	}
 }
 
+type StatisticsConfig struct {
+	FlushInterval human.Interval `yaml:"flush_interval" valid:"interval"`
+}
+
+func (s *StatisticsConfig) validate() {
+	if s.FlushInterval.Value() < time.Second {
+		s.FlushInterval = human.MustParseInterval(DefaultFlushStatisticsInterval)
+	}
+}
+
+func defaultStatisticsConfig() StatisticsConfig {
+	return StatisticsConfig{
+		FlushInterval: human.MustParseInterval(DefaultFlushStatisticsInterval),
+	}
+}
+
 func LoadStatic(configDir string) (*Config, error) {
 	return staticConfigFromFS(afero.OsFs{}, configDir)
 }
@@ -359,6 +412,7 @@ func safeDefaults(rootDir string) *Config {
 		PortRestrictions:   ipam.DefaultPortRestrictions(),
 		PeerStatistics:     defaultPeerStatisticConfig(),
 		IPRose:             iprose.DefaultConfig,
+		Statistics:         defaultStatisticsConfig(),
 	}
 }
 
@@ -428,7 +482,7 @@ func (s *Config) Flush() error {
 func (s *Config) flush() error {
 	bs, _ := yaml.Marshal(s)
 
-	fd, err := os.OpenFile(s.path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	fd, err := os.OpenFile(s.path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return xerror.WInternalError("config", "failed to open config for writing", err, zap.String("path", s.path))
 	}

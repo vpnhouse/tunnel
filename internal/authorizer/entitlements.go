@@ -1,10 +1,13 @@
 package authorizer
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/xerror"
+
+	"go.uber.org/zap"
 )
 
 type EntitlementType string
@@ -30,8 +33,8 @@ func WithEntitlement(jwtAuthorizer JWTAuthorizer, entitlement EntitlementType) *
 	}
 }
 
-func (d *jwtAuthorizerEntitlement) Authenticate(tokenString string, myAudience string) (*auth.ClientClaims, error) {
-	claims, err := d.JWTAuthorizer.Authenticate(tokenString, myAudience)
+func (d *jwtAuthorizerEntitlement) Authenticate(ctx context.Context, tokenString string, myAudience string) (*auth.ClientClaims, error) {
+	claims, err := d.JWTAuthorizer.Authenticate(ctx, tokenString, myAudience)
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +47,10 @@ func (d *jwtAuthorizerEntitlement) Authenticate(tokenString string, myAudience s
 	// Probably need check entitlement + platform_type
 	v, ok := claims.Entitlements[string(d.Entitlement)]
 	if !ok || fmt.Sprint(v) != "true" {
+		zap.L().Debug("entitlements",
+			zap.String("entitlement", string(d.Entitlement)),
+			zap.Any("entitlements", claims.Entitlements),
+		)
 		return nil, xerror.ENoLicense(fmt.Sprintf("no entitlement: %s", d.Entitlement))
 	}
 

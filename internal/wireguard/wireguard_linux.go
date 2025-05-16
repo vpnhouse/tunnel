@@ -6,8 +6,8 @@ package wireguard
 
 import (
 	"github.com/vishvananda/netlink"
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -140,15 +140,16 @@ func (wg *Wireguard) UnsetPeer(info *types.PeerInfo) error {
 
 // GetPeers returns peers configured for the underlying device.
 // Map's key is a peer's public key string.
-func (wg *Wireguard) GetPeers() (map[string]wgtypes.Peer, error) {
+func (wg *Wireguard) GetPeers() (map[string]*wgtypes.Peer, error) {
 	dev, err := wg.client.Device(wg.link.name)
 	if err != nil {
 		return nil, xerror.ETunnelError("failed to get wireguard device", err, zap.String("iface", wg.link.name))
 	}
 
-	peers := make(map[string]wgtypes.Peer, len(dev.Peers))
+	peers := make(map[string]*wgtypes.Peer, len(dev.Peers))
 	for _, p := range dev.Peers {
-		peers[p.PublicKey.String()] = p
+		dup := p
+		peers[p.PublicKey.String()] = &dup
 	}
 
 	return peers, nil

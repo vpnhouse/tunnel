@@ -12,15 +12,16 @@ import (
 	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	mgmtAPI "github.com/vpnhouse/api/go/server/tunnel_mgmt"
-	"github.com/vpnhouse/tunnel/internal/authorizer"
-	"github.com/vpnhouse/tunnel/internal/frontend"
-	"github.com/vpnhouse/tunnel/internal/manager"
-	"github.com/vpnhouse/tunnel/internal/runtime"
-	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/ipam"
 	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/common-lib-go/xerror"
+	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/internal/frontend"
+	"github.com/vpnhouse/tunnel/internal/manager"
+	"github.com/vpnhouse/tunnel/internal/runtime"
+	"github.com/vpnhouse/tunnel/internal/stats"
+	"github.com/vpnhouse/tunnel/internal/storage"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +33,7 @@ type TunnelAPI struct {
 	storage    *storage.Storage
 	keystore   keystore.Keystore
 	ippool     *ipam.IPAM
+	stats      *stats.Service
 	running    bool
 }
 
@@ -43,6 +45,7 @@ func NewTunnelHandlers(
 	storage *storage.Storage,
 	keystore keystore.Keystore,
 	ip4am *ipam.IPAM,
+	stats *stats.Service,
 ) *TunnelAPI {
 	instance := &TunnelAPI{
 		runtime:    runtime,
@@ -52,6 +55,7 @@ func NewTunnelHandlers(
 		storage:    storage,
 		keystore:   keystore,
 		ippool:     ip4am,
+		stats:      stats,
 		running:    true,
 	}
 

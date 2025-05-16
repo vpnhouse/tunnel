@@ -15,10 +15,10 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/tunnel/internal/eventlog"
 	"github.com/vpnhouse/tunnel/internal/storage"
 	"github.com/vpnhouse/tunnel/internal/types"
-	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/tunnel/proto"
 )
 

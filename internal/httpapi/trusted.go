@@ -11,10 +11,10 @@ import (
 
 	"github.com/google/uuid"
 	mgmtAPI "github.com/vpnhouse/api/go/server/tunnel_mgmt"
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/xcrypto"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/tunnel/internal/types"
 )
 
 // AdminListTrustedKeys GET /api/tunnel/admin/trusted

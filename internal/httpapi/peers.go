@@ -12,9 +12,9 @@ import (
 	"github.com/google/uuid"
 	tunnelAPI "github.com/vpnhouse/api/go/server/tunnel"
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
-	"github.com/vpnhouse/tunnel/internal/types"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/tunnel/internal/types"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 

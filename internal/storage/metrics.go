@@ -3,11 +3,13 @@ package storage
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/vpnhouse/common-lib-go/xerror"
+	"go.uber.org/zap"
 )
 
-func (storage *Storage) getMetric(name string) (int64, error) {
+func (storage *Storage) GetMetric(name string) (int64, error) {
 	const q = `SELECT value FROM metrics WHERE name = $1`
 	var value int64
 	if err := storage.db.QueryRow(q, name).Scan(&value); err != nil {
@@ -19,31 +21,61 @@ func (storage *Storage) getMetric(name string) (int64, error) {
 	return value, nil
 }
 
-func (storage *Storage) setMetric(name string, value int64) error {
-	const q = `INSERT INTO metrics(name, value) VALUES ($1, $2)
-				ON CONFLICT(name) DO UPDATE SET value=$2`
+func (storage *Storage) GetMetrics(names []string) (map[string]int64, error) {
+	q := `SELECT name, value FROM metrics WHERE`
+	for idx, p := range names {
+		if idx == 0 {
+			q += fmt.Sprintf(" name = '%s'", p)
+		} else {
+			q += fmt.Sprintf(" or name = '%s'", p)
+		}
+	}
 
-	if _, err := storage.db.Exec(q, name, value); err != nil {
-		return xerror.EStorageError("failed to insert metric", err)
+	rows, err := storage.db.Query(q)
+	if err != nil {
+		return nil, xerror.EStorageError("failed to query metric", err)
+	}
+
+	result := map[string]int64{}
+	for rows.Next() {
+		var (
+			name  string
+			value int64
+		)
+		if err := rows.Scan(&name, &value); err != nil {
+			return nil, xerror.EStorageError("failed to query metric", err)
+		}
+		result[name] = value
+	}
+
+	return result, nil
+}
+
+func (storage *Storage) SetMetrics(metrics map[string]int64) error {
+	if len(metrics) == 0 {
+		zap.L().Warn("Skipping store of empty metrics")
+		return nil
+	}
+	values := ""
+	first := true
+	for k, v := range metrics {
+		if !first {
+			values += ", "
+		}
+		values += fmt.Sprintf("('%s', %d)", k, v)
+		first = false
+	}
+
+	query := `
+		INSERT INTO metrics(name, value) VALUES ` +
+		values + `
+		ON CONFLICT(name)
+			DO UPDATE
+			SET value = EXCLUDED.value`
+
+	if _, err := storage.db.Exec(query); err != nil {
+		return xerror.EStorageError("failed to insert metric", err, zap.String("query", query))
 	}
 
 	return nil
-}
-
-func (storage *Storage) GetUpstreamMetric() int64 {
-	value, _ := storage.getMetric("upstream")
-	return value
-}
-
-func (storage *Storage) GetDownstreamMetric() int64 {
-	value, _ := storage.getMetric("downstream")
-	return value
-}
-
-func (storage *Storage) SetUpstreamMetric(value int64) {
-	storage.setMetric("upstream", value)
-}
-
-func (storage *Storage) SetDownstreamMetric(value int64) {
-	storage.setMetric("downstream", value)
 }

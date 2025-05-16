@@ -5,15 +5,19 @@ package iprose
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/vpnhouse/iprose-go/pkg/server"
-	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/common-lib-go/xstats"
+	"github.com/vpnhouse/iprose-go/pkg/server"
+	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/internal/stats"
 	"go.uber.org/zap"
 )
 
@@ -35,21 +39,30 @@ var DefaultConfig = Config{
 }
 
 type Instance struct {
-	iprose     *server.IPRoseServer
-	authorizer authorizer.JWTAuthorizer
-	config     Config
+	iprose        *server.IPRoseServer
+	authorizer    authorizer.JWTAuthorizer
+	config        Config
+	statsReporter *xstats.Service
+	geoipResolver *geoip.Resolver
 }
 
-func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, error) {
+func New(
+	config Config,
+	jwtAuthorizer authorizer.JWTAuthorizer,
+	statsService *stats.Service,
+	geoipResolver *geoip.Resolver,
+) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
 		zap.Int("queue size", config.QueueSize),
 		zap.Duration("session timeout", config.SessionTimeout))
 
 	instance := &Instance{
-		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
-		config:     config,
+		authorizer:    authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
+		config:        config,
+		geoipResolver: geoipResolver,
 	}
+
 	var err error
 	instance.iprose, err = server.New(
 		"iprose0",
@@ -61,51 +74,66 @@ func New(config Config, jwtAuthorizer authorizer.JWTAuthorizer) (*Instance, erro
 		config.SessionTimeout,
 		config.ProxyConnLimit != 0,
 		config.ProxyConnLimit,
+		instance.statsReporter, // safe to pass nil
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
 		return nil, err
 	}
+
+	instance.statsReporter, err = statsService.Register(ProtoName, func() stats.ExtraStats {
+		_, _, _, _, peers := instance.iprose.Stats()
+		return stats.ExtraStats{
+			PeersTotal:  peers,
+			PeersActive: peers,
+		}
+	})
+	if err != nil {
+		instance.Shutdown()
+		return nil, err
+	}
+
 	return instance, nil
 }
 
-func (instance *Instance) authenticate(r *http.Request) (string, error) {
+func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error) {
 	userToken, ok := xhttp.ExtractTokenFromRequest(r)
 	if !ok {
-		return "", xerror.EAuthenticationFailed("no auth token", nil)
+		return nil, xerror.EAuthenticationFailed("no auth token", nil)
 	}
 
 	for _, t := range instance.config.PersistentTokens {
 		if userToken == t {
 			zap.L().Debug("Authenticated with fixed trusted token")
-			return "", nil
+			return &server.UserInfo{}, nil
 		}
 	}
 
-	claims, err := instance.authorizer.Authenticate(userToken, auth.AudienceTunnel)
+	claims, err := instance.authorizer.Authenticate(r.Context(), userToken, auth.AudienceTunnel)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	var userId string
+	var userID string
+	var installationID string
 	if claims != nil {
-		userId = claims.UserId
+		userID = claims.Subject
+		installationID = claims.InstallationId
 	} else {
-		userId = uuid.New().String()
+		// must be in form of subject "<project_id>/<auth_method_id>/<external_user_id>"
+		userID = strings.Join([]string{uuid.New().String(), uuid.New().String(), uuid.New().String()}, "/")
+		// to indicate it's dummy
+		installationID = ""
 	}
 
-	return userId, nil
+	clientInfo := instance.geoipResolver.GetInfo(r)
+	return &server.UserInfo{
+		InstallationID: installationID,
+		UserID:         userID,
+		Country:        clientInfo.Country,
+	}, nil
 }
 
-func (instance *Instance) Authenticate(r *http.Request) (error, int, []byte, string) {
-	userId, err := instance.authenticate(r)
-	if err != nil {
-		code, body := xerror.ErrorToHttpResponse(err)
-		return err, code, body, ""
-	}
-
-	return nil, 0, nil, userId
-}
 func (instance *Instance) RegisterHandlers(r chi.Router) {
 	for _, hndlr := range instance.iprose.Handlers() {
 		r.HandleFunc(hndlr.Pattern, hndlr.Func)
@@ -113,10 +141,18 @@ func (instance *Instance) RegisterHandlers(r chi.Router) {
 }
 
 func (instance *Instance) Shutdown() error {
-	instance.iprose.Shutdown()
+	if instance.iprose != nil {
+		instance.iprose.Shutdown()
+		instance.iprose = nil
+	}
 	return nil
 }
 
 func (instance *Instance) Running() bool {
 	return instance.iprose.Running()
+}
+
+// admin.Handler implementation
+func (instance *Instance) KillActiveUserSessions(userId string) {
+	// TODO: add implementation
 }
