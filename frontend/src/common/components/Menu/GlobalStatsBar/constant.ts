@@ -25,15 +25,19 @@ export const FETCH_STATS_INTERVAL = 5000;
 
 export const TABS = [
   {
-    value: 'all',
+    value: 'stats_global',
     label: 'All'
   },
   {
-    value: 'wireguard',
+    value: 'stats_wireguard',
     label: 'Wireguard'
   },
   {
-    value: 'iprose',
+    value: 'stats_iprose',
     label: 'IPRose'
+  },
+  {
+    value: 'stats_proxy',
+    label: 'Proxy'
   }
 ];

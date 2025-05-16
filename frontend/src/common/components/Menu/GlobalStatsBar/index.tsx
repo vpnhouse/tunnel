@@ -1,18 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Tabs, Tab } from '@material-ui/core';
 
+import { components } from '@schema';
 import { fetchData } from '@root/store/utils';
 import { GLOBAL_STATS } from '@constants/apiPaths';
-import { GlobalStats, GlobalStatsResponse, TabType } from '@common/components/Menu/GlobalStatsBar/types';
 import { BYTES_MEASURE_LIMITS, FETCH_STATS_INTERVAL, TABS } from '@common/components/Menu/GlobalStatsBar/constant';
 
 import useStyles from './styles';
 
+type TabType = 'stats_global' | 'stats_iprose' | 'stats_proxy' | 'stats_wireguard';
+
 const GlobalStatsBar = () => {
   const classes = useStyles();
 
-  const [stats, setStats] = useState<GlobalStats | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [stats, setStats] = useState<components['schemas']['ServiceStatus'] | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('stats_global');
 
   const convertBytes = useCallback((bytes: number): string => {
     // eslint-disable-next-line no-restricted-syntax
@@ -29,16 +31,10 @@ const GlobalStatsBar = () => {
 
   const fetchStats = useCallback(async () => {
     const response = await fetchData(GLOBAL_STATS);
-    const data: GlobalStatsResponse = await response.json();
+    const data: components['schemas']['ServiceStatus'] = await response.json();
 
-    setStats({
-      ...data,
-      traffic_up: convertBytes(data.traffic_up),
-      traffic_down: convertBytes(data.traffic_down),
-      traffic_up_speed: `${convertBytes(data.traffic_up_speed)}ps`,
-      traffic_down_speed: `${convertBytes(data.traffic_down_speed)}ps`
-    });
-  }, [convertBytes]);
+    setStats(data);
+  }, []);
 
   useEffect(() => {
     fetchStats();
@@ -57,25 +53,27 @@ const GlobalStatsBar = () => {
     return null;
   }
 
-  const getDisplayStats = () => {
-    if (activeTab === 'iprose') {
-      return {
-        peers_total: 0,
-        peers_connected: 0,
-        peers_active_1h: 0,
-        peers_active_1d: 0,
-        traffic_up: '0 B',
-        traffic_down: '0 B',
-        traffic_up_speed: '0 Bps',
-        traffic_down_speed: '0 Bps'
-      };
-    }
-
-    return stats;
+  const emptyStats = {
+    peers_total: 0,
+    peers_active: 0,
+    traffic_up: '0 B',
+    traffic_down: '0 B',
+    speed_down: '0 Bps',
+    speed_up: '0 Bps'
   };
 
-  const displayStats = getDisplayStats();
-  const { peers_active_1h, peers_active_1d, peers_connected, peers_total, traffic_up, traffic_down, traffic_up_speed, traffic_down_speed } = displayStats;
+  const activeStats = stats?.[activeTab];
+
+  const displayStats = activeStats
+    ? {
+      ...activeStats,
+      traffic_up: convertBytes(activeStats.traffic_up ?? 0),
+      traffic_down: convertBytes(activeStats.traffic_down ?? 0),
+      speed_up: `${convertBytes(activeStats.speed_up ?? 0)}ps`,
+      speed_down: `${convertBytes(activeStats.speed_down ?? 0)}ps`
+    }
+    : emptyStats;
+  const { peers_active, peers_total, traffic_up, traffic_down, speed_up, speed_down } = displayStats;
 
   return (
     <div className={classes.root}>
@@ -101,18 +99,8 @@ const GlobalStatsBar = () => {
         </div>
 
         <div className={classes.row}>
-          <span>Peers connected:</span>
-          <span>{peers_connected}</span>
-        </div>
-
-        <div className={classes.row}>
-          <span>Peers active last hour:</span>
-          <span>{peers_active_1h}</span>
-        </div>
-
-        <div className={classes.row}>
-          <span>Peers active last day:</span>
-          <span>{peers_active_1d}</span>
+          <span>Peers active:</span>
+          <span>{peers_active}</span>
         </div>
 
         <div className={classes.row}>
@@ -127,12 +115,12 @@ const GlobalStatsBar = () => {
 
         <div className={classes.row}>
           <span>Upstream speed:</span>
-          <span>{traffic_up_speed}</span>
+          <span>{speed_up}</span>
         </div>
 
         <div className={classes.row}>
           <span>Downstream speed:</span>
-          <span>{traffic_down_speed}</span>
+          <span>{speed_down}</span>
         </div>
       </div>
     </div>

@@ -273,30 +273,46 @@ export interface components {
             readonly access_token: string;
         };
         /**
+         * ProtocolStats
+         * @description Represents traffic and peer stats for specific protocol
+         */
+        ProtocolStats: {
+            /** @description Totally allocated peers for protocol */
+            peers_total?: number;
+            /** @description Recently active peers count */
+            peers_active?: number;
+            /**
+             * Format: int64
+             * @description Upstream traffc accross all peers in bytes
+             */
+            traffic_up?: number;
+            /**
+             * Format: int64
+             * @description Downstream traffic accross all peers in bytes
+             */
+            traffic_down?: number;
+            /**
+             * Format: int64
+             * @description Upload speed accross all peers in bytes per second
+             */
+            speed_up?: number;
+            /**
+             * Format: int64
+             * @description Download speed accross all peers in bytes per second
+             */
+            speed_down?: number;
+        };
+        /**
          * ServiceStatusResponse
          * @description Holds current staus flags of the service
          */
         ServiceStatus: {
             /** @description Indicate, whether service requires restart to apply latest settings. */
             restart_required: boolean;
-            peers_total?: number;
-            peers_connected?: number;
-            peers_active_1h?: number;
-            peers_active_1d?: number;
-            /** Format: int64 */
-            traffic_up?: number;
-            /** Format: int64 */
-            traffic_down?: number;
-            /**
-             * Format: int64
-             * @description Upload speed accross all peers in bytes per second
-             */
-            traffic_up_speed?: number;
-            /**
-             * Format: int64
-             * @description Download speed accross all peers in bytes per second
-             */
-            traffic_down_speed?: number;
+            stats_global: components['schemas']['ProtocolStats'];
+            stats_wireguard?: components['schemas']['ProtocolStats'];
+            stats_iprose?: components['schemas']['ProtocolStats'];
+            stats_proxy?: components['schemas']['ProtocolStats'];
         };
         /**
          * Peer
@@ -379,28 +395,28 @@ export interface components {
         /**
          * Peer repr for a list responses
          * @example {
-         *       "id": 42,
-         *       "peer": {
-         *         "label": "Home PC",
-         *         "type": "wireguard",
-         *         "info_wireguard": {
-         *           "public_key": "ljs1lRH1YtZPlppYl1gQVX+JTNmTQsX57cIDf7oB6Qc="
+         *       'id': 42,
+         *       'peer': {
+         *         'label': 'Home PC',
+         *         'type': 'wireguard',
+         *         'info_wireguard': {
+         *           'public_key': 'ljs1lRH1YtZPlppYl1gQVX+JTNmTQsX57cIDf7oB6Qc='
          *         },
-         *         "identifiers": {
-         *           "user_id": "Project/Authorizer/user@org",
-         *           "installation_id": "d1a1b2e2-d84b-4537-9a93-c4d3cd412598",
-         *           "session_id": "de9e0337-fb16-4669-b07d-9f261c329461"
+         *         'identifiers': {
+         *           'user_id': 'Project/Authorizer/user@org',
+         *           'installation_id': 'd1a1b2e2-d84b-4537-9a93-c4d3cd412598',
+         *           'session_id': 'de9e0337-fb16-4669-b07d-9f261c329461'
          *         },
-         *         "claims": "string",
-         *         "ipv4": "10.42.3.33",
-         *         "expires": "2021-05-28T13:43:10Z",
-         *         "created": "2021-05-28T13:23:15Z",
-         *         "updated": "2021-05-28T13:23:15Z",
-         *         "activity": "2021-05-28T13:23:15Z",
-         *         "traffic_up": 123404321,
-         *         "traffic_down": 896123404321,
-         *         "traffic_up_speed": 1234560,
-         *         "traffic_down_speed": 0
+         *         'claims': 'string',
+         *         'ipv4': '10.42.3.33',
+         *         'expires': '2021-05-28T13:43:10Z',
+         *         'created': '2021-05-28T13:23:15Z',
+         *         'updated': '2021-05-28T13:23:15Z',
+         *         'activity': '2021-05-28T13:23:15Z',
+         *         'traffic_up': 123404321,
+         *         'traffic_down': 896123404321,
+         *         'traffic_up_speed': 1234560,
+         *         'traffic_down_speed': 0
          *       }
          *     }
          */
@@ -426,28 +442,28 @@ export interface components {
         DomainConfig: {
             /**
              * @description Shows how the http traffic delivered to the service.
-             *     The "direct" meand that we serve 80/443 by ourselves, so
+             *     The 'direct' meand that we serve 80/443 by ourselves, so
              *     we can also manage the SSL certificates.
-             *     The "reverse-proxy" means that we're behind the reverse proxy,
+             *     The 'reverse-proxy' means that we're behind the reverse proxy,
              *     like nginx. We wont manage and serve the SSL traffic in that case.
              *
              * @enum {string}
              */
             mode: 'direct' | 'reverse-proxy';
             /** @description Domain name for the service, required.
-             *     In the "direct" mode we'll issue the SSL certificate for that domain name,
-             *     in "reverse-proxy" mode we need this name to build the extenral links.
+             *     In the 'direct' mode we'll issue the SSL certificate for that domain name,
+             *     in 'reverse-proxy' mode we need this name to build the extenral links.
              *     If no configuraton is provided (InitialSetupRequest->domain is empty) - the external IP is used.
              *      */
             domain_name: string;
             /** @description We'll try to issue the SSL certificate if set.
-             *     For the "direct" mode only.
+             *     For the 'direct' mode only.
              *      */
             issue_ssl: boolean;
             /**
              * @description How the reverse-proxy serving our traffic for the external clients.
              *     So the schema + domain_name produces a valid link to the service.
-             *     For the "reverse-proxy" mode only.
+             *     For the 'reverse-proxy' mode only.
              *
              * @enum {string}
              */
@@ -487,9 +503,9 @@ export interface components {
             dns: string[];
         };
         /** @description Returns the status of the shared peer.
-         *     "not_activated" - no configuration has been given, we can
+         *     'not_activated' - no configuration has been given, we can
          *       activate it immeadietly.
-         *     "activated" - the peer has already been activated,
+         *     'activated' - the peer has already been activated,
          *       we must ask a user about a re-activation (previously
          *       issued credentials will be invalidated).
          *      */
@@ -533,7 +549,7 @@ export interface components {
              * @example INVALID_PEER
              * @enum {string}
              */
-            result: 'INTERNAL_ERROR' | 'INVALID_ARGUMENT' | 'NOT_FOUND' | 'ENTRY_EXISTS' | 'STORAGE_ERROR' | 'TUNNEL_ERROR' | 'UNAUTHORIZED' | 'AUTH_FAILED' | 'INSUFFICIENT_STORAGE' | 'SERVICE_UNAVAILABLE' | 'CONFIGURATION_REQUIRED' | 'FORBIDDEN' | 'INVALID_CONFIGURATION' | 'TOO_LONG' | 'TOO_EARLY' | 'NO_LICENSE';
+            result: 'INTERNAL_ERROR' | 'INVALID_ARGUMENT' | 'NOT_FOUND' | 'ENTRY_EXISTS' | 'STORAGE_ERROR' | 'TUNNEL_ERROR' | 'UNAUTHORIZED' | 'AUTH_FAILED' | 'INSUFFICIENT_STORAGE' | 'SERVICE_UNAVAILABLE' | 'CONFIGURATION_REQUIRED' | 'FORBIDDEN' | 'INVALID_CONFIGURATION' | 'TOO_LONG' | 'TOO_EARLY' | 'NO_LICENSE' | 'LIMIT_EXCEEDED';
             /**
              * @description User-friendly error description.
              * @example invalid peer info

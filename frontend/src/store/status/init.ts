@@ -65,7 +65,17 @@ stopStatusTimerFx.doneData.watch((result) => {
       type: 'error',
       ...TIMEOUT_ERROR
     });
-    setStatus({ restart_required: true });
+    setStatus({
+      restart_required: true,
+      stats_global: {
+        peers_total: 0,
+        peers_active: 0,
+        traffic_up: 0,
+        traffic_down: 0,
+        speed_down: 0,
+        speed_up: 0
+      }
+    });
     setLoading(false);
   }
 
