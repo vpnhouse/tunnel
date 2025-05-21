@@ -44,28 +44,27 @@ export const createPeerFx = createEffect<void, {ip_address: string}, Response>(
 );
 
 export const savePeerFx = createEffect<FlatPeerType, PeerRecordType & {private_key: string}, Response>(
-  (newPeer) => {
-    const { public_key, ipv4, expires, label, private_key } = newPeer;
+  async (newPeer) => {
+    const { info_wireguard, ipv4, expires, label, private_key } = newPeer;
 
-    return fetchData(
+    const res = await fetchData(
       PEERS,
       {
         method: 'POST',
         body: JSON.stringify({
           type: 'wireguard',
-          info_wireguard: {
-            public_key
-          },
+          info_wireguard,
           ipv4,
           expires,
           label
         })
       }
-    )
-      .then((res) => res.json()).then((res) => ({
-        ...res,
-        private_key
-      }));
+    );
+    const res_1 = await res.json();
+    return ({
+      ...res_1,
+      private_key
+    });
   }
 );
 
@@ -84,7 +83,7 @@ export const deletePeerFx = createEffect<FlatPeerType, Response | string, Respon
 
 export const changePeerFx = createEffect<FlatPeerType, PeerType, Response>(
   (changedPeer) => {
-    const { id, public_key, user_id, installation_id, session_id, ...rest } = changedPeer;
+    const { id, info_wireguard, identifiers, ...rest } = changedPeer;
 
     return fetchData(
       `${PEERS}/${id}`,
@@ -93,14 +92,15 @@ export const changePeerFx = createEffect<FlatPeerType, PeerType, Response>(
         body: JSON.stringify({
           type: 'wireguard',
           info_wireguard: {
-            public_key
+            public_key: info_wireguard?.public_key
           },
           identifiers: {
-            user_id,
-            installation_id,
-            session_id
+            user_id: identifiers?.user_id,
+            installation_id: identifiers?.installation_id,
+            session_id: identifiers?.session_id
           },
-          ...rest
+          ...rest,
+          private_key: undefined
         })
       }
     ).then((res) => res.json());

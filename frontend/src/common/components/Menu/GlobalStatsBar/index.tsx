@@ -1,18 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Tabs, Tab } from '@material-ui/core';
 
+import { components } from '@schema';
 import { fetchData } from '@root/store/utils';
 import { GLOBAL_STATS } from '@constants/apiPaths';
-import { GlobalStats, GlobalStatsResponse } from '@common/components/Menu/GlobalStatsBar/types';
-import { BYTES_MEASURE_LIMITS } from '@common/components/Menu/GlobalStatsBar/constant';
+import { BYTES_MEASURE_LIMITS, FETCH_STATS_INTERVAL, TABS } from '@common/components/Menu/GlobalStatsBar/constant';
 
 import useStyles from './styles';
 
-const FETCH_STATS_INTERVAL = 5000;
+type TabType = 'stats_global' | 'stats_iprose' | 'stats_proxy' | 'stats_wireguard';
 
 const GlobalStatsBar = () => {
   const classes = useStyles();
 
-  const [stats, setStats] = useState<GlobalStats | null>(null);
+  const [stats, setStats] = useState<components['schemas']['ServiceStatus'] | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('stats_global');
 
   const convertBytes = useCallback((bytes: number): string => {
     // eslint-disable-next-line no-restricted-syntax
@@ -29,16 +31,10 @@ const GlobalStatsBar = () => {
 
   const fetchStats = useCallback(async () => {
     const response = await fetchData(GLOBAL_STATS);
-    const data: GlobalStatsResponse = await response.json();
+    const data: components['schemas']['ServiceStatus'] = await response.json();
 
-    setStats({
-      ...data,
-      traffic_up: convertBytes(data.traffic_up),
-      traffic_down: convertBytes(data.traffic_down),
-      traffic_up_speed: convertBytes(data.traffic_up_speed) + `ps`,
-      traffic_down_speed: convertBytes(data.traffic_down_speed) + `ps`
-    });
-  }, [convertBytes]);
+    setStats(data);
+  }, []);
 
   useEffect(() => {
     fetchStats();
@@ -49,64 +45,84 @@ const GlobalStatsBar = () => {
     };
   }, [fetchStats]);
 
+  const handleTabChange = (event: React.ChangeEvent<{}>, newValue: TabType) => {
+    setActiveTab(newValue);
+  };
+
   if (!stats) {
     return null;
   }
 
-  const { peers_active_1h, peers_active_1d, peers_connected, peers_total, traffic_up, traffic_down, traffic_up_speed, traffic_down_speed} = stats;
+  const emptyStats = {
+    peers_total: 0,
+    peers_active: 0,
+    traffic_up: '0 B',
+    traffic_down: '0 B',
+    speed_down: '0 Bps',
+    speed_up: '0 Bps'
+  };
+
+  const activeStats = stats?.[activeTab];
+
+  const displayStats = activeStats
+    ? {
+      ...activeStats,
+      traffic_up: convertBytes(activeStats.traffic_up ?? 0),
+      traffic_down: convertBytes(activeStats.traffic_down ?? 0),
+      speed_up: `${convertBytes(activeStats.speed_up ?? 0)}ps`,
+      speed_down: `${convertBytes(activeStats.speed_down ?? 0)}ps`
+    }
+    : emptyStats;
+  const { peers_active, peers_total, traffic_up, traffic_down, speed_up, speed_down } = displayStats;
 
   return (
     <div className={classes.root}>
-      <h3 className={classes.title}>Global stats</h3>
-
-      <div className={classes.row}>
-        <span>Total peers:</span>
-
-        <span>{peers_total}</span>
+      <div className={classes.tabsContainer}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+          className={classes.tabs}
+        >
+          {TABS.map((tab) => (
+            <Tab key={tab.value} value={tab.value} label={tab.label} />
+          ))}
+        </Tabs>
       </div>
 
-      <div className={classes.row}>
-        <span>Peers connected:</span>
+      <div className={classes.statsContent}>
+        <div className={classes.row}>
+          <span>Total peers:</span>
+          <span>{peers_total}</span>
+        </div>
 
-        <span>{peers_connected}</span>
+        <div className={classes.row}>
+          <span>Peers active:</span>
+          <span>{peers_active}</span>
+        </div>
+
+        <div className={classes.row}>
+          <span>Upstream traffic:</span>
+          <span>{traffic_up}</span>
+        </div>
+
+        <div className={classes.row}>
+          <span>Downstream traffic:</span>
+          <span>{traffic_down}</span>
+        </div>
+
+        <div className={classes.row}>
+          <span>Upstream speed:</span>
+          <span>{speed_up}</span>
+        </div>
+
+        <div className={classes.row}>
+          <span>Downstream speed:</span>
+          <span>{speed_down}</span>
+        </div>
       </div>
-
-      <div className={classes.row}>
-        <span>Peers active last hour:</span>
-
-        <span>{peers_active_1h}</span>
-      </div>
-
-      <div className={classes.row}>
-        <span>Peers active last day:</span>
-
-        <span>{peers_active_1d}</span>
-      </div>
-
-      <div className={classes.row}>
-        <span>Upstream traffic:</span>
-
-        <span>{traffic_up}</span>
-      </div>
-
-      <div className={classes.row}>
-        <span>Downstream traffic:</span>
-
-        <span>{traffic_down}</span>
-      </div>
-
-      <div className={classes.row}>
-        <span>Upstream speed:</span>
-
-        <span>{traffic_up_speed}</span>
-      </div>
-
-      <div className={classes.row}>
-        <span>Downstream speed:</span>
-
-        <span>{traffic_down_speed}</span>
-      </div>
-
     </div>
   );
 };

@@ -15,6 +15,8 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
+const ProtoName = "wireguard"
+
 type Config struct {
 	Interface  string           `yaml:"interface" valid:"alphanum,required"`
 	ServerIPv4 string           `yaml:"server_ipv4" valid:"ipv4"`

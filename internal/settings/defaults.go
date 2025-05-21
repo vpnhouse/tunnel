@@ -1,7 +1,7 @@
 package settings
 
 const (
-	DefaultUpdateStatisticsInterval       = "1m"
+	DefaultUpdateStatisticsInterval       = "10s"
 	DefaultTrafficChangeSendEventInterval = "5m"
 	DefaultMaxUpstreamTrafficChange       = "50Mb"
 	DefaultMaxDownstreamTrafficChange     = "50Mb"

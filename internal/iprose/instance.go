@@ -12,11 +12,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/geoip"
-	"github.com/vpnhouse/common-lib-go/stats"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
+	"github.com/vpnhouse/common-lib-go/xstats"
 	"github.com/vpnhouse/iprose-go/pkg/server"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
+	"github.com/vpnhouse/tunnel/internal/stats"
 	"go.uber.org/zap"
 )
 
@@ -41,6 +42,7 @@ type Instance struct {
 	iprose        *server.IPRoseServer
 	authorizer    authorizer.JWTAuthorizer
 	config        Config
+	statsReporter *xstats.Service
 	geoipResolver *geoip.Resolver
 }
 
@@ -60,7 +62,24 @@ func New(
 		config:        config,
 		geoipResolver: geoipResolver,
 	}
+
 	var err error
+	instance.statsReporter, err = statsService.Register(ProtoName, func() stats.ExtraStats {
+		if instance.iprose == nil {
+			return stats.ExtraStats{}
+		}
+		_, _, _, _, peers := instance.iprose.Stats()
+
+		return stats.ExtraStats{
+			PeersTotal:  peers,
+			PeersActive: peers,
+		}
+	})
+	if err != nil {
+		instance.Shutdown()
+		return nil, err
+	}
+
 	instance.iprose, err = server.New(
 		"iprose0",
 		"10.123.0.1/16",
@@ -71,7 +90,7 @@ func New(
 		config.SessionTimeout,
 		config.ProxyConnLimit != 0,
 		config.ProxyConnLimit,
-		statsService, // safe to pass nil
+		instance.statsReporter, // safe to pass nil
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
@@ -126,7 +145,10 @@ func (instance *Instance) RegisterHandlers(r chi.Router) {
 }
 
 func (instance *Instance) Shutdown() error {
-	instance.iprose.Shutdown()
+	if instance.iprose != nil {
+		instance.iprose.Shutdown()
+		instance.iprose = nil
+	}
 	return nil
 }
 

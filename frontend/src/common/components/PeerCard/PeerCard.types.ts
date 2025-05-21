@@ -14,15 +14,15 @@ export type PeerCardEventTargetType = EventTarget & HTMLInputElement & {
 };
 
 export type PeerCardPatternsType = {
-  [key in PeerCardFieldsType]?: RegExp;
+  [key: string]: RegExp;
 };
 
 export type PeerCardsValidationType = {
-  [key in PeerCardFieldsType]?: (field: string, value: string) => string;
+  [key: string]: (field: string, value: string) => string;
 };
 
 export type PatternErrorType = {
-  [key in PeerCardFieldsType]?: string;
+  [key: string]: string;
 } & {
   required: string;
 };

@@ -149,13 +149,21 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		CDNSecrets: runtime.Settings.CDN.SecretsMap(),
 	}
 
+	// Create new statistics service
+	statService := stats.NewService(
+		runtime.Settings.Stats,
+		eventLog,
+		dataStorage,
+	)
+	runtime.Services.RegisterService("statService", statService)
+
 	// Create new peer manager
 	sessionManager, err := manager.New(
 		runtime,
 		dataStorage,
 		wireguardController,
 		ipv4am,
-		eventLog,
+		statService,
 		geoipService,
 	)
 	if err != nil {
@@ -173,18 +181,13 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	var iproseServer *iprose.Instance
 	if runtime.Features.WithIPRose() {
-		statsService, err := stats.New(
-			runtime.Settings.Statistics.FlushInterval.Value(),
-			eventLog,
-			"iprose",
-		)
 		if err != nil {
 			return err
 		}
 		iproseServer, err = iprose.New(
 			runtime.Settings.IPRose,
 			jwtAuthorizer,
-			statsService,
+			statService,
 			geoipResolver,
 		)
 		if err != nil {
@@ -201,11 +204,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	// Create proxy server
 	var proxyServer *proxy.Instance
 	if runtime.Features.WithProxy() && runtime.Settings.Proxy != nil {
-		statsService, err := stats.New(
-			runtime.Settings.Statistics.FlushInterval.Value(),
-			eventLog,
-			"proxy",
-		)
+
 		if err != nil {
 			return err
 		}
@@ -216,7 +215,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 				runtime.Settings.Domain.ExtraNames,
 				runtime.Settings.Domain.PrimaryName,
 			),
-			statsService,
+			statService,
 			geoipResolver,
 		)
 		if err != nil {
@@ -228,7 +227,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	// Prepare tunneling HTTP API
-	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am)
+	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am, statService)
 
 	xHttpAddr := runtime.Settings.HTTP.ListenAddr
 	xhttpOpts := []xhttp.Option{xhttp.WithLogger()}

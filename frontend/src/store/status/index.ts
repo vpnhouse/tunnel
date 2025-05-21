@@ -6,7 +6,15 @@ import { fetchData } from '../utils';
 import { StopStatusTimerModeType, StopStatusTimerType, StatusResponseType, StatusTimerType } from './types';
 
 const initialStatus = {
-  restart_required: false
+  restart_required: false,
+  stats_global: {
+    peers_total: 0,
+    peers_active: 0,
+    traffic_up: 0,
+    traffic_down: 0,
+    speed_down: 0,
+    speed_up: 0
+  }
 };
 
 const initialTimer = {
