@@ -64,6 +64,22 @@ func New(
 	}
 
 	var err error
+	instance.statsReporter, err = statsService.Register(ProtoName, func() stats.ExtraStats {
+		if instance.iprose == nil {
+			return stats.ExtraStats{}
+		}
+		_, _, _, _, peers := instance.iprose.Stats()
+
+		return stats.ExtraStats{
+			PeersTotal:  peers,
+			PeersActive: peers,
+		}
+	})
+	if err != nil {
+		instance.Shutdown()
+		return nil, err
+	}
+
 	instance.iprose, err = server.New(
 		"iprose0",
 		"10.123.0.1/16",
@@ -78,18 +94,6 @@ func New(
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
-		return nil, err
-	}
-
-	instance.statsReporter, err = statsService.Register(ProtoName, func() stats.ExtraStats {
-		_, _, _, _, peers := instance.iprose.Stats()
-		return stats.ExtraStats{
-			PeersTotal:  peers,
-			PeersActive: peers,
-		}
-	})
-	if err != nil {
-		instance.Shutdown()
 		return nil, err
 	}
 
