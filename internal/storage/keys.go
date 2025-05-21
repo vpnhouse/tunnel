@@ -36,7 +36,7 @@ func (storage *Storage) dbReadAuthorizerKeys() ([]types.AuthorizerKey, error) {
 		keys = append(keys, types.AuthorizerKey{
 			ID:     row.ID,
 			Source: row.Source,
-			Key:    row.Source,
+			Key:    row.Key,
 		})
 	}
 
