@@ -116,25 +116,25 @@ func (manager *Manager) handlePeerStats(oldPeerStats PeerStats, peer *types.Peer
 		Country: manager.peerCountry(peer, wgPeer),
 	}
 
-	diffUpstream := wgPeer.ReceiveBytes - oldPeerStats.wgReceived
-	diffDownstream := wgPeer.TransmitBytes - oldPeerStats.wgTransmitted
+	dRx := wgPeer.ReceiveBytes - oldPeerStats.wgReceived
+	dTx := wgPeer.TransmitBytes - oldPeerStats.wgTransmitted
 
-	peerStats.Upstream += diffUpstream
-	peerStats.Downstream += diffDownstream
+	peerStats.Upstream += dTx
+	peerStats.Downstream += dRx
 	peerStats.wgReceived = wgPeer.ReceiveBytes
 	peerStats.wgTransmitted = wgPeer.TransmitBytes
 
 	if !oldPeerStats.updated.IsZero() {
 		diffTimeMilli := now.Sub(oldPeerStats.updated).Milliseconds()
 		if diffTimeMilli > 0 {
-			peerStats.UpstreamSpeed = (diffUpstream * 1000) / diffTimeMilli
-			peerStats.DownstreamSpeed = (diffUpstream * 1000) / diffTimeMilli
+			peerStats.UpstreamSpeed = (dRx * 1000) / diffTimeMilli
+			peerStats.DownstreamSpeed = (dRx * 1000) / diffTimeMilli
 		} else {
 			zap.L().Error("Negative time delta", zap.String("label", *peer.Label), zap.Time("updated", oldPeerStats.updated), zap.Time("now", now))
 		}
 	}
 
-	if diffUpstream == 0 && diffDownstream == 0 {
+	if dRx == 0 && dTx == 0 {
 		return
 	}
 
@@ -146,7 +146,7 @@ func (manager *Manager) handlePeerStats(oldPeerStats PeerStats, peer *types.Peer
 		}
 	}
 
-	manager.statsReporter.ReportStats(getOrZero(peer.SessionId), uint64(diffUpstream), uint64(diffDownstream), func(_ uuid.UUID, out *xstats.SessionData) {
+	manager.statsReporter.ReportStats(getOrZero(peer.SessionId), uint64(dTx), uint64(dRx), func(_ uuid.UUID, out *xstats.SessionData) {
 		out.Country = peerStats.Country
 		if peer.InstallationId != nil {
 			out.InstallationID = getOrZero(peer.InstallationId).String()
@@ -157,15 +157,15 @@ func (manager *Manager) handlePeerStats(oldPeerStats PeerStats, peer *types.Peer
 	})
 
 	if peer.Upstream == nil {
-		peer.Upstream = &diffUpstream
+		peer.Upstream = &dRx
 	} else {
-		*peer.Upstream += diffUpstream
+		*peer.Upstream += dRx
 	}
 
 	if peer.Downstream == nil {
-		peer.Downstream = &diffDownstream
+		peer.Downstream = &dTx
 	} else {
-		*peer.Downstream += diffDownstream
+		*peer.Downstream += dTx
 	}
 
 	peer.Activity = xtime.FromTimePtr(&now)

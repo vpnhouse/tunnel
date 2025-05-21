@@ -41,8 +41,8 @@ func (s *Service) onFlush(proto string, report *xstats.Report) {
 		return
 	}
 
-	record.pending.upstream.Add(report.DeltaRx)
-	record.pending.downstream.Add(report.DeltaTx)
+	record.pending.upstream.Add(report.DeltaTx)
+	record.pending.downstream.Add(report.DeltaRx)
 
 	s.pushLog(proto, report)
 }
