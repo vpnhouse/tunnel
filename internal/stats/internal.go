@@ -91,14 +91,11 @@ func (s *Service) loadMetrics(proto string) {
 
 	now := time.Now()
 	for name, value := range metrics {
-		sp := strings.SplitN(name, "_", 2)
-		if len(sp) != 2 {
+		direction, proto, found := strings.Cut(name, "_")
+		if !found {
 			zap.L().Error("Invalid metrics record", zap.String("name", name), zap.Int64("value", value))
 			continue
 		}
-
-		direction := sp[0]
-		proto := sp[1]
 
 		s.records[proto].total.at = now
 		if direction == "upstream" {
