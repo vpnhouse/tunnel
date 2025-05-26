@@ -18,7 +18,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vpnhouse/api v0.0.0-20250425075639-2ed29c19c790
-	github.com/vpnhouse/common-lib-go v0.0.0-20250526080645-6273058e913d
+	github.com/vpnhouse/common-lib-go v0.0.0-20250526083238-526aab7d3ce3
 	github.com/vpnhouse/iprose-go v0.2.2-rc2.0.20250514053813-8ac48d3c9110
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
