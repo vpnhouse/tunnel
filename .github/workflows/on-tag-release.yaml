@@ -1,9 +1,10 @@
 name: "on release: build the main with tags"
 
-on:
-  push:
-    tags:
-      - v* # match on any version tags
+on: workflow_dispatch
+#on:
+#  push:
+#    tags:
+#      - v* # match on any version tags
 
 jobs:
   build:
