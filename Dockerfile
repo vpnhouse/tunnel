@@ -2,6 +2,12 @@ FROM golang:1.22-alpine3.18 AS toolset
 
 RUN apk add gcc make git musl-dev
 
+ARG GITHUB_TOKEN
+ENV GOPRIVATE=github.com/vpnhouse/*
+
+# Configure Git to use token authentication for private modules
+RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com"
+
 
 FROM node:16-alpine3.14 AS nodejs
 
@@ -15,7 +21,7 @@ COPY go.mod /build/
 COPY .gitconfig /root/
 WORKDIR /build
 RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
-RUN --mount=type=ssh GOPRIVATE=github.com/vpnhouse go mod download
+RUN --mount=type=ssh go mod download
 
 FROM gomodules AS builder
 
