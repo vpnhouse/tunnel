@@ -1,31 +1,38 @@
 name: "on release: build the main with tags"
 
-on:
-  push:
-    tags:
-      - v* # match on any version tags
+on: workflow_dispatch
+#on:
+#  push:
+#    tags:
+#      - v* # match on any version tags
 
 jobs:
   build:
     name: Build the release image
     runs-on: ubuntu-latest
+
+    env:
+      GOPRIVATE: github.com/vpnhouse/*
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=TAG_VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      - name: login to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: "build and push image"
+      - name: Build and push image
         uses: docker/build-push-action@v2
         with:
           context: .
           file: Dockerfile
           push: true
-          tags: vpnhouse/tunnel:${{ steps.get_version.outputs.TAG_VERSION }}
+          tags: vpnhouse/tunnel:${{ env.TAG_VERSION }}
+          build-args: |
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
