@@ -260,6 +260,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			CacheDir:     runtime.Settings.Domain.Dir,
 			NonSSLRouter: redirectOnly.Router(),
 			Domains:      append([]string{runtime.Settings.Domain.PrimaryName}, runtime.Settings.Domain.ExtraNames...),
+			ForeignPath:  runtime.Settings.ConfigDir() + "/foreign_certs",
 		}
 
 		certMaster, err := xhttp.NewCertMaster(opts)

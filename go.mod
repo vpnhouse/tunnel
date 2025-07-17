@@ -1,8 +1,8 @@
 module github.com/vpnhouse/tunnel
 
-go 1.22.2
+go 1.23.10
 
-toolchain go1.22.6
+toolchain go1.23.11
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -18,7 +18,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vpnhouse/api v0.0.0-20250425075639-2ed29c19c790
-	github.com/vpnhouse/common-lib-go v0.0.0-20250526083238-526aab7d3ce3
+	github.com/vpnhouse/common-lib-go v0.0.0-20250717131032-24055f917c88
 	github.com/vpnhouse/iprose-go v0.2.2-rc2.0.20250514053813-8ac48d3c9110
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
@@ -82,6 +82,7 @@ require (
 	github.com/mdlayher/genetlink v1.1.0 // indirect
 	github.com/mdlayher/netlink v1.4.2 // indirect
 	github.com/mdlayher/socket v0.0.0-20211102153432-57e3fa563ecb // indirect
+	github.com/mileusna/useragent v1.3.5 // indirect
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5 // indirect
