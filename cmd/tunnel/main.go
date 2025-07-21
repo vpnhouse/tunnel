@@ -208,8 +208,8 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		if err != nil {
 			return err
 		}
-		domains := append([]string{}, runtime.Settings.Domain.ExtraNames...)
-		domains = append(domains, runtime.Settings.Domain.PrimaryName)
+		domains := append([]string{}, runtime.Settings.Domain.PrimaryName)
+		domains = append(domains, runtime.Settings.Domain.ExtraNames...)
 		domains = append(domains, runtime.Settings.Domain.ForeignNames...)
 		proxyServer, err = proxy.New(
 			runtime.Settings.Proxy,
