@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine3.18 AS toolset
+FROM golang:1.23-alpine3.21 AS toolset
 
 RUN apk add gcc make git musl-dev
 
@@ -26,7 +26,7 @@ ARG FEATURE_SET={$FEATURE_SET:-personal}
 RUN FEATURE_SET=$FEATURE_SET make build/app
 
 
-FROM alpine:3.18
+FROM alpine:3.21
 
 RUN apk add tcpdump wireguard-tools nftables
 COPY --from=builder /build/tunnel-node /tunnel-node
