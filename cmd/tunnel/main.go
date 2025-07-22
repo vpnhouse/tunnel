@@ -208,13 +208,13 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		if err != nil {
 			return err
 		}
+		domains := append([]string{}, runtime.Settings.Domain.PrimaryName)
+		domains = append(domains, runtime.Settings.Domain.ExtraNames...)
+		domains = append(domains, runtime.Settings.Domain.ForeignNames...)
 		proxyServer, err = proxy.New(
 			runtime.Settings.Proxy,
 			jwtAuthorizer,
-			append(
-				runtime.Settings.Domain.ExtraNames,
-				runtime.Settings.Domain.PrimaryName,
-			),
+			domains,
 			statService,
 			geoipResolver,
 		)
@@ -260,6 +260,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			CacheDir:     runtime.Settings.Domain.Dir,
 			NonSSLRouter: redirectOnly.Router(),
 			Domains:      append([]string{runtime.Settings.Domain.PrimaryName}, runtime.Settings.Domain.ExtraNames...),
+			ForeignPath:  runtime.Settings.ConfigDir() + "/foreign_certs",
 		}
 
 		certMaster, err := xhttp.NewCertMaster(opts)
