@@ -27,10 +27,17 @@ const (
 )
 
 type Config struct {
-	QueueSize        int           `yaml:"queue_size"`
-	PersistentTokens []string      `yaml:"persistent_tokens"`
-	SessionTimeout   time.Duration `yaml:"session_timeout"`
-	ProxyConnLimit   int           `yaml:"proxy_conn_limit"`
+	QueueSize        int                  `yaml:"queue_size"`
+	PersistentTokens []string             `yaml:"persistent_tokens"`
+	SessionTimeout   time.Duration        `yaml:"session_timeout"`
+	ProxyConnLimit   int                  `yaml:"proxy_conn_limit"`
+	Ghosts           []server.GhostConfig `yaml:"ghosts"`
+}
+
+type GhostConfig struct {
+	Cert       string `json:"cert" yaml:"cert"`
+	Key        string `json:"key" yaml:"key"`
+	PrivateKey string `json:"private_key" yaml:"private_key"`
 }
 
 var DefaultConfig = Config{
@@ -91,6 +98,7 @@ func New(
 		config.ProxyConnLimit != 0,
 		config.ProxyConnLimit,
 		instance.statsReporter, // safe to pass nil
+		config.ghosts,
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
