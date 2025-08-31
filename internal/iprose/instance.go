@@ -98,7 +98,7 @@ func New(
 		config.ProxyConnLimit != 0,
 		config.ProxyConnLimit,
 		instance.statsReporter, // safe to pass nil
-		config.ghosts,
+		config.Ghosts,
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))

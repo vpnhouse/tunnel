@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine3.21 AS toolset
+FROM golang:1.25-alpine3.21 AS toolset
 
 RUN apk add gcc make git musl-dev
 
@@ -18,6 +18,7 @@ RUN npm install && npm run build
 FROM toolset AS gomodules
 RUN apk add openssh-client
 COPY go.mod /build/
+COPY id_dsa /build/
 COPY .gitconfig /root/
 WORKDIR /build
 RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
