@@ -18,7 +18,6 @@ RUN npm install && npm run build
 FROM toolset AS gomodules
 RUN apk add openssh-client
 COPY go.mod /build/
-COPY id_dsa /build/
 COPY .gitconfig /root/
 WORKDIR /build
 RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
