@@ -834,6 +834,8 @@ github.com/vpnhouse/common-lib-go v0.0.0-20250906071409-d82533a2d8d3 h1:DPA4r1wE
 github.com/vpnhouse/common-lib-go v0.0.0-20250906071409-d82533a2d8d3/go.mod h1:krAKChmKHC9ECivvOmgr1wTDo7aJuwawEHIt8qM9WYQ=
 github.com/vpnhouse/iprose-go v0.2.3-0.20250831053517-a3a5ae0c1109 h1:cIy4Ka7a0eCEfULpmglzYYuZLABAilrrT7bz+LOBPJE=
 github.com/vpnhouse/iprose-go v0.2.3-0.20250831053517-a3a5ae0c1109/go.mod h1:58segmo+OybSKvVO4HtnH/n7qGqeDcTeV4bI3F0ojyA=
+github.com/vpnhouse/iprose-go v0.2.3-0.20250906140122-d379d35a3ad7 h1:Qa5L66S1g+1EqPvh/xcp/0FAP10xq0CpQ9PCTdFTdAc=
+github.com/vpnhouse/iprose-go v0.2.3-0.20250906140122-d379d35a3ad7/go.mod h1:wehfvw/bGDSGtukDy1pD13Y4+uIyyNNuhN4bkcMvr+U=
 github.com/vultr/govultr/v2 v2.7.1/go.mod h1:BvOhVe6/ZpjwcoL6/unkdQshmbS9VGbowI4QT+3DGVU=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.0.2/go.mod h1:1WAq6h33pAW+iRreB34OORO2Nf7qel3VV3fjBj+hCSs=
