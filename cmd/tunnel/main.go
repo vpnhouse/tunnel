@@ -216,6 +216,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		domains = append(domains, runtime.Settings.Domain.ExtraNames...)
 		domains = append(domains, runtime.Settings.Domain.ForeignNames...)
 		proxyServer, err = proxy.New(
+			runtime.Settings.Domain.PrimaryName,
 			runtime.Settings.Proxy,
 			jwtAuthorizer,
 			domains,

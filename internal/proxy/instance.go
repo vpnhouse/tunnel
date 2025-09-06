@@ -67,6 +67,7 @@ func (transport *transport) HttpClient() *http.Client {
 }
 
 func New(
+	name string,
 	config *Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	myDomains []string,
@@ -121,6 +122,7 @@ func New(
 	}
 
 	instance.fetcher = xproxy.Instance{
+		Name:           name,
 		MarkHeaderName: markHeaderName,
 		Transport:      transport,
 		AuthCallback: func(r *http.Request) (description any, err error) {
