@@ -5,6 +5,7 @@ package iprose
 
 import (
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/tunnel/internal/stats"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -31,6 +33,13 @@ type Config struct {
 	PersistentTokens []string      `yaml:"persistent_tokens"`
 	SessionTimeout   time.Duration `yaml:"session_timeout"`
 	ProxyConnLimit   int           `yaml:"proxy_conn_limit"`
+	GhostConfigPath  string        `yaml:"ghosts_config_path"`
+}
+
+type GhostConfig struct {
+	Cert       string `json:"cert" yaml:"cert"`
+	Key        string `json:"key" yaml:"key"`
+	PrivateKey string `json:"private_key" yaml:"private_key"`
 }
 
 var DefaultConfig = Config{
@@ -80,6 +89,15 @@ func New(
 		return nil, err
 	}
 
+	var ghosts []server.GhostConfig
+	if config.GhostConfigPath != "" {
+		ghosts, err = ReadGhostsConfig(config.GhostConfigPath)
+		if err != nil {
+			zap.L().Error("Can't read ghosts config", zap.Error(err), zap.String("ghosts_config_path", config.GhostConfigPath))
+			return nil, err
+		}
+	}
+
 	instance.iprose, err = server.New(
 		"iprose0",
 		"10.123.0.1/16",
@@ -91,6 +109,7 @@ func New(
 		config.ProxyConnLimit != 0,
 		config.ProxyConnLimit,
 		instance.statsReporter, // safe to pass nil
+		ghosts,
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
@@ -98,6 +117,21 @@ func New(
 	}
 
 	return instance, nil
+}
+
+func ReadGhostsConfig(path string) ([]server.GhostConfig, error) {
+	yamlFile, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	config := []server.GhostConfig{}
+	err = yaml.Unmarshal(yamlFile, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }
 
 func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error) {
