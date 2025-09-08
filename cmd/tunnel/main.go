@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	sentryio "github.com/getsentry/sentry-go"
@@ -216,7 +217,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		domains = append(domains, runtime.Settings.Domain.ExtraNames...)
 		domains = append(domains, runtime.Settings.Domain.ForeignNames...)
 		proxyServer, err = proxy.New(
-			runtime.Settings.Domain.PrimaryName,
+			strings.Join(domains, ","),
 			runtime.Settings.Proxy,
 			jwtAuthorizer,
 			domains,
