@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,7 +59,14 @@ type transport struct {
 }
 
 func (transport *transport) Dial(addr string) (net.Conn, error) {
-	return net.Dial("tcp", addr)
+	dialer := net.Dialer{
+		Control: func(network, address string, c syscall.RawConn) error {
+			return c.Control(func(fd uintptr) {
+				_ = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+			})
+		},
+	}
+	return dialer.Dial("tcp", addr)
 }
 
 func (transport *transport) HttpClient() *http.Client {
