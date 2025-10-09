@@ -21,6 +21,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/rapidoc"
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/version"
+	"github.com/vpnhouse/common-lib-go/xap"
 	xdns "github.com/vpnhouse/common-lib-go/xdns/server"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/tunnel/internal/admin"
@@ -344,6 +345,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	zap.ReplaceGlobals(xap.HumanReadableLogger(staticConf.LogLevel))
 
 	rand.Seed(time.Now().UnixNano())
 	r := runtime.New(staticConf, initServices)

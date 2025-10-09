@@ -31,7 +31,7 @@ func main() {
 		password = uuid.New().String()
 	}
 
-	zap.ReplaceGlobals(xap.Development())
+	zap.ReplaceGlobals(xap.HumanReadableLogger("info"))
 	extstat.NewServer(username, password).Run(laddr)
 	select {}
 }
