@@ -132,11 +132,11 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 
 	var rxShape, txShape int
 
-	if v, ok := claims.Entitlements["rx_shape"]; ok {
+	if v, ok := claims.Entitlements["shape_downstream"]; ok {
 		rxShape = v.(int)
 	}
 
-	if v, ok := claims.Entitlements["tx_shape"]; ok {
+	if v, ok := claims.Entitlements["shape_upstream"]; ok {
 		txShape = v.(int)
 	}
 
