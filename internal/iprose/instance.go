@@ -130,11 +130,23 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 		installationID = ""
 	}
 
+	var rxShape, txShape int
+
+	if v, ok := claims.Entitlements["rx_shape"]; ok {
+		rxShape = v.(int)
+	}
+
+	if v, ok := claims.Entitlements["tx_shape"]; ok {
+		txShape = v.(int)
+	}
+
 	clientInfo := instance.geoipResolver.GetInfo(r)
 	return &server.UserInfo{
 		InstallationID: installationID,
 		UserID:         userID,
 		Country:        clientInfo.Country,
+		RxShape:        rxShape,
+		TxShape:        txShape,
 	}, nil
 }
 
