@@ -19,7 +19,7 @@ type caList struct {
 }
 
 func main() {
-	zap.ReplaceGlobals(xap.Development())
+	zap.ReplaceGlobals(xap.HumanReadableLogger("info"))
 	authSecret := os.Getenv("AUTH_SECRET")
 	if authSecret == "" {
 		zap.L().Fatal("auth secret is not provided", zap.String("env", "AUTH_SECRET"))
