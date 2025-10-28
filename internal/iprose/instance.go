@@ -130,11 +130,23 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 		installationID = ""
 	}
 
+	var rxShape, txShape int
+
+	if i, ok := claims.Entitlements["shape_downstream"]; ok {
+		rxShape = castToInt(i)
+	}
+
+	if i, ok := claims.Entitlements["shape_upstream"]; ok {
+		txShape = castToInt(i)
+	}
+
 	clientInfo := instance.geoipResolver.GetInfo(r)
 	return &server.UserInfo{
 		InstallationID: installationID,
 		UserID:         userID,
 		Country:        clientInfo.Country,
+		RxShape:        rxShape,
+		TxShape:        txShape,
 	}, nil
 }
 
@@ -159,4 +171,25 @@ func (instance *Instance) Running() bool {
 // admin.Handler implementation
 func (instance *Instance) KillActiveUserSessions(userId string) {
 	// TODO: add implementation
+}
+
+func castToInt(i any) int {
+	switch v := i.(type) {
+	case int:
+		return v
+	case float32:
+		return int(v)
+	case float64:
+		return int(v)
+	case int32:
+		return int(v)
+	case uint32:
+		return int(v)
+	case int64:
+		return int(v)
+	case uint64:
+		return int(v)
+	}
+
+	return 0
 }
