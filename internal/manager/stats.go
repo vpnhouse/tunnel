@@ -93,7 +93,7 @@ func (manager *Manager) syncPeerStats() {
 		}
 	}
 
-	peersWithHandshakesGauge.Set(float64(numPeersWithHadshakes))
+	wgActiveGauge.Set(float64(numPeersWithHadshakes))
 }
 
 func (manager *Manager) peerCountry(peer *types.PeerInfo, wgPeer *wgtypes.Peer) string {

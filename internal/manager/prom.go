@@ -9,17 +9,17 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-var allPeersGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+var wgPeersGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 	Namespace: "tunnel",
-	Subsystem: "peers",
-	Name:      "total",
+	Subsystem: "wireguard",
+	Name:      "peers",
 	Help:      "number of allocated peers",
 })
 
-var peersWithHandshakesGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+var wgActiveGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 	Namespace: "tunnel",
-	Subsystem: "peers",
-	Name:      "with_handshakes",
+	Subsystem: "wireguard",
+	Name:      "active",
 	Help:      "number of peers with active WG handshake",
 })
 
@@ -51,34 +51,17 @@ var wgInterfaceTxPackets = prometheus.NewGauge(prometheus.GaugeOpts{
 	Help:      "packets transmitted by the WG interface",
 })
 
-var wgInterfaceRxErrors = prometheus.NewGauge(prometheus.GaugeOpts{
-	Namespace: "tunnel",
-	Subsystem: "wireguard",
-	Name:      "rx_errors",
-	Help:      "receive errors by the WG interface",
-})
-
-var wgInterfaceTxErrors = prometheus.NewGauge(prometheus.GaugeOpts{
-	Namespace: "tunnel",
-	Subsystem: "wireguard",
-	Name:      "tx_errors",
-	Help:      "transmit errors by the WG interface",
-})
-
 func init() {
 	prometheus.MustRegister(
-		allPeersGauge, peersWithHandshakesGauge,
-		wgInterfaceRxPackets, wgInterfaceRxBytes, wgInterfaceRxErrors,
-		wgInterfaceTxPackets, wgInterfaceTxBytes, wgInterfaceTxErrors,
+		wgPeersGauge, wgActiveGauge,
+		wgInterfaceRxPackets, wgInterfaceRxBytes,
+		wgInterfaceTxPackets, wgInterfaceTxBytes,
 	)
 }
 
 func updatePrometheusFromLinkStats(ls *netlink.LinkStatistics) {
 	wgInterfaceRxPackets.Set(float64(ls.RxPackets))
 	wgInterfaceRxBytes.Set(float64(ls.RxBytes))
-	wgInterfaceRxErrors.Set(float64(ls.RxErrors))
-
 	wgInterfaceTxPackets.Set(float64(ls.TxPackets))
 	wgInterfaceTxBytes.Set(float64(ls.TxBytes))
-	wgInterfaceTxErrors.Set(float64(ls.TxErrors))
 }

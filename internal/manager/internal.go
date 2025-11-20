@@ -53,7 +53,7 @@ func (manager *Manager) restorePeers() {
 		}
 
 		_ = manager.wireguard.SetPeer(peer)
-		allPeersGauge.Inc()
+		wgPeersGauge.Inc()
 	}
 }
 
@@ -67,7 +67,7 @@ func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
 	err = manager.ip4am.Unset(*peer.Ipv4)
 	errs = multierr.Append(errs, err)
 
-	allPeersGauge.Dec()
+	wgPeersGauge.Dec()
 	return errs
 }
 
@@ -132,7 +132,7 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 		return err
 	}
 
-	allPeersGauge.Inc()
+	wgPeersGauge.Inc()
 	return nil
 }
 
