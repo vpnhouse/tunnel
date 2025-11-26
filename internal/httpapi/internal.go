@@ -57,7 +57,7 @@ func (tun *TunnelAPI) adminCheckBearerAuth(tokenStr string) error {
 	var claims jwt.StandardClaims
 	err := tun.adminJWT.Parse(tokenStr, &claims)
 	if err != nil {
-		return err
+		return xerror.EAuthenticationFailed("can't sign token", err)
 	}
 
 	return nil
