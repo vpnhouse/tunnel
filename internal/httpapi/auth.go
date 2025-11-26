@@ -56,7 +56,7 @@ func (tun *TunnelAPI) AdminDoAuth(w http.ResponseWriter, r *http.Request) {
 
 		signedToken, err := tun.adminJWT.Token(&claims)
 		if err != nil {
-			return nil, err
+			return nil, xerror.EInternalError("can't sign token", err)
 		}
 
 		response := &tunnelAPI.AdminAuthResponse{
