@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/entitlements"
 	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
@@ -67,7 +68,7 @@ func New(
 		zap.Duration("session timeout", config.SessionTimeout))
 
 	instance := &Instance{
-		authorizer:    authorizer.WithEntitlement(jwtAuthorizer, authorizer.IPRose),
+		authorizer:    authorizer.WithEntitlement(jwtAuthorizer, entitlements.IPRose),
 		config:        config,
 		geoipResolver: geoipResolver,
 	}
