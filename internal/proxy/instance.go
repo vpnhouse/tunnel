@@ -145,7 +145,7 @@ func (instance *Instance) Shutdown() error {
 }
 
 func (instance *Instance) Running() bool {
-	return instance.terminated.Load()
+	return !instance.terminated.Load()
 }
 
 func (instance *Instance) isMyRequest(r *http.Request) bool {

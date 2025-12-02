@@ -23,11 +23,12 @@ type totalStats struct {
 }
 
 type protoRecord struct {
-	export  Stats
-	pending pendingStats
-	total   totalStats
-	extraCb ExtraStatsCb
-	service *xstats.Service
+	export     Stats
+	pending    pendingStats
+	total      totalStats
+	extraCb    ExtraStatsCb
+	service    *xstats.Service
+	prometheus *prometheusStats
 }
 
 type Service struct {
@@ -88,8 +89,9 @@ func (s *Service) Register(proto string, extraCb ExtraStatsCb) (*xstats.Service,
 	}
 
 	record = &protoRecord{
-		service: service,
-		extraCb: extraCb,
+		service:    service,
+		extraCb:    extraCb,
+		prometheus: newPrometheusStats(proto),
 	}
 	s.records[proto] = record
 	s.loadMetrics(proto)
