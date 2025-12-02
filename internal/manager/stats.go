@@ -92,8 +92,6 @@ func (manager *Manager) syncPeerStats() {
 			zap.L().Error("failed to unset expired peer", zap.Error(err))
 		}
 	}
-
-	peersWithHandshakesGauge.Set(float64(numPeersWithHadshakes))
 }
 
 func (manager *Manager) peerCountry(peer *types.PeerInfo, wgPeer *wgtypes.Peer) string {

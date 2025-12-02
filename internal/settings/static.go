@@ -109,6 +109,7 @@ type Config struct {
 	IPRose             iprose.Config               `yaml:"iprose,omitempty"`
 	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
 	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
+	MetricsListenAddr  string                      `yaml:"metrics_listen_addr"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
@@ -190,8 +191,6 @@ type HttpConfig struct {
 	ListenAddr string `yaml:"listen_addr" valid:"listen_addr,required"`
 	// CORS enables corresponding middleware for the local development
 	CORS bool `yaml:"cors"`
-	// Enable prometheus metrics on "/metrics" path
-	Prometheus bool `yaml:"prometheus"`
 }
 
 type AdminAPIConfig struct {
@@ -413,6 +412,7 @@ func safeDefaults(rootDir string) *Config {
 		PeerStatistics:     defaultPeerStatisticConfig(),
 		IPRose:             iprose.DefaultConfig,
 		Statistics:         defaultStatisticsConfig(),
+		MetricsListenAddr:  "127.0.0.1:9100",
 	}
 }
 

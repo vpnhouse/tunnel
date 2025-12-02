@@ -70,13 +70,19 @@ func (s *Service) export() {
 		record.total.upstream += deltaUp
 		record.total.downstream += deltaDown
 
+		extra := record.extraCb()
 		record.export = Stats{
-			ExtraStats:      record.extraCb(),
+			ExtraStats:      extra,
 			UpstreamBytes:   int64(record.total.upstream),
 			DownstreamBytes: int64(record.total.downstream),
 			UpstreamSpeed:   int64(speed(deltaUp, now, record.total.at)),
 			DownstreamSpeed: int64(speed(deltaDown, now, record.total.at)),
 		}
+
+		record.prometheus.peers.Set(float64(extra.PeersTotal))
+		record.prometheus.active.Set(float64(extra.PeersActive))
+		record.prometheus.upstreamBytes.Add(float64(deltaUp))
+		record.prometheus.downstreamBytes.Add(float64(deltaDown))
 
 		record.total.at = now
 	}
