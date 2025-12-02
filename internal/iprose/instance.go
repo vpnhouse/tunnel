@@ -186,7 +186,7 @@ func (instance *Instance) Authenticate(r *http.Request) (*server.UserInfo, error
 }
 
 func (instance *Instance) RegisterHandlers(r chi.Router) {
-	for _, hndlr := range instance.iprose.Handlers() {
+	for _, hndlr := range instance.iprose.Handlers(true) {
 		r.HandleFunc(hndlr.Pattern, hndlr.Func)
 	}
 }
