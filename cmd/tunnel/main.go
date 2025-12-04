@@ -96,11 +96,14 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 	authClientOpt := authorizer.WithAuthClient(
 		func(ctx context.Context, clientClaims *auth.ClientClaims) error {
-			err := adminService.CheckUserByActionRules(ctx, clientClaims.Subject)
-			if err != nil {
-				zap.L().Debug("user has active action with error",
-					zap.String("error", err.Error()), zap.String("user_id", clientClaims.Subject))
-				return err
+			if runtime.Settings.EnableActionRules {
+				err := adminService.CheckUserByActionRules(ctx, clientClaims.Subject)
+				if err != nil {
+					zap.L().Debug("user has active action with error",
+						zap.String("error", err.Error()), zap.String("user_id", clientClaims.Subject))
+					return err
+				}
+				return nil
 			}
 			return nil
 		},
