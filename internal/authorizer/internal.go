@@ -72,17 +72,17 @@ func (d *jwtAuthorizer) Authenticate(ctx context.Context, tokenString string, my
 
 	err := d.checker.Parse(tokenString, &claims)
 	if err != nil {
-		return nil, err
+		return nil, xerror.WAuthenticationFailed("ETOKEN", "invalid token", err)
 	}
 
 	if !claims.Audience.Has(myAudience) {
-		return nil, xerror.EAuthenticationFailed("invalid audience", nil)
+		return nil, xerror.WAuthenticationFailed("EAUDIENCE", "invalid audience", nil)
 	}
 
 	if d.authClient != nil {
 		err := d.authClient(ctx, &claims)
 		if err != nil {
-			return nil, err
+			return nil, xerror.WAuthenticationFailed("EEXTRAAUTH", "extra verification vailed", err)
 		}
 	}
 
