@@ -109,6 +109,7 @@ type Config struct {
 	IPRose             iprose.Config               `yaml:"iprose,omitempty"`
 	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
 	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
+	EnableActionRules  bool                        `yaml:"enable_action_rules"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
