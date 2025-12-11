@@ -1,5 +1,5 @@
-import React, { FC, useCallback } from 'react';
-import { FileCopyOutlined } from '@material-ui/icons';
+import { FC, useCallback } from 'react';
+import { FileCopyOutlined } from '@mui/icons-material';
 
 import { addNotification } from '@root/store/notifications';
 import { IconButton } from '@common/ui-kit/components';

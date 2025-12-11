@@ -1,15 +1,15 @@
-html, body {
+html,
+body {
   height: 100%;
   margin: 0
 }
 
 :root {
   --secondary-main: #284362;
-
   --paper: #17283C;
 }
 
-/** Scroll bar customisation */
+/** Scroll bar customisation - Webkit browsers */
 body *::-webkit-scrollbar {
   width: 10px;
   background-color: var(--paper);
@@ -17,10 +17,19 @@ body *::-webkit-scrollbar {
 
 body *::-webkit-scrollbar-thumb {
   background-color: var(--secondary-main);
+  border-radius: 5px;
 }
 
-body {
-  scrollbar-color: var(--secondary-main) var(--paper);
+body *::-webkit-scrollbar-thumb:hover {
+  background-color: #3b5a7c;
+}
+
+/** Scroll bar customisation - Firefox and modern browsers */
+@supports (scrollbar-color: auto) {
+  body * {
+    scrollbar-color: var(--secondary-main) var(--paper);
+    scrollbar-width: thin;
+  }
 }
 
 @font-face {
@@ -28,19 +37,21 @@ body {
   src: url(./common/assets/ubuntu-font/ubuntu-light.woff) format("woff");
   font-weight: 300;
 }
+
 @font-face {
   font-family: 'Ubuntu';
   src: url(./common/assets/ubuntu-font/ubuntu-regular.woff) format("woff");
   font-weight: 400;
 }
+
 @font-face {
   font-family: 'Ubuntu';
   src: url(./common/assets/ubuntu-font/ubuntu-medium.woff) format("woff");
   font-weight: 500;
 }
+
 @font-face {
   font-family: 'Ubuntu';
   src: url(./common/assets/ubuntu-font/ubuntu-bold.woff) format("woff");
   font-weight: 700;
 }
-

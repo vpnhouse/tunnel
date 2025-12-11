@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FC, useCallback } from 'react';
+import { ChangeEvent, FC, useCallback } from 'react';
 
 import { TextField, Button } from '@common/ui-kit/components';
 import DeleteIcon from '@root/common/assets/DeleteIcon';

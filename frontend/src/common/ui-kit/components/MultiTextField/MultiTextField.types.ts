@@ -1,6 +1,6 @@
-import { OutlinedTextFieldProps } from '@material-ui/core/TextField/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 
-export type PropsType = Partial<OutlinedTextFieldProps> & {
+export type PropsType = Partial<TextFieldProps> & {
   fieldName: string;
   delimiter: string;
   compoundValue: string;
@@ -9,7 +9,7 @@ export type PropsType = Partial<OutlinedTextFieldProps> & {
   onFieldsChange: (field: string, value: string) => void;
 }
 
-export type FieldWithType = 'narrow' | 'normal';
+export type FieldWithType = 'narrow' | 'normal' | 'wide';
 
 export type ValuesType = {
   [index: string]: string;

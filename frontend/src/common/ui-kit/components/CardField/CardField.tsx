@@ -1,11 +1,65 @@
-import React, { FC, useState } from 'react';
-import { Typography, Switch, FormControlLabel } from '@material-ui/core';
-import { WarningRounded } from '@material-ui/icons';
+import { FC, useState } from 'react';
+import Typography from '@mui/material/Typography';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Box from '@mui/material/Box';
+import WarningRounded from '@mui/icons-material/WarningRounded';
+import { styled } from '@mui/material/styles';
 
 import { CopyToClipboardButton, TextField, FileInput, TextArea, DateTimePicker } from '../index';
 import { PropsType, TextFieldType } from './CardField.types';
-import useStyles from './CardField.styles';
 import { PLAIN_TEXT_FIELD } from './CardField.constants';
+
+const AreaRoot = styled(Box)({
+  display: 'flex',
+  alignItems: 'flex-start'
+});
+
+const FieldWithControl = styled(Box)({
+  display: 'flex',
+  flexDirection: 'column',
+  width: '100%'
+});
+
+const DisableControl = styled(Box)({
+  marginTop: 8
+});
+
+const Actions = styled(Box)({
+  display: 'flex',
+  marginLeft: 8
+});
+
+const TextBlock = styled(Box)({
+  marginBottom: 16
+});
+
+const Caption = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 4,
+  marginBottom: 4,
+  fontSize: theme.typography.caption.fontSize,
+  color: theme.palette.text.secondary
+}));
+
+const Value = styled(Box)({
+  wordBreak: 'break-all'
+});
+
+const ErrorText = styled(Typography)(({ theme }) => ({
+  color: theme.palette.error.main,
+  marginTop: 4
+}));
+
+const DateTimePickerWrapper = styled(Box)({
+  display: 'flex',
+  gap: 12
+});
+
+interface StyleProps {
+  tableView?: boolean;
+}
 
 const CardField: FC<PropsType> = ({
   isEditing,
@@ -22,7 +76,6 @@ const CardField: FC<PropsType> = ({
   disableControl = false,
   loadOptions
 }) => {
-  const classes = useStyles({ tableView });
   const { type } = options;
   const [disabled, setDisabled] = useState(true);
 
@@ -34,11 +87,11 @@ const CardField: FC<PropsType> = ({
     <>
       {isEditing && !readonly
         ? (
-          <div className={type === 'TEXTAREA' ? classes.areaRoot : ''}>
+          <Box component={type === 'TEXTAREA' ? AreaRoot : 'div'}>
             {(type === 'TEXT' || type === 'TEXTAREA') && (
               disableControl
                 ? (
-                  <div className={classes.field__withControl}>
+                  <FieldWithControl>
                     <TextField
                       {...(options as TextFieldType).textprops}
                       fullWidth
@@ -51,15 +104,15 @@ const CardField: FC<PropsType> = ({
                       error={!!validationError}
                       disabled={disabled}
                     />
-                    <div className={classes.disable__control}>
+                    <DisableControl>
                       <FormControlLabel
                         control={
                           <Switch onChange={handleGameClick} />
                         }
                         label="Change field"
                       />
-                    </div>
-                  </div>
+                    </DisableControl>
+                  </FieldWithControl>
                 )
                 : (
                   <TextField
@@ -81,12 +134,12 @@ const CardField: FC<PropsType> = ({
               <DateTimePicker
                 {...options}
                 value={value}
-                classNames={{ pickers: classes.dateTimePicker }}
-                validationError={validationError}
+                classNames={{ pickers: undefined }}
+                validationError={validationError ?? ''}
               />
             )}
 
-            <div className={classes.actions}>
+            <Actions>
               {copyToClipboard && <CopyToClipboardButton value={value} />}
               {!!loadOptions && (
                 <FileInput
@@ -94,22 +147,19 @@ const CardField: FC<PropsType> = ({
                   {...loadOptions}
                 />
               )}
-            </div>
-          </div>
+            </Actions>
+          </Box>
         )
         : (!!value && (
-          <div className={classes.textBlock}>
-            <Typography
-              className={classes.caption}
-              variant="caption"
-              component="div"
-              color={serverError ? 'error' : 'textSecondary'}
+          <TextBlock>
+            <Caption
+              sx={{ color: serverError ? 'error.main' : 'text.secondary' }}
             >
               {!!serverError && <WarningRounded fontSize="small" />}
               {label}
-            </Typography>
+            </Caption>
 
-            <div className={tableView ? classes.value : ''}>
+            <Box sx={tableView ? { wordBreak: 'break-all' } : undefined}>
               {type === 'TEXT' && (
                 <Typography variant="body1">
                   {value}
@@ -119,18 +169,18 @@ const CardField: FC<PropsType> = ({
               {type === 'TEXTAREA' && <TextArea value={value} tableView={tableView} />}
 
               {options.type === 'DATETIME' && (
-              <Typography variant="body1">
-                {new Date(value).toString().split(' (')[0]}
-              </Typography>
+                <Typography variant="body1">
+                  {new Date(value).toString().split(' (')[0]}
+                </Typography>
               )}
 
               {!!serverError && (
-                <Typography className={classes.error} variant="caption" component="p">
+                <ErrorText>
                   {serverError}
-                </Typography>
+                </ErrorText>
               )}
-            </div>
-          </div>
+            </Box>
+          </TextBlock>
         ))
       }
     </>

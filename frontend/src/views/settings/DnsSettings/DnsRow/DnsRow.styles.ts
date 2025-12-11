@@ -1,18 +1,12 @@
-import { createStyles, makeStyles } from '@material-ui/core/styles';
+// This file is a compatibility layer for makeStyles migration
+// Components should be gradually migrated to styled/sx
+import { SxProps, Theme } from '@mui/material/styles';
 
-const useStyles = makeStyles(() =>
-  createStyles({
-    root: {
-      display: 'flex'
-    },
-    dnsField: {
-      width: 160
-    },
-    deleteButton: {
-      marginLeft: 20,
-      marginTop: 6,
-      padding: '0 20px'
-    }
-  }));
+// Dummy useStyles hook for backward compatibility during migration
+export default function useStyles(_props?: Record<string, unknown>) {
+    return new Proxy({} as Record<string, string>, {
+        get: (_, prop) => String(prop)
+    });
+}
 
-export default useStyles;
+export type { SxProps, Theme };

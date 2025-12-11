@@ -1,28 +1,39 @@
-import React, { FC } from 'react';
-import { Alert as MaterialAlert } from '@material-ui/lab';
-
+import { FC } from 'react';
+import Alert from '@mui/material/Alert';
+import { styled } from '@mui/material/styles';
 import { PropsType } from './Alert.types';
-import useStyles from './Alert.styles';
 
-const Alert: FC<PropsType> = ({ message, ...props }) => {
-  const classes = useStyles();
+const StyledAlert = styled(Alert)(({ theme }) => ({
+  marginBottom: '10px',
+  padding: '11px 32px',
+  color: theme.palette.common.white,
+  ...theme.typography.subtitle1,
+  width: '760px',
+  '& .MuiAlert-icon': {
+    display: 'none'
+  },
+  '& .MuiAlert-message': {
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center'
+  },
+  '&.MuiAlert-filledError': {
+    backgroundColor: theme.palette.error.main
+  },
+  '&.MuiAlert-filledInfo': {
+    backgroundColor: theme.palette.info.main
+  },
+  '&.MuiAlert-filledWarning': {
+    backgroundColor: theme.palette.info.main
+  }
+}));
 
+const CustomAlert: FC<PropsType> = ({ message, ...props }) => {
   return (
-    <MaterialAlert
-      {...props}
-      classes={{
-        root: classes.root,
-        icon: classes.icon,
-        message: classes.message,
-        filledError: classes.filledError,
-        filledInfo: classes.filledInfo,
-        filledWarning: classes.filledWarning
-      }}
-      variant="filled"
-    >
+    <StyledAlert {...props} variant="filled">
       {message}
-    </MaterialAlert>
+    </StyledAlert>
   );
 };
 
-export default Alert;
+export default CustomAlert;

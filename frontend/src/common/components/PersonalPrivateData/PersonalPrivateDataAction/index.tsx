@@ -1,5 +1,5 @@
-import { Button } from '@material-ui/core';
-import React, { FC } from 'react';
+import { Button } from '@mui/material';
+import { FC } from 'react';
 
 import useStyles from './styles';
 

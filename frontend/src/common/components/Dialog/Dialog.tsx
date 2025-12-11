@@ -1,23 +1,67 @@
-import React, { FC, useCallback } from 'react';
-import { useStore } from 'effector-react';
-import {
-  Dialog as MaterialDialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle
-} from '@material-ui/core';
+import { FC, useCallback } from 'react';
+import { useUnit } from 'effector-react';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import Box from '@mui/material/Box';
+import { styled } from '@mui/material/styles';
 
 import { $dialogStore, closeDialog } from '@root/store/dialogs';
 import { Button, IconButton } from '@common/ui-kit/components';
 import CloseIcon from '@common/assets/CloseIcon';
 import SlideTransition from '@common/components/SlideTransition';
 
-import useStyles from './Dialog.styles';
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    padding: 32,
+    maxWidth: 770,
+    borderRadius: 12
+  }
+}));
 
-const Dialog: FC = () => {
-  const dialog = useStore($dialogStore);
-  const classes = useStyles();
+const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
+  ...theme.typography.h5,
+  padding: 0,
+  fontWeight: 500,
+  marginBottom: 24,
+  fontSize: 24,
+  lineHeight: '32px'
+}));
+
+const CloseButton = styled(Box)({
+  position: 'absolute',
+  top: 42,
+  right: 42
+});
+
+const StyledDialogContent = styled(DialogContent)({
+  padding: 0
+});
+
+const StyledDialogContentText = styled(DialogContentText)(({ theme }) => ({
+  ...theme.typography.subtitle1,
+  color: theme.palette.text.primary,
+  marginBottom: '32px'
+}));
+
+const StyledDialogActions = styled(DialogActions)({
+  padding: 0,
+  '& > :not(:first-of-type)': {
+    marginLeft: '12px'
+  }
+});
+
+const ButtonsContainer = styled(Box)({
+  display: 'flex',
+  justifyContent: 'space-between',
+  width: '100%',
+  marginTop: 24
+});
+
+const DialogComponent: FC = () => {
+  const dialog = useUnit($dialogStore);
 
   const closeHandler = useCallback(() => {
     closeDialog();
@@ -25,74 +69,55 @@ const Dialog: FC = () => {
 
   const successHandler = useCallback(() => {
     closeDialog();
-    dialog?.successButtonHandler && dialog.successButtonHandler();
+    dialog?.successButtonHandler?.();
   }, [dialog]);
 
   if (!dialog) return null;
 
   return (
-    <MaterialDialog
+    <StyledDialog
       open={dialog.opened}
       TransitionComponent={SlideTransition}
-      classes={{
-        paper: classes.paper
-      }}
       onClose={closeHandler}
     >
-      <DialogTitle
-        disableTypography
-        classes={{
-          root: classes.title
-        }}
-      >
+      <StyledDialogTitle>
         {dialog.title}
-      </DialogTitle>
+      </StyledDialogTitle>
 
-      <IconButton
-        className={classes.closeDialog}
-        onClick={closeHandler}
-        icon={CloseIcon}
-        color="primary"
-      />
+      <CloseButton>
+        <IconButton
+          onClick={closeHandler}
+          icon={CloseIcon}
+          color="primary"
+        />
+      </CloseButton>
 
-      <DialogContent
-        classes={{
-          root: classes.content
-        }}
-      >
+      <StyledDialogContent>
         {typeof dialog.message === 'string' ? (
-          <DialogContentText
-            classes={{
-              root: classes.contentText
-            }}
-          >
+          <StyledDialogContentText>
             {dialog.message}
-          </DialogContentText>
+          </StyledDialogContentText>
         ) : dialog.message}
+      </StyledDialogContent>
 
-      </DialogContent>
-      <DialogActions
-        classes={{
-          root: classes.actions
-        }}
-      >
+      <StyledDialogActions>
         {dialog.actionComponent ? (
-          <div className={classes.buttons}>
+          <ButtonsContainer>
             {dialog.actionComponent}
-          </div>
+          </ButtonsContainer>
         ) : (
-          <div className={classes.buttons}>
+          <ButtonsContainer>
             <Button onClick={closeHandler} variant="contained" color="secondary">
               Cancel
             </Button>
             <Button onClick={successHandler} variant="contained" color="primary">
               {dialog.successButtonTitle}
             </Button>
-          </div>
+          </ButtonsContainer>
         )}
-      </DialogActions>
-    </MaterialDialog>
+      </StyledDialogActions>
+    </StyledDialog>
   );
 };
 
-export default Dialog;
+export default DialogComponent;

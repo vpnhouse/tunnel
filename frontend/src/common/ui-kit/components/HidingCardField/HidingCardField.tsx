@@ -1,6 +1,10 @@
-import React, { FC, useCallback, useEffect, useState } from 'react';
-import { Typography } from '@material-ui/core';
-import { Add, Delete, WarningRounded } from '@material-ui/icons';
+import { FC, useCallback, useEffect, useState } from 'react';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Add from '@mui/icons-material/Add';
+import Delete from '@mui/icons-material/Delete';
+import WarningRounded from '@mui/icons-material/WarningRounded';
+import { styled } from '@mui/material/styles';
 
 import {
   TextField,
@@ -14,7 +18,54 @@ import {
 } from '../index';
 import { PLAIN_TEXT_FIELD } from './HidingCardField.constants';
 import { PropsType } from './HidingCardField.types';
-import useStyles from './HidingCardField.styles';
+
+const FieldLine = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  margin: '16px 0'
+});
+
+const Line = styled(Box)(({ theme }) => ({
+  flex: 1,
+  height: 1,
+  backgroundColor: theme.palette.divider
+}));
+
+const InputLine = styled(Box)({
+  display: 'flex',
+  alignItems: 'flex-start',
+  marginBottom: 16
+});
+
+const Actions = styled(Box)({
+  display: 'flex',
+  marginLeft: 8,
+  gap: 4
+});
+
+const Header = styled(Box)({
+  marginBottom: 16
+});
+
+const TextBlock = styled(Box)({
+  marginBottom: 16
+});
+
+const Caption = styled(Typography)({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 4,
+  marginBottom: 4
+});
+
+const Value = styled(Box)({
+  wordBreak: 'break-all'
+});
+
+const ErrorText = styled(Typography)(({ theme }) => ({
+  color: theme.palette.error.main,
+  marginTop: 4
+}));
 
 const HidingCardField: FC<PropsType> = ({
   isEditing,
@@ -30,8 +81,6 @@ const HidingCardField: FC<PropsType> = ({
   options = PLAIN_TEXT_FIELD,
   loadOptions
 }) => {
-  const classes = useStyles();
-
   const [isHidden, setIsHidden] = useState(!value);
 
   /** To expand fields with values automatically filled on back (ipv4 for example) */
@@ -55,18 +104,18 @@ const HidingCardField: FC<PropsType> = ({
           <>
             {isHidden
               ? (
-                <div className={classes.fieldLine}>
-                  <div className={classes.leftLine} />
+                <FieldLine>
+                  <Line />
                   <TextButton
                     icon={Add}
                     label={label}
                     onClick={showFieldHandler}
                   />
-                  <div className={classes.rightLine} />
-                </div>
+                  <Line />
+                </FieldLine>
               )
               : (
-                <div className={classes.inputLine}>
+                <InputLine>
                   <>
                     {(options.type === 'TEXT' || options.type === 'TEXTAREA') && (
                       <TextField
@@ -95,11 +144,11 @@ const HidingCardField: FC<PropsType> = ({
                       <DateTimePicker
                         {...options}
                         value={value}
-                        validationError={validationError}
+                        validationError={validationError ?? ''}
                       />
                     )}
                   </>
-                  <div className={classes.actions}>
+                  <Actions>
                     <IconButton
                       color="error"
                       onClick={deleteFieldHandler}
@@ -112,8 +161,8 @@ const HidingCardField: FC<PropsType> = ({
                         {...loadOptions}
                       />
                     )}
-                  </div>
-                </div>
+                  </Actions>
+                </InputLine>
               )}
           </>
         )
@@ -121,26 +170,23 @@ const HidingCardField: FC<PropsType> = ({
           <>
             {header
               ? (
-                <div className={classes.header}>
+                <Header>
                   <Typography variant="h5">
                     {value}
                   </Typography>
-                </div>
+                </Header>
               )
               : (!!value && (
-                <div className={classes.textBlock}>
-                  <Typography
-                    className={classes.caption}
-                    variant="caption"
-                    component="div"
-                    color={serverError ? 'error' : 'textSecondary'}
+                <TextBlock>
+                  <Caption
+                    sx={{ color: serverError ? 'error.main' : 'text.secondary' }}
                   >
                     {!!serverError && <WarningRounded fontSize="small" />}
                     {label}
-                  </Typography>
-                  <div className={classes.value}>
+                  </Caption>
+                  <Value>
                     {options.type === 'TEXT' && (
-                      <Typography variant="body1" className={classes.text}>
+                      <Typography variant="body1">
                         {value}
                       </Typography>
                     )}
@@ -148,7 +194,7 @@ const HidingCardField: FC<PropsType> = ({
                     {options.type === 'TEXTAREA' && <TextArea value={value} tableView />}
 
                     {options.type === 'MULTI' && (
-                      <Typography variant="body1" className={classes.text}>
+                      <Typography variant="body1">
                         {value}
                       </Typography>
                     )}
@@ -160,12 +206,12 @@ const HidingCardField: FC<PropsType> = ({
                     )}
 
                     {!!serverError && (
-                      <Typography className={classes.error} variant="caption" component="p">
+                      <ErrorText>
                         {serverError}
-                      </Typography>
+                      </ErrorText>
                     )}
-                  </div>
-                </div>
+                  </Value>
+                </TextBlock>
               ))}
           </>
         )}

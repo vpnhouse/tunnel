@@ -9,11 +9,13 @@ ENV GOPRIVATE=github.com/vpnhouse/*
 RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com"
 
 
-FROM node:16-alpine3.14 AS nodejs
+FROM node:20-alpine AS nodejs
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 COPY ./frontend /app/
 WORKDIR /app
-RUN npm install && npm run build
+RUN pnpm install && pnpm run build
 
 FROM toolset AS gomodules
 RUN apk add openssh-client

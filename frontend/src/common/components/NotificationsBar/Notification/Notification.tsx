@@ -1,5 +1,5 @@
-import React, { FC, useCallback } from 'react';
-import { Grow } from '@material-ui/core';
+import { FC, useCallback } from 'react';
+import { Grow } from '@mui/material';
 
 import { NotificationType } from '@root/store/notifications/types';
 import { Alert } from '@common/ui-kit/components';

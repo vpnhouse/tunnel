@@ -1,9 +1,30 @@
-import React, { ChangeEvent, FC, useCallback, useState } from 'react';
+import { ChangeEvent, FC, useCallback, useState } from 'react';
+import Box from '@mui/material/Box';
+import { styled } from '@mui/material/styles';
 
 import { TextField } from '../index';
 import { splitString } from './MultiTextField.utils';
 import { PropsType, ValuesType } from './MultiTextField.types';
-import useStyles from './MultiTextField.styles';
+
+const FieldsContainer = styled(Box)({
+  display: 'flex',
+  gap: 12,
+  flexWrap: 'wrap'
+});
+
+const NormalField = styled(TextField)({
+  flex: 1,
+  minWidth: 120
+});
+
+const WideField = styled(TextField)({
+  flex: 2,
+  minWidth: 200
+});
+
+const NarrowField = styled(TextField)({
+  width: 100
+});
 
 const MultiTextField: FC<PropsType> = ({
   fieldName,
@@ -13,7 +34,6 @@ const MultiTextField: FC<PropsType> = ({
   fieldWidth = [],
   onFieldsChange
 }) => {
-  const classes = useStyles();
   const [values, setValues] = useState<ValuesType>(splitString(compoundValue, delimiter, labels.length));
   const [errors, setErrors] = useState<ValuesType>(splitString('', delimiter, labels.length));
 
@@ -37,24 +57,33 @@ const MultiTextField: FC<PropsType> = ({
     onFieldsChange(fieldName, Object.values(updatedValues).join(delimiter));
   }, [values, delimiter, fieldName, onFieldsChange]);
 
-  return (
-    <div>
-      <div className={classes.root}>
-        {labels.map((label, index) => (
-          <TextField
-            className={classes[fieldWidth[index] || 'normal']}
-            key={label}
-            label={label}
-            name={index.toString()}
-            value={values[index]}
-            onChange={onChangeHandler}
-            error={!!errors[index]}
-            helperText={errors[index]}
-          />
-        ))}
-      </div>
-    </div>
+  const getFieldComponent = (width?: string) => {
+    switch (width) {
+      case 'wide': return WideField;
+      case 'narrow': return NarrowField;
+      default: return NormalField;
+    }
+  };
 
+  return (
+    <Box>
+      <FieldsContainer>
+        {labels.map((label, index) => {
+          const FieldComponent = getFieldComponent(fieldWidth[index]);
+          return (
+            <FieldComponent
+              key={label}
+              label={label}
+              name={index.toString()}
+              value={values[index]}
+              onChange={onChangeHandler}
+              error={!!errors[index]}
+              helperText={errors[index]}
+            />
+          );
+        })}
+      </FieldsContainer>
+    </Box>
   );
 };
 

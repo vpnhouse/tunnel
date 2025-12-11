@@ -1,4 +1,4 @@
-import { KeyboardTimePickerProps, KeyboardDatePickerProps } from '@material-ui/pickers';
+// Simplified types for DateTimePicker
 
 export type PropsType = {
   dateLabel: string;
@@ -8,8 +8,8 @@ export type PropsType = {
   value: string;
   validationError: string;
   onChangeHandler: (date: Date | null, time: Date | null) => void;
-  datePickerProps?: Partial<KeyboardDatePickerProps>;
-  timePickerProps?: Partial<KeyboardTimePickerProps>;
+  datePickerProps?: Record<string, unknown>;
+  timePickerProps?: Record<string, unknown>;
   classNames?: {
     root?: string;
     pickers?: string;

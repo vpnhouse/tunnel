@@ -1,20 +1,19 @@
-import { OutlinedTextFieldProps } from '@material-ui/core/TextField/TextField';
-import { KeyboardDatePickerProps, KeyboardTimePickerProps } from '@material-ui/pickers';
+import { TextFieldProps as MuiTextFieldProps } from '@mui/material/TextField';
 
 import { TextFieldProps } from '@common/ui-kit/components/TextField/TextField.types';
 
 export type TextFieldType = {
   type: 'TEXT';
-  textprops?: Partial<OutlinedTextFieldProps> & Pick<TextFieldProps, 'endAdornment'>;
+  textprops?: Partial<MuiTextFieldProps> & Pick<TextFieldProps, 'endAdornment'>;
 }
 
 export type TextAreaType = {
   type: 'TEXTAREA';
-  textprops?: Partial<OutlinedTextFieldProps>;
+  textprops?: Partial<MuiTextFieldProps>;
 }
 
 export type CardFieldOptionsType =
-    TextFieldType
+  TextFieldType
   | DateTimeType
   | TextAreaType
 
@@ -25,8 +24,8 @@ export type DateTimeType = {
   dateName: string;
   timeLabel: string;
   timeName: string;
-  datePickerProps?: Partial<KeyboardDatePickerProps>;
-  timePickerProps?: Partial<KeyboardTimePickerProps>;
+  datePickerProps?: Record<string, unknown>;
+  timePickerProps?: Record<string, unknown>;
 }
 
 export type LoadFileOptionsType = {
@@ -42,14 +41,14 @@ export type PropsType = {
   label: string;
   name: string;
   value: string;
-  validationError: string;
-  serverError: string;
+  validationError?: string;
+  serverError?: string;
   options?: CardFieldOptionsType;
   loadOptions?: LoadFileOptionsType;
   isDisable?: boolean;
-  disableControl? :boolean;
+  disableControl?: boolean;
 }
 
-export type StylesPropsTipe = {
+export type StylesPropsType = {
   tableView: boolean;
 }

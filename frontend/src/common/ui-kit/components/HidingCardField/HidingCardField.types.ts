@@ -1,16 +1,15 @@
-import { OutlinedTextFieldProps } from '@material-ui/core/TextField/TextField';
-import { KeyboardDatePickerProps, KeyboardTimePickerProps } from '@material-ui/pickers';
+import { TextFieldProps as MuiTextFieldProps } from '@mui/material/TextField';
 
 import { FieldWithType } from '../MultiTextField/MultiTextField.types';
 
 export type TextFieldType = {
   type: 'TEXT';
-  textprops?: Partial<OutlinedTextFieldProps>;
+  textprops?: Partial<MuiTextFieldProps>;
 }
 
 export type TextAreaType = {
   type: 'TEXTAREA';
-  textprops?: Partial<OutlinedTextFieldProps>;
+  textprops?: Partial<MuiTextFieldProps>;
 }
 
 export type MultiFieldType = {
@@ -19,7 +18,7 @@ export type MultiFieldType = {
   labels: string[];
   fieldWidth?: FieldWithType[];
   onFieldsChange: (field: string, value: string) => void;
-  textprops?: Partial<OutlinedTextFieldProps>;
+  textprops?: Partial<MuiTextFieldProps>;
 }
 
 export type DateTimeType = {
@@ -29,12 +28,12 @@ export type DateTimeType = {
   dateName: string;
   timeLabel: string;
   timeName: string;
-  datePickerProps?: Partial<KeyboardDatePickerProps>;
-  timePickerProps?: Partial<KeyboardTimePickerProps>;
+  datePickerProps?: Record<string, unknown>;
+  timePickerProps?: Record<string, unknown>;
 }
 
 export type CardFieldOptionsType =
-    TextFieldType
+  TextFieldType
   | DateTimeType
   | TextAreaType
   | MultiFieldType;
@@ -52,8 +51,8 @@ export type PropsType = {
   name: string;
   label: string;
   value: string;
-  validationError: string;
-  serverError: string;
+  validationError?: string;
+  serverError?: string;
   onRemoveFieldHandler: (fieldName: string) => void;
   options?: CardFieldOptionsType
   loadOptions?: LoadFileOptionsType

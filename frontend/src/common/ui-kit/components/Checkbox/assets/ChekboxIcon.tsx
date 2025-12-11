@@ -1,5 +1,5 @@
-import React from 'react';
-import { SvgIcon, SvgIconProps } from '@material-ui/core';
+
+import { SvgIcon, SvgIconProps } from '@mui/material';
 
 const CheckboxIcon = (props: SvgIconProps) => (
   <SvgIcon preserveAspectRatio="none" viewBox="0 0 24 24" {...props}>

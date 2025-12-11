@@ -1,14 +1,13 @@
-import React, { FC, useCallback, useState } from 'react';
-import { MuiPickersUtilsProvider } from '@material-ui/pickers';
-import DateFnsUtils from '@date-io/date-fns';
-import { Typography } from '@material-ui/core';
+import { FC, useCallback, useState } from 'react';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
 import clsx from 'clsx';
 
 import { DatePicker, TimePicker } from '@common/ui-kit/components';
 
 import { PropsType } from './DateTimePicker.types';
-import useStyles from './DateTimePicker.styles';
-
 
 const DateTimePicker: FC<PropsType> = ({
   dateLabel,
@@ -22,57 +21,54 @@ const DateTimePicker: FC<PropsType> = ({
   timePickerProps,
   classNames
 }) => {
-  const classes = useStyles();
-  const [date, setDate] = useState<string | null>(value);
-  const [time, setTime] = useState<string | null>(value);
+  const [date, setDate] = useState<Date | null>(value ? new Date(value) : null);
+  const [time, setTime] = useState<Date | null>(value ? new Date(value) : null);
 
-  const dateChangeHandler = useCallback((input) => {
+  const dateChangeHandler = useCallback((input: Date | null) => {
     setDate(input);
-
-    const newDate = input || null;
     const newTime = time ? new Date(time) : null;
-
-    onChangeHandler(newDate, newTime);
+    onChangeHandler(input, newTime);
   }, [time, onChangeHandler]);
 
-  const timeChangeHandler = useCallback((input) => {
+  const timeChangeHandler = useCallback((input: Date | null) => {
     setTime(input);
-
     const newDate = date ? new Date(date) : null;
-    const newTime = input || null;
-
-    onChangeHandler(newDate, newTime);
+    onChangeHandler(newDate, input);
   }, [date, onChangeHandler]);
 
   return (
-    <div className={clsx(classes.root, classNames?.root)}>
-      <div className={clsx(classes.pickers, classNames?.pickers)}>
-        <MuiPickersUtilsProvider utils={DateFnsUtils}>
+    <Box className={clsx(classNames?.root)} sx={{ marginBottom: 2 }}>
+      <Box
+        className={clsx(classNames?.pickers)}
+        sx={{ display: 'flex', gap: 2 }}
+      >
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
           <DatePicker
             {...datePickerProps}
             isEmpty={!value}
             label={dateLabel}
-            name={dateName}
-            value={date || null}
+            value={date}
             onChange={dateChangeHandler}
           />
           <TimePicker
             {...timePickerProps}
             isEmpty={!value}
             label={timeLabel}
-            name={timeName}
-            value={time || null}
+            value={time}
             onChange={timeChangeHandler}
           />
-        </MuiPickersUtilsProvider>
-      </div>
+        </LocalizationProvider>
+      </Box>
       {!!validationError && (
-        <Typography className={classes.validationError} variant="caption" component="p">
+        <Typography
+          variant="caption"
+          component="p"
+          sx={{ color: 'error.main', textAlign: 'end', mt: 0.5 }}
+        >
           {validationError}
         </Typography>
       )}
-    </div>
-
+    </Box>
   );
 };
 

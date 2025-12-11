@@ -1,5 +1,5 @@
-import React from 'react';
-import { SvgIcon, SvgIconProps } from '@material-ui/core';
+
+import { SvgIcon, SvgIconProps } from '@mui/material';
 
 const CloseIcon = (props: SvgIconProps) => (
   <SvgIcon preserveAspectRatio="none" viewBox="0 0 12 12" {...props}>

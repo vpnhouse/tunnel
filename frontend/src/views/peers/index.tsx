@@ -1,6 +1,8 @@
-import React, { FC, useCallback, useRef, useState } from 'react';
-import { useStore } from 'effector-react';
-import { Typography } from '@material-ui/core';
+import { FC, useCallback, useRef, useState } from 'react';
+import { useUnit } from 'effector-react';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import { useTheme } from '@mui/material/styles';
 
 import { PeerCard } from '@common/components';
 import { Button } from '@common/ui-kit/components';
@@ -8,11 +10,9 @@ import { $peersStore, cancelCreatePeer, createPeerFx, getAllPeersFx } from '@roo
 import RefreshIcon from '@common/assets/RefreshIcon';
 import AddIcon from '@common/assets/AddIcon';
 
-import useStyles from './index.styles';
-
 const Peers: FC = () => {
-  const classes = useStyles();
-  const { peers, peerToSave } = useStore($peersStore);
+  const theme = useTheme();
+  const { peers, peerToSave } = useUnit($peersStore);
   const topPageRef = useRef<HTMLDivElement | null>(null);
 
   const [modalOpened, setModalOpened] = useState(false);
@@ -33,14 +33,47 @@ const Peers: FC = () => {
   }
 
   return (
-    <div className={classes.root}>
-      <div className={classes.header}>
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        paddingRight: '64px',
+        flexDirection: 'column',
+        '@media(max-width: 1359px)': {
+          paddingRight: '32px'
+        }
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '100%',
+          margin: '36px 0',
+          userSelect: 'none'
+        }}
+      >
         <Typography variant="h1" color="textPrimary">
           Peers
         </Typography>
-        <div className={classes.actions}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            '& button:not(:last-child)': {
+              marginRight: '12px'
+            },
+            '& button': {
+              padding: '0 28px'
+            }
+          }}
+        >
           <Button
-            className={classes.refreshButton}
+            sx={{
+              width: 160,
+              '& svg': { height: 16, width: 16 }
+            }}
             variant="contained"
             color="secondary"
             startIcon={<RefreshIcon />}
@@ -49,7 +82,10 @@ const Peers: FC = () => {
             Refresh
           </Button>
           <Button
-            className={classes.addButton}
+            sx={{
+              width: 160,
+              '& svg': { height: 14, width: 14 }
+            }}
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
@@ -57,12 +93,20 @@ const Peers: FC = () => {
           >
             Add
           </Button>
-        </div>
-      </div>
-      <div className={classes.main}>
+        </Box>
+      </Box>
+      <Box sx={{ height: '100%', overflow: 'auto', width: '100%' }}>
         <div ref={topPageRef} />
-        <div className={classes.main__wrap}>
-          <div className={classes.main__cards}>
+        <Box sx={{ display: 'flex' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              flexWrap: 'wrap',
+              width: '100%',
+              maxWidth: '1080px'
+            }}
+          >
             {peerToSave && (
               <PeerCard
                 key="newPeer"
@@ -73,10 +117,10 @@ const Peers: FC = () => {
               />
             )}
             {peers.map((item) => <PeerCard key={item.peerInfo.id} {...item} />)}
-          </div>
-        </div>
-      </div>
-    </div>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

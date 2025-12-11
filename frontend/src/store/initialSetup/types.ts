@@ -1,7 +1,7 @@
 import { Mode, ProxySchema } from '@common/components/DomainConfiguration/types';
 
 export interface InitialSetupDomain {
-  mode: Mode;
+  mode: Mode | '';
   domain_name: string;
   issue_ssl?: boolean;
   schema?: ProxySchema;

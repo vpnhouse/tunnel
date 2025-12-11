@@ -1,4 +1,4 @@
-import { AlertProps } from '@material-ui/lab/Alert/Alert';
+import { AlertProps } from '@mui/material/Alert';
 
 export type PropsType = AlertProps & {
   message: string;

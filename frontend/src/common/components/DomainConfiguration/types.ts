@@ -10,7 +10,7 @@ export enum Mode {
 
 export type DomainConfig = {
   domain_name: string;
-  mode: Mode;
+  mode: Mode | '';
   schema?: ProxySchema;
   issue_ssl?: boolean;
 }

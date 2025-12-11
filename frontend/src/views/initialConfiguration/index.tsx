@@ -1,7 +1,7 @@
-import React, { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
-import { Backdrop, CircularProgress, Paper, Typography, Tooltip } from '@material-ui/core';
-import { useStore } from 'effector-react';
-import { Autorenew, HelpOutlineRounded } from '@material-ui/icons';
+import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
+import { Backdrop, CircularProgress, Paper, Typography, Tooltip } from '@mui/material';
+import { useUnit } from 'effector-react';
+import { Autorenew, HelpOutlineRounded } from '@mui/icons-material';
 
 import { Button, TextField } from '@common/ui-kit/components';
 import { VisibilityAdornment } from '@root/common/components';
@@ -24,8 +24,8 @@ import { checkRequiredFields, generateSubMaskValue } from './utils';
 
 const InitialConfiguration = () => {
   const classes = useStyles();
-  const isInitialConfigurateDone = useStore($initialSetup);
-  const isLoading = useStore($loadingStore);
+  const isInitialConfigurateDone = useUnit($initialSetup);
+  const isLoading = useUnit($loadingStore);
 
   const [withDomain, setWidthDomain] = useState(false);
   const [sendStats, setSendStats] = useState(true);

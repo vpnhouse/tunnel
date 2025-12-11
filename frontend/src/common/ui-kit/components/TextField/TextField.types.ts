@@ -1,6 +1,8 @@
 import { ReactNode } from 'react';
-import { OutlinedTextFieldProps } from '@material-ui/core/TextField/TextField';
+import { TextFieldProps as MuiTextFieldProps } from '@mui/material/TextField';
+import { SxProps, Theme } from '@mui/material/styles';
 
-export type TextFieldProps = Partial<OutlinedTextFieldProps> & {
-  endAdornment?: ReactNode
+export type TextFieldProps = MuiTextFieldProps & {
+  endAdornment?: ReactNode;
+  sx?: SxProps<Theme>;
 }

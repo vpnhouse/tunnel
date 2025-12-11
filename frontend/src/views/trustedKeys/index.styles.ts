@@ -1,41 +1,12 @@
-import { createStyles, makeStyles } from '@material-ui/core/styles';
+// This file is a compatibility layer for makeStyles migration
+// Components should be gradually migrated to styled/sx
+import { SxProps, Theme } from '@mui/material/styles';
 
-const useStyles = makeStyles(() =>
-  createStyles({
-    root: {
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center'
-    },
-    header: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: '700px',
-      margin: '36px 0',
-      '-webkit-user-select': 'none',
-      '-moz-user-select': 'none',
-      '-ms-user-select': 'none',
-      userSelect: 'none'
-    },
-    main: {
-      height: '100%',
-      overflow: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
-      width: '100%'
-    },
-    actions: {
-      display: 'flex',
-      justifyContent: 'flex-end',
-      '& button:not(:last-child)': {
-        marginRight: '12px'
-      },
-      '& button': {
-        padding: '0 28px'
-      }
-    }
-  }));
+// Dummy useStyles hook for backward compatibility during migration
+export default function useStyles(_props?: Record<string, unknown>) {
+    return new Proxy({} as Record<string, string>, {
+        get: (_, prop) => String(prop)
+    });
+}
 
-export default useStyles;
+export type { SxProps, Theme };

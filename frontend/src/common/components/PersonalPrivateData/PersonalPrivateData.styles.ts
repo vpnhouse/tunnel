@@ -1,28 +1,10 @@
-import { createStyles, makeStyles } from '@material-ui/core/styles';
+// This file is a compatibility layer for makeStyles migration
+import { SxProps, Theme } from '@mui/material/styles';
 
-const useStyles = makeStyles(() =>
-  createStyles({
-    personalPrivateData: {
-      display: 'flex',
-      alignItems: 'center'
-    },
-    qrCodeWrapper: {
-      padding: 16,
-      background: '#fff',
-      borderRadius: 8,
-      marginRight: 6,
-      maxHeight: 224
-    },
-    dataWrapper: {
-      maxWidth: '100%',
-      overflow: 'auto',
-      lineHeight: '24px',
-      marginTop: -24,
-      paddingRight: 24,
-      '& > pre': {
-        margin: 0
-      }
-    }
-  }));
+export default function useStyles(_props?: Record<string, unknown>) {
+  return new Proxy({} as Record<string, string>, {
+    get: (_, prop) => String(prop)
+  });
+}
 
-export default useStyles;
+export type { SxProps, Theme };

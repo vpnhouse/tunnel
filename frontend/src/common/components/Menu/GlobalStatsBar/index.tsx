@@ -1,23 +1,57 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Tabs, Tab } from '@material-ui/core';
+import { useCallback, useEffect, useState, SyntheticEvent } from 'react';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Box from '@mui/material/Box';
+import { styled } from '@mui/material/styles';
 
 import { components } from '@schema';
 import { fetchData } from '@root/store/utils';
 import { GLOBAL_STATS } from '@constants/apiPaths';
 import { BYTES_MEASURE_LIMITS, FETCH_STATS_INTERVAL, TABS } from '@common/components/Menu/GlobalStatsBar/constant';
 
-import useStyles from './styles';
-
 type TabType = 'stats_global' | 'stats_iprose' | 'stats_proxy' | 'stats_wireguard';
 
-const GlobalStatsBar = () => {
-  const classes = useStyles();
+const StatsRoot = styled(Box)(({ theme }) => ({
+  marginTop: 'auto',
+  padding: '16px',
+  [theme.breakpoints.down('lg')]: {
+    display: 'none'
+  }
+}));
 
+const TabsContainer = styled(Box)({
+  marginBottom: 12
+});
+
+const StyledTabs = styled(Tabs)({
+  minHeight: 32,
+  '& .MuiTab-root': {
+    minHeight: 32,
+    padding: '4px 8px',
+    fontSize: 11,
+    minWidth: 'auto'
+  }
+});
+
+const StatsContent = styled(Box)(({ theme }) => ({
+  fontSize: 12,
+  color: theme.palette.text.secondary
+}));
+
+const StatsRow = styled(Box)({
+  display: 'flex',
+  justifyContent: 'space-between',
+  marginBottom: 4,
+  '& span:last-of-type': {
+    fontWeight: 500
+  }
+});
+
+const GlobalStatsBar = () => {
   const [stats, setStats] = useState<components['schemas']['ServiceStatus'] | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('stats_global');
 
   const convertBytes = useCallback((bytes: number): string => {
-    // eslint-disable-next-line no-restricted-syntax
     for (const [index, metric] of BYTES_MEASURE_LIMITS.entries()) {
       const { limit, label } = metric;
 
@@ -45,7 +79,7 @@ const GlobalStatsBar = () => {
     };
   }, [fetchStats]);
 
-  const handleTabChange = (event: React.ChangeEvent<{}>, newValue: TabType) => {
+  const handleTabChange = (_event: SyntheticEvent, newValue: TabType) => {
     setActiveTab(newValue);
   };
 
@@ -76,54 +110,53 @@ const GlobalStatsBar = () => {
   const { peers_active, peers_total, traffic_up, traffic_down, speed_up, speed_down } = displayStats;
 
   return (
-    <div className={classes.root}>
-      <div className={classes.tabsContainer}>
-        <Tabs
+    <StatsRoot>
+      <TabsContainer>
+        <StyledTabs
           value={activeTab}
           onChange={handleTabChange}
           indicatorColor="primary"
           textColor="primary"
           variant="fullWidth"
-          className={classes.tabs}
         >
           {TABS.map((tab) => (
             <Tab key={tab.value} value={tab.value} label={tab.label} />
           ))}
-        </Tabs>
-      </div>
+        </StyledTabs>
+      </TabsContainer>
 
-      <div className={classes.statsContent}>
-        <div className={classes.row}>
+      <StatsContent>
+        <StatsRow>
           <span>Total peers:</span>
           <span>{peers_total}</span>
-        </div>
+        </StatsRow>
 
-        <div className={classes.row}>
+        <StatsRow>
           <span>Peers active:</span>
           <span>{peers_active}</span>
-        </div>
+        </StatsRow>
 
-        <div className={classes.row}>
+        <StatsRow>
           <span>Upstream traffic:</span>
           <span>{traffic_up}</span>
-        </div>
+        </StatsRow>
 
-        <div className={classes.row}>
+        <StatsRow>
           <span>Downstream traffic:</span>
           <span>{traffic_down}</span>
-        </div>
+        </StatsRow>
 
-        <div className={classes.row}>
+        <StatsRow>
           <span>Upstream speed:</span>
           <span>{speed_up}</span>
-        </div>
+        </StatsRow>
 
-        <div className={classes.row}>
+        <StatsRow>
           <span>Downstream speed:</span>
           <span>{speed_down}</span>
-        </div>
-      </div>
-    </div>
+        </StatsRow>
+      </StatsContent>
+    </StatsRoot>
   );
 };
 

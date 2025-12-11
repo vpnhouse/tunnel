@@ -1,7 +1,7 @@
-import React, { ChangeEvent, FC, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { useStore } from 'effector-react';
-import { Backdrop, CircularProgress, Typography, Paper, Tooltip } from '@material-ui/core';
-import { HelpOutlineRounded } from '@material-ui/icons';
+import { ChangeEvent, FC, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useUnit } from 'effector-react';
+import { Backdrop, CircularProgress, Typography, Paper, Tooltip } from '@mui/material';
+import { HelpOutlineRounded } from '@mui/icons-material';
 
 import { $settingsStore, getSettingsFx, changeSettingsFx } from '@root/store/settings';
 import { $loadingStore, $statusStore } from '@root/store/status';
@@ -37,9 +37,9 @@ import useStyles from './index.styles';
 
 
 const Settings: FC = () => {
-  const savedSettings: SettingsResponseType | null = useStore($settingsStore);
-  const { restart_required } = useStore($statusStore);
-  const isLoading = useStore($loadingStore);
+  const savedSettings: SettingsResponseType | null = useUnit($settingsStore);
+  const { restart_required } = useUnit($statusStore);
+  const isLoading = useUnit($loadingStore);
   const classes = useStyles();
 
   const [settings, setSettings] = useState<SettingsType | null>(savedSettings);

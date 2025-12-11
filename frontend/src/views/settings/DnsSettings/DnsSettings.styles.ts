@@ -1,21 +1,12 @@
-import { createStyles, makeStyles } from '@material-ui/core/styles';
+// This file is a compatibility layer for makeStyles migration
+// Components should be gradually migrated to styled/sx
+import { SxProps, Theme } from '@mui/material/styles';
 
-const useStyles = makeStyles(() =>
-  createStyles({
-    dnsBlock: {
-      marginBottom: '28px'
-    },
-    addNewField: {
-      width: 160,
-      backgroundColor: '#2B3142',
-      borderRadius: 8,
-      '&:hover': {
-        backgroundColor: '#3B3F63'
-      },
-      '& *': {
-        cursor: 'text'
-      }
-    }
-  }));
+// Dummy useStyles hook for backward compatibility during migration
+export default function useStyles(_props?: Record<string, unknown>) {
+    return new Proxy({} as Record<string, string>, {
+        get: (_, prop) => String(prop)
+    });
+}
 
-export default useStyles;
+export type { SxProps, Theme };

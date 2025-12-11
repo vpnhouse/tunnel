@@ -1,20 +1,26 @@
-import { InputAdornment, Tooltip } from '@material-ui/core';
-import { HelpOutlineRounded } from '@material-ui/icons';
-import React, { FC } from 'react';
-
-import useStyles from './styles';
+import { FC } from 'react';
+import InputAdornment from '@mui/material/InputAdornment';
+import Tooltip from '@mui/material/Tooltip';
+import HelpOutlineRounded from '@mui/icons-material/HelpOutlineRounded';
+import { styled } from '@mui/material/styles';
 
 interface Props {
   text: string;
 }
 
-const HintAdornment: FC<Props> = ({ text }) => {
-  const classes = useStyles();
+const StyledHelpIcon = styled(HelpOutlineRounded)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  cursor: 'pointer',
+  '&:hover': {
+    color: theme.palette.primary.main
+  }
+}));
 
+const HintAdornment: FC<Props> = ({ text }) => {
   return (
     <InputAdornment position="end">
       <Tooltip title={text}>
-        <HelpOutlineRounded className={classes.root} />
+        <StyledHelpIcon />
       </Tooltip>
     </InputAdornment>
   );

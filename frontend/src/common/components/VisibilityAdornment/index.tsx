@@ -1,25 +1,31 @@
-import React, { FC } from 'react';
-import { InputAdornment } from '@material-ui/core';
-import clsx from 'clsx';
+import { FC } from 'react';
+import InputAdornment from '@mui/material/InputAdornment';
+import Box from '@mui/material/Box';
+import { styled } from '@mui/material/styles';
 
 import { IconButton } from '@root/common/ui-kit/components';
 
 import VisibilityIcon from './VisibilityIcon';
 import { PropsType } from './VisibilityAdornment.types';
-import useStyles from './styles';
+
+const IconWrapper = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'disabled'
+})<{ disabled?: boolean }>(({ disabled }) => ({
+  opacity: disabled ? 0.5 : 1,
+  transition: 'opacity 0.2s ease'
+}));
 
 const VisibilityAdornment: FC<PropsType> = ({ showPassword, toggleShowPasswordHandler, tabIndex }) => {
-  const classes = useStyles();
-
   return (
     <InputAdornment position="end">
-      <IconButton
-        onClick={toggleShowPasswordHandler}
-        color="primary"
-        tabIndex={tabIndex}
-        className={clsx(classes.root, !showPassword && classes.disabled)}
-        icon={VisibilityIcon}
-      />
+      <IconWrapper disabled={!showPassword}>
+        <IconButton
+          onClick={toggleShowPasswordHandler}
+          color="primary"
+          tabIndex={tabIndex}
+          icon={VisibilityIcon}
+        />
+      </IconWrapper>
     </InputAdornment>
   );
 };
