@@ -1,59 +1,78 @@
 {
-    "compilerOptions": {
-      "jsx": "react",
-      "target": "ES2020",
-      "module": "ES2020",
-      "outDir": "dist",
-      "strict": true,
-      "baseUrl": "./",
-      "allowSyntheticDefaultImports": true,
-      "allowUmdGlobalAccess": true,
-      "emitDecoratorMetadata": true,
-      "experimentalDecorators": true,
-      "moduleResolution": "node",
-      "resolveJsonModule": true,
-      "sourceMap": true,
-      "declaration": true,
-      "typeRoots": [
-        "node_modules/@types"
+  "compilerOptions": {
+    // Language and Environment
+    "target": "ESNext",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+    // Modules
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    // Interop Constraints
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    // Type Checking - Strict Mode Enabled
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    // Completeness
+    "skipLibCheck": true,
+    // Path Aliases
+    "baseUrl": ".",
+    "paths": {
+      "@root/*": [
+        "src/*"
       ],
-      "paths": {
-        "@root/*": [
-          "./src/*"
-        ],
-        "@constants/*": [
-          "./src/constants/*"
-        ],
-        "@common/*": [
-          "./src/common/*"
-        ],
-        "@context": [
-          "./src/context"
-        ],
-        "@config": [
-          "./src/config.json"
-        ],
-        "@schema": [
-          "./schema.ts"
-        ],
-        "@apiHooks/*": [
-          "./src/apiHooks/*"
-        ]
-      },
-      "types": [
-        "node"
+      "@constants/*": [
+        "src/constants/*"
+      ],
+      "@common/*": [
+        "src/common/*"
+      ],
+      "@context/*": [
+        "src/context/*"
+      ],
+      "@config": [
+        "src/config.json"
+      ],
+      "@schema": [
+        "schema.ts"
+      ],
+      "@apiHooks/*": [
+        "src/apiHooks/*"
       ]
     },
-    "lint-staged": {
-      "concurrent": false
-    },
-    "exclude": [
-      "./node_modules",
-      "./dist",
-      "./webpack"
-    ],
-    "include": [
-      "src",
-      "src/custom.d.ts"
+    // Types
+    "types": [
+      "node",
+      "vite/client"
     ]
-  }
+  },
+  "include": [
+    "src/**/*",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

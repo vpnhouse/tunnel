@@ -1,6 +1,6 @@
-import React, { ChangeEvent, FC, useCallback, useState, useMemo, FormEvent } from 'react';
-import { Paper, Typography } from '@material-ui/core';
-import { Delete, Edit, WarningRounded } from '@material-ui/icons';
+import { ChangeEvent, FC, useCallback, useState, useMemo, FormEvent } from 'react';
+import { Paper, Typography } from '@mui/material';
+import { Delete, Edit, WarningRounded } from '@mui/icons-material';
 
 import { Button, CardField, IconButton } from '@common/ui-kit/components';
 import { TrustedKeyErrorType, TrustedKeyRecordType } from '@root/store/trustedKeys/types';

@@ -5,7 +5,7 @@ export type Config = {
   confirm_password: string;
   domain_name: string;
   wireguard_subnet: string;
-  mode: Mode;
+  mode: Mode | '';
   issue_ssl: boolean;
   schema: ProxySchema;
 }

@@ -1,6 +1,5 @@
-import { ComponentType } from 'react';
-import { RouteComponentProps, RouteProps } from 'react-router';
+import { ReactNode } from 'react';
 
-export type PropsType = RouteProps & {
-  component: ComponentType<RouteComponentProps<any>> | ComponentType<any>
+export interface PropsType {
+  children: ReactNode;
 }

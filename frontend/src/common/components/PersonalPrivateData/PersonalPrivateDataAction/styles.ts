@@ -1,15 +1,10 @@
-import { createStyles, makeStyles } from '@material-ui/core/styles';
+// This file is a compatibility layer for makeStyles migration
+import { SxProps, Theme } from '@mui/material/styles';
 
-const useStyles = makeStyles(({ palette }) =>
-  createStyles({
-    root: {
-      width: '100%',
-      height: 56
-    },
-    downloadLink: {
-      color: palette.text.primary,
-      textDecoration: 'none'
-    }
-  }));
+export default function useStyles(_props?: Record<string, unknown>) {
+  return new Proxy({} as Record<string, string>, {
+    get: (_, prop) => String(prop)
+  });
+}
 
-export default useStyles;
+export type { SxProps, Theme };

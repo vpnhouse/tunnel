@@ -49,7 +49,7 @@ build/frontend:
 	rm -rf ./frontend/dist
 	rm -rf ./internal/frontend/dist && mkdir ./internal/frontend/dist
 	touch ../tunnel/internal/frontend/dist/stub.html
-	cd ./frontend && npm run build
+	cd ./frontend && pnpm run build
 	cp -r ./frontend/dist/* ./internal/frontend/dist/
 
 

@@ -1,7 +1,7 @@
-import React, { FC, useCallback, useEffect, useRef } from 'react';
-import { useStore } from 'effector-react';
-import { Typography } from '@material-ui/core';
-import { AddCircle, Autorenew } from '@material-ui/icons';
+import { FC, useCallback, useEffect, useRef } from 'react';
+import { useUnit } from 'effector-react';
+import { Typography } from '@mui/material';
+import { AddCircle, Autorenew } from '@mui/icons-material';
 
 import { TrustedKeyCard } from '@common/components';
 import { Button } from '@common/ui-kit/components';
@@ -15,7 +15,7 @@ import useStyles from './index.styles';
 
 const TrustedKeys: FC = () => {
   const classes = useStyles();
-  const { trustedKeys, trustedKeyToSave } = useStore($trustedKeysStore);
+  const { trustedKeys, trustedKeyToSave } = useUnit($trustedKeysStore);
   const topPageRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

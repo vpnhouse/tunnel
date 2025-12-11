@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 import PersonalPrivateData from '@root/common/components/PersonalPrivateData/PersonalPrivateData';
 import PersonalPrivateDataAction from '@root/common/components/PersonalPrivateData/PersonalPrivateDataAction';

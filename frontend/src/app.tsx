@@ -1,10 +1,10 @@
-import React, { FC, useEffect } from 'react';
-import * as ReactDOM from 'react-dom';
+import { FC, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
 import './wireguard';
-import { useStore } from 'effector-react';
-import { Route, Switch } from 'react-router';
-import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider } from '@material-ui/core/styles';
+import { useUnit } from 'effector-react';
+import { Route, Routes, BrowserRouter } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
@@ -25,7 +25,7 @@ import { checkConfigurationFx } from './store/initialSetup';
 import { $globalLoading } from './store/globalLoading';
 
 const App: FC = () => {
-  const globalLoading = useStore($globalLoading);
+  const globalLoading = useUnit($globalLoading);
 
   useEffect(() => {
     checkConfigurationFx();
@@ -33,14 +33,15 @@ const App: FC = () => {
 
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
       {globalLoading && <GlobalLoader />}
       {!globalLoading && (
         <BrowserRouter>
-          <Switch>
-            <Route path={AUTH_ROUTE} component={Auth} />
-            <Route exact path={INITIAL_CONFIGURATION} component={InitialConfiguration} />
-            <PrivateRoute path={MAIN_ROUTE} component={Main} />
-          </Switch>
+          <Routes>
+            <Route path={`${AUTH_ROUTE}/*`} element={<Auth />} />
+            <Route path={INITIAL_CONFIGURATION} element={<InitialConfiguration />} />
+            <Route path={`${MAIN_ROUTE}/*`} element={<PrivateRoute><Main /></PrivateRoute>} />
+          </Routes>
 
           <NotificationsBar />
         </BrowserRouter>
@@ -54,6 +55,5 @@ const root = document.getElementById('root');
 
 if (root) {
   root.style.height = '100%';
-
-  ReactDOM.render(<App />, root);
+  createRoot(root).render(<App />);
 }

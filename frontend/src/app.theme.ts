@@ -1,10 +1,17 @@
-import { createMuiTheme } from '@material-ui/core/styles';
+import { createTheme } from '@mui/material/styles';
 
-const theme = createMuiTheme({
+declare module '@mui/material/styles' {
+  interface TypeText {
+    hint: string;
+  }
+}
+
+const theme = createTheme({
   shape: {
     borderRadius: 6
   },
   palette: {
+    mode: 'dark',
     common: {
       black: '#121212',
       white: '#FBFBFB'
@@ -44,7 +51,6 @@ const theme = createMuiTheme({
       primary: '#FBFBFB',
       secondary: 'rgba(251, 251, 251, 0.6)',
       disabled: 'rgba(251, 251, 251, 0.2)',
-      hint: 'rgba(251, 251, 251, 0.4)'
     }
   },
   typography: {
@@ -120,39 +126,41 @@ const theme = createMuiTheme({
       xl: 1920
     }
   },
-  props: {
+  components: {
     MuiButtonBase: {
-      disableRipple: true,
-      disableTouchRipple: true
-    }
-  },
-  overrides: {
+      defaultProps: {
+        disableRipple: true,
+        disableTouchRipple: true
+      }
+    },
     MuiSwitch: {
-      root: {
-        padding: '7px 8px',
-        '& > .Mui-checked > .MuiIconButton-label': {
-          color: '#fafafa'
+      styleOverrides: {
+        root: {
+          padding: '7px 8px',
+          '& > .Mui-checked > .MuiSwitch-thumb': {
+            color: '#fafafa'
+          },
+          '&+.MuiFormControlLabel-label': {
+            fontWeight: 400,
+            marginLeft: 12
+          }
         },
-        '&+.MuiFormControlLabel-label': {
-          fontWeight: 400,
-          marginLeft: 12
-        }
-      },
-      switchBase: {
-        padding: 0,
-        margin: 11
-      },
-      thumb: {
-        height: 16,
-        width: 16
-      },
-      track: {
-        borderRadius: 32,
-        backgroundColor: '#2B3142',
-        opacity: 1,
-        '$checked$checked + &': {
+        switchBase: {
+          padding: 0,
+          margin: 11
+        },
+        thumb: {
+          height: 16,
+          width: 16
+        },
+        track: {
+          borderRadius: 32,
+          backgroundColor: '#2B3142',
           opacity: 1,
-          backgroundColor: '#1FC477'
+          '.Mui-checked.Mui-checked + &': {
+            opacity: 1,
+            backgroundColor: '#1FC477'
+          }
         }
       }
     }

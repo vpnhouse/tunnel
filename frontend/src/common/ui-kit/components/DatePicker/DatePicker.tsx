@@ -1,57 +1,58 @@
-import React, { FC, useCallback, useState } from 'react';
-import { KeyboardDatePicker } from '@material-ui/pickers';
+import { FC, useCallback, useState } from 'react';
+import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
+import { styled } from '@mui/material/styles';
 
-import useStyles from './DatePicker.styles';
 import { PropsType } from './DatePicker.types';
 import { PAST_MESSAGE } from './DatePicker.constants';
 
+const StyledDatePicker = styled(MuiDatePicker)(({ theme }) => ({
+  display: 'block',
+  '& .MuiInputBase-root': {
+    borderRadius: 8,
+    backgroundColor: '#2B3142',
+    '&:hover': {
+      backgroundColor: '#3B3F63'
+    },
+    '&.Mui-focused': {
+      backgroundColor: '#3B3F63'
+    }
+  },
+  '& .MuiInputBase-input': {
+    color: theme.palette.text.primary,
+    padding: '12px 14px'
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'transparent'
+  },
+  '& .MuiInputLabel-root': {
+    color: theme.palette.text.disabled
+  },
+  '& .MuiFormHelperText-root': {
+    textAlign: 'end'
+  },
+  '& .MuiIconButton-root': {
+    color: theme.palette.text.secondary
+  }
+})) as typeof MuiDatePicker;
+
 const DatePicker: FC<PropsType> = ({ isEmpty = true, ...props }) => {
-  const classes = useStyles({ isEmpty });
   const [open, setOpen] = useState(false);
 
   const openHandler = useCallback(() => setOpen(true), []);
   const closeHandler = useCallback(() => setOpen(false), []);
 
   return (
-    <KeyboardDatePicker
+    <StyledDatePicker
       {...props}
       open={open}
-      disableToolbar
-      variant="inline"
-      inputVariant="outlined"
-      placeholder="dd/mm/yyyy"
-      format="dd/MM/yyyy"
       onOpen={openHandler}
-      onAccept={closeHandler}
       onClose={closeHandler}
-      className={classes.root}
-      margin="dense"
-      minDateMessage={PAST_MESSAGE}
-      InputLabelProps={{
-        classes: {
-          root: classes.labelRoot,
-          outlined: classes.inputLabelFilled
-        }
-      }}
-      InputProps={{
-        classes: {
-          root: classes.inputRoot,
-          notchedOutline: classes.notchedOutline,
-          input: classes.input,
-          marginDense: classes.inputMarginDense,
-          adornedEnd: classes.adornedEnd
-        }
-      }}
-      FormHelperTextProps={{
-        classes: {
-          root: classes.helperText
-        }
-      }}
-      PopoverProps={{
-        PaperProps: {
-          classes: {
-            root: classes.paper
-          }
+      format="dd/MM/yyyy"
+      slotProps={{
+        textField: {
+          placeholder: 'dd/mm/yyyy',
+          margin: 'dense',
+          helperText: props.minDate && props.value && props.value < props.minDate ? PAST_MESSAGE : undefined
         }
       }}
     />

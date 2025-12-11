@@ -1,31 +1,53 @@
-import React, { FC, useCallback, useState } from 'react';
-import { Typography } from '@material-ui/core';
-import { ExpandMore, ExpandLess } from '@material-ui/icons';
+import { FC, useCallback, useState } from 'react';
+import Typography from '@mui/material/Typography';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import Box from '@mui/material/Box';
 
 import { CopyToClipboardButton, IconButton } from '../index';
 import { PropsType } from './TextArea.types';
-import useStyles from './TextArea.styles';
 
 const TextArea: FC<PropsType> = ({
   value,
   tableView = false
 }) => {
   const [allVisible, setAllVisible] = useState(false);
-  const classes = useStyles({
-    allVisible,
-    tableView
-  });
 
   const toogleVisibilityHandler = useCallback(() => {
     setAllVisible((prevState) => !prevState);
   }, []);
 
   return (
-    <div className={classes.root}>
-      <Typography variant="body1" className={classes.textArea}>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        width: tableView ? '536px' : 'unset'
+      }}
+    >
+      <Typography
+        variant="body1"
+        sx={{
+          whiteSpace: 'pre-line',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: allVisible ? 'unset' : 'vertical',
+          overflow: 'hidden',
+          overflowWrap: 'anywhere',
+          height: '100%',
+          fontSize: '14px'
+        }}
+      >
         {value}
       </Typography>
-      <div className={classes.actions}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          marginLeft: '8px',
+          marginRight: '-10px'
+        }}
+      >
         <IconButton
           color="primary"
           onClick={toogleVisibilityHandler}
@@ -36,8 +58,8 @@ const TextArea: FC<PropsType> = ({
           }}
         />
         <CopyToClipboardButton value={value} />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

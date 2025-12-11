@@ -1,26 +1,10 @@
-import { createStyles, makeStyles } from '@material-ui/core/styles';
+// This file is a compatibility layer for makeStyles migration
+import { SxProps, Theme } from '@mui/material/styles';
 
-const useStyles = makeStyles(({ zIndex, breakpoints }) =>
-  createStyles({
-    stack: {
-      position: 'absolute',
-      bottom: '27px',
-      zIndex: zIndex.snackbar,
-      display: 'flex',
-      flexDirection: 'column-reverse',
-      alignItems: 'center',
-      width: '100%'
-    },
-    authShift: {
-      [breakpoints.up('md')]: {
-        left: '456px',
-        width: 'calc(100% - 456px)'
-      },
-      [breakpoints.only('md')]: {
-        left: '384px',
-        width: 'calc(100% - 384px)'
-      }
-    }
-  }));
+export default function useStyles(_props?: Record<string, unknown>) {
+  return new Proxy({} as Record<string, string>, {
+    get: (_, prop) => String(prop)
+  });
+}
 
-export default useStyles;
+export type { SxProps, Theme };

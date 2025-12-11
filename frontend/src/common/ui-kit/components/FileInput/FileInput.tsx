@@ -1,15 +1,17 @@
-import React, { FC, ChangeEvent, useCallback } from 'react';
-import { InsertDriveFile } from '@material-ui/icons';
+import { FC, ChangeEvent, useCallback, useRef } from 'react';
+import InsertDriveFile from '@mui/icons-material/InsertDriveFile';
+import { styled } from '@mui/material/styles';
 
 import { IconButton } from '@common/ui-kit/components';
 
 import { PropsType } from './FileInput.types';
-import useStyles from './FileInput.styles';
+
+const HiddenInput = styled('input')({
+  display: 'none'
+});
 
 const FileInput: FC<PropsType> = ({ accept, name, onLoad }) => {
-  const classes = useStyles();
-
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const onLoadFileHandler = useCallback(() => {
     fileInputRef.current?.click();
@@ -25,9 +27,8 @@ const FileInput: FC<PropsType> = ({ accept, name, onLoad }) => {
 
   return (
     <>
-      <input
+      <HiddenInput
         accept={accept}
-        className={classes.input}
         id="load-file"
         type="file"
         ref={fileInputRef}
@@ -45,7 +46,6 @@ const FileInput: FC<PropsType> = ({ accept, name, onLoad }) => {
         />
       </label>
     </>
-
   );
 };
 

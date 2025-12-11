@@ -1,15 +1,50 @@
-import React, { FC, useCallback } from 'react';
-import { ListItem, ListItemIcon, ListItemText } from '@material-ui/core';
+import { FC, useCallback } from 'react';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import { styled } from '@mui/material/styles';
 
 import { openDialog } from '@root/store/dialogs';
 import { logout } from '@root/store/auth';
 import LogoutIcon from '@common/components/LogoutMenuItem/assets/LogoutIcon';
 
-import useStyles from './LogoutMenuItem.styles';
+const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
+  padding: '12px 24px',
+  marginTop: 'auto',
+  borderTop: `1px solid ${theme.palette.divider}`,
+  '&:hover': {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)'
+  },
+  [theme.breakpoints.down('lg')]: {
+    padding: '12px',
+    justifyContent: 'center'
+  }
+}));
+
+const StyledListItemIcon = styled(ListItemIcon)(({ theme }) => ({
+  minWidth: 40,
+  color: theme.palette.error.main,
+  [theme.breakpoints.down('lg')]: {
+    minWidth: 'auto'
+  }
+}));
+
+const StyledLogoutIcon = styled(LogoutIcon)({
+  fontSize: 24
+});
+
+const StyledListItemText = styled(ListItemText)(({ theme }) => ({
+  '& .MuiListItemText-primary': {
+    fontSize: 14,
+    fontWeight: 500,
+    color: theme.palette.error.main
+  },
+  [theme.breakpoints.down('lg')]: {
+    display: 'none'
+  }
+}));
 
 const LogoutMenuItem: FC = () => {
-  const classes = useStyles();
-
   const logoutBtnClickHandler = useCallback(() => {
     openDialog({
       title: 'Confirm log out',
@@ -20,28 +55,12 @@ const LogoutMenuItem: FC = () => {
   }, []);
 
   return (
-    <ListItem
-      button
-      onClick={logoutBtnClickHandler}
-      classes={{
-        root: classes.itemRoot,
-        selected: classes.itemSelected
-      }}
-    >
-      <ListItemIcon
-        classes={{
-          root: classes.listItemIconRoot
-        }}
-      >
-        <LogoutIcon className={classes.iconRoot} />
-      </ListItemIcon>
-      <ListItemText
-        classes={{
-          primary: classes.primaryText
-        }}
-        primary="Log out"
-      />
-    </ListItem>
+    <StyledListItemButton onClick={logoutBtnClickHandler}>
+      <StyledListItemIcon>
+        <StyledLogoutIcon />
+      </StyledListItemIcon>
+      <StyledListItemText primary="Log out" />
+    </StyledListItemButton>
   );
 };
 

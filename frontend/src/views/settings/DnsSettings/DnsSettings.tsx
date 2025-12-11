@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useState, MouseEvent } from 'react';
+import { FC, useCallback, useState, MouseEvent } from 'react';
 import { v4 as uuid } from 'uuid';
 
 import { TextField } from '@common/ui-kit/components';

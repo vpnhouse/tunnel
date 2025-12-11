@@ -1,29 +1,35 @@
-import React, { FC } from 'react';
-import { Route, Switch, Redirect } from 'react-router';
+import { FC } from 'react';
+import { Route, Routes, Navigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import { useTheme } from '@mui/material/styles';
 
 import { NavigationPanel } from '@common/components';
 import { Peers, Settings, TrustedKeys } from '@root/views';
 import { PEERS_ROUTE, SETTINGS_ROUTE, TRUSTED_ROUTE } from '@constants/routes';
 
-import useStyles from './index.styles';
-
 const Main: FC = () => {
-  const classes = useStyles();
+  const theme = useTheme();
 
   return (
-    <div className={classes.root}>
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        backgroundColor: theme.palette.background.default,
+        overflowX: 'auto'
+      }}
+    >
       <NavigationPanel />
-      <div className={classes.content}>
-        <Switch>
-          <Route exact path={PEERS_ROUTE} component={Peers} />
-          <Route exact path={SETTINGS_ROUTE} component={Settings} />
-          <Route exact path={TRUSTED_ROUTE} component={TrustedKeys} />
-          <Route exact path="/">
-            <Redirect to={PEERS_ROUTE} />
-          </Route>
-        </Switch>
-      </div>
-    </div>
+      <Box sx={{ flex: '1 1 0' }}>
+        <Routes>
+          <Route path={PEERS_ROUTE.replace('/', '')} element={<Peers />} />
+          <Route path={SETTINGS_ROUTE.replace('/', '')} element={<Settings />} />
+          <Route path={TRUSTED_ROUTE.replace('/', '')} element={<TrustedKeys />} />
+          <Route path="/" element={<Navigate to={PEERS_ROUTE} replace />} />
+          <Route path="*" element={<Navigate to={PEERS_ROUTE} replace />} />
+        </Routes>
+      </Box>
+    </Box>
   );
 };
 

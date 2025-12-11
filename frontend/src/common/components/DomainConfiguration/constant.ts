@@ -1,8 +1,10 @@
-import { DomainConfig, Mode } from '@common/components/DomainConfiguration/types';
+import { DomainConfig, Mode, ProxySchema } from '@common/components/DomainConfiguration/types';
 
 export const DEFAULT_DOMAIN_CONFIG: DomainConfig = {
   domain_name: '',
-  mode: Mode.Direct
+  mode: Mode.Direct,
+  issue_ssl: false,
+  schema: ProxySchema.https
 };
 
 export const FAQ_SSL_SERTIFICATE = 'We can issue and maintain an SSL certificate to encrypt all traffic between the web app and your browser. Free and robust LetsEncrypt certificates authority is used.';

@@ -1,7 +1,14 @@
-import { KeyboardDatePickerProps } from '@material-ui/pickers/DatePicker/DatePicker';
+// Simplified types for DatePicker
 
-export type PropsType = KeyboardDatePickerProps & {
-  isEmpty: boolean;
+export type PropsType = {
+  isEmpty?: boolean;
+  label?: string;
+  value?: Date | null;
+  onChange?: (date: Date | null) => void;
+  minDate?: Date;
+  maxDate?: Date;
+  disabled?: boolean;
+  [key: string]: unknown;
 }
 
 export type StylesPropsType = {
