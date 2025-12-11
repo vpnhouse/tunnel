@@ -237,7 +237,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	xhttpOpts := []xhttp.Option{}
 
 	if runtime.Settings.MetricsListenAddr != "" {
-		xMetricsServer := xhttp.NewMetrics()
+		xMetricsServer := xhttp.NewMetrics(runtime.Settings.MetricsLabels)
 		if err := xMetricsServer.Run(runtime.Settings.MetricsListenAddr); err != nil {
 			return err
 		}
