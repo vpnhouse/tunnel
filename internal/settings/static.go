@@ -110,6 +110,7 @@ type Config struct {
 	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
 	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
 	MetricsListenAddr  string                      `yaml:"metrics_listen_addr"`
+	MetricsLabels      map[string]string           `yaml:"metrics_labels`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
