@@ -13,6 +13,7 @@ import (
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	mgmtAPI "github.com/vpnhouse/api/go/server/tunnel_mgmt"
 	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/entitlements"
 	"github.com/vpnhouse/common-lib-go/ipam"
 	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/common-lib-go/xerror"
@@ -51,7 +52,7 @@ func NewTunnelHandlers(
 		runtime:    runtime,
 		manager:    manager,
 		adminJWT:   adminJWT,
-		authorizer: authorizer.WithEntitlement(jwtAuthorizer, authorizer.Wireguard),
+		authorizer: authorizer.WithEntitlement(jwtAuthorizer, entitlements.Wireguard),
 		storage:    storage,
 		keystore:   keystore,
 		ippool:     ip4am,

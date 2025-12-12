@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vpnhouse/common-lib-go/auth"
+	"github.com/vpnhouse/common-lib-go/entitlements"
 	"github.com/vpnhouse/common-lib-go/geoip"
 	"github.com/vpnhouse/common-lib-go/keycounter"
 	"github.com/vpnhouse/common-lib-go/xerror"
@@ -110,7 +111,7 @@ func New(
 
 	instance := &Instance{
 		config:         config,
-		authorizer:     authorizer.WithEntitlement(jwtAuthorizer, authorizer.Proxy),
+		authorizer:     authorizer.WithEntitlement(jwtAuthorizer, entitlements.Proxy),
 		users:          xlimits.NewBlocker(config.ConnLimit),
 		myDomains:      domains,
 		markHeaderName: markHeaderName,

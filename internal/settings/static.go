@@ -109,6 +109,7 @@ type Config struct {
 	IPRose             iprose.Config               `yaml:"iprose,omitempty"`
 	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
 	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
+	EnableActionRules  bool                        `yaml:"enable_action_rules"`
 	MetricsListenAddr  string                      `yaml:"metrics_listen_addr"`
 	MetricsLabels      map[string]string           `yaml:"metrics_labels"`
 
