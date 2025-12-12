@@ -56,6 +56,15 @@ func init() {
 
 func initServices(runtime *runtime.TunnelRuntime) error {
 	zap.L().Info("starting tunnel", zap.String("version", version.GetVersion()), zap.Any("features", runtime.Features))
+
+	if runtime.Settings.MetricsListenAddr != "" {
+		xMetricsServer := xhttp.NewMetrics(runtime.Settings.MetricsLabels)
+		if err := xMetricsServer.Run(runtime.Settings.MetricsListenAddr); err != nil {
+			return err
+		}
+		runtime.Services.RegisterService("httpMetricsServer", xMetricsServer)
+	}
+
 	if runtime.Settings.Sentry != nil {
 		if err := sentry.ConfigureGlobal(*runtime.Settings.Sentry, version.GetVersion()); err != nil {
 			return err
@@ -235,14 +244,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	xHttpAddr := runtime.Settings.HTTP.ListenAddr
 	xhttpOpts := []xhttp.Option{}
-
-	if runtime.Settings.MetricsListenAddr != "" {
-		xMetricsServer := xhttp.NewMetrics(runtime.Settings.MetricsLabels)
-		if err := xMetricsServer.Run(runtime.Settings.MetricsListenAddr); err != nil {
-			return err
-		}
-		runtime.Services.RegisterService("httpMetricsServer", xMetricsServer)
-	}
 
 	xhttpOpts = append([]xhttp.Option{xhttp.WithLogger()}, xhttpOpts...)
 	if runtime.Settings.HTTP.CORS {
