@@ -19,6 +19,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/ipam"
 	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/common-lib-go/rapidoc"
+	"github.com/vpnhouse/common-lib-go/reverseproxy"
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/version"
 	"github.com/vpnhouse/common-lib-go/xap"
@@ -33,7 +34,6 @@ import (
 	"github.com/vpnhouse/tunnel/internal/iprose"
 	"github.com/vpnhouse/tunnel/internal/manager"
 	"github.com/vpnhouse/tunnel/internal/proxy"
-	"github.com/vpnhouse/tunnel/internal/reverseproxy"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/internal/stats"
@@ -194,6 +194,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			jwtAuthorizer,
 			statService,
 			geoipResolver,
+			runtime.Settings.ReverseProxy,
 		)
 		if err != nil {
 			return err
@@ -297,7 +298,15 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	}
 
 	if runtime.Settings.ReverseProxy != nil {
-		reverseproxy.RegisterHandlers(xHttpServer.Router(), runtime.Settings.ReverseProxy)
+		handlers, err := reverseproxy.MakeHandlers(runtime.Settings.ReverseProxy)
+		if err != nil {
+			return err
+		}
+		for _, handler := range handlers {
+			for _, pattern := range handler.Patterns {
+				xHttpServer.Router().HandleFunc(pattern, handler.Func)
+			}
+		}
 	}
 
 	runtime.ExternalStats.Run()

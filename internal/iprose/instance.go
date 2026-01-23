@@ -14,6 +14,7 @@ import (
 	"github.com/vpnhouse/common-lib-go/auth"
 	"github.com/vpnhouse/common-lib-go/entitlements"
 	"github.com/vpnhouse/common-lib-go/geoip"
+	"github.com/vpnhouse/common-lib-go/reverseproxy"
 	"github.com/vpnhouse/common-lib-go/xerror"
 	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/common-lib-go/xstats"
@@ -61,6 +62,7 @@ func New(
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	statsService *stats.Service,
 	geoipResolver *geoip.Resolver,
+	reverseProxy []*reverseproxy.Config,
 ) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
@@ -111,6 +113,7 @@ func New(
 		config.ProxyConnLimit,
 		instance.statsReporter, // safe to pass nil
 		ghosts,
+		reverseProxy,
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
