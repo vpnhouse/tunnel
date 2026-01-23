@@ -33,6 +33,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/iprose"
 	"github.com/vpnhouse/tunnel/internal/manager"
 	"github.com/vpnhouse/tunnel/internal/proxy"
+	"github.com/vpnhouse/tunnel/internal/reverseproxy"
 	"github.com/vpnhouse/tunnel/internal/runtime"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"github.com/vpnhouse/tunnel/internal/stats"
@@ -294,6 +295,8 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	if iproseServer != nil {
 		iproseServer.RegisterHandlers(xHttpServer.Router())
 	}
+
+	reverseproxy.RegisterHandlers(xHttpServer.Router(), runtime.Settings.ReverseProxy)
 
 	runtime.ExternalStats.Run()
 	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
