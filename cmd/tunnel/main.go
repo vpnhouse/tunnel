@@ -19,7 +19,6 @@ import (
 	"github.com/vpnhouse/common-lib-go/ipam"
 	"github.com/vpnhouse/common-lib-go/keystore"
 	"github.com/vpnhouse/common-lib-go/rapidoc"
-	"github.com/vpnhouse/common-lib-go/reverseproxy"
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/version"
 	"github.com/vpnhouse/common-lib-go/xap"
@@ -184,6 +183,14 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
+	var reverseHandlers []*xhttp.HandleStruct
+	if runtime.Settings.ReverseProxy != nil {
+		reverseHandlers, err = xhttp.MakeReverseHandlers(runtime.Settings.ReverseProxy)
+		if err != nil {
+			return err
+		}
+	}
+
 	var iproseServer *iprose.Instance
 	if runtime.Features.WithIPRose() {
 		if err != nil {
@@ -194,7 +201,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			jwtAuthorizer,
 			statService,
 			geoipResolver,
-			runtime.Settings.ReverseProxy,
+			reverseHandlers,
 		)
 		if err != nil {
 			return err
@@ -236,7 +243,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am, statService)
 
 	xHttpAddr := runtime.Settings.HTTP.ListenAddr
-	xhttpOpts := []xhttp.Option{xhttp.WithLogger()}
+	xhttpOpts := []xhttp.Option{xhttp.WithLogger(), xhttp.WithHandlers(reverseHandlers...)}
 	if runtime.Settings.HTTP.Prometheus {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithMetrics()}, xhttpOpts...)
 	}
@@ -295,18 +302,6 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	if iproseServer != nil {
 		iproseServer.RegisterHandlers(xHttpServer.Router())
-	}
-
-	if runtime.Settings.ReverseProxy != nil {
-		handlers, err := reverseproxy.MakeHandlers(runtime.Settings.ReverseProxy)
-		if err != nil {
-			return err
-		}
-		for _, handler := range handlers {
-			for _, pattern := range handler.Patterns {
-				xHttpServer.Router().HandleFunc(pattern, handler.Func)
-			}
-		}
 	}
 
 	runtime.ExternalStats.Run()

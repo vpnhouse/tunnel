@@ -17,7 +17,6 @@ import (
 	adminAPI "github.com/vpnhouse/api/go/server/tunnel_admin"
 	"github.com/vpnhouse/common-lib-go/human"
 	"github.com/vpnhouse/common-lib-go/ipam"
-	"github.com/vpnhouse/common-lib-go/reverseproxy"
 	"github.com/vpnhouse/common-lib-go/sentry"
 	"github.com/vpnhouse/common-lib-go/validator"
 	"github.com/vpnhouse/common-lib-go/version"
@@ -111,7 +110,7 @@ type Config struct {
 	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
 	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
 	EnableActionRules  bool                        `yaml:"enable_action_rules"`
-	ReverseProxy       []*reverseproxy.Config      `yaml:"reverse_proxy"`
+	ReverseProxy       []*xhttp.ReverseConfig      `yaml:"reverse_proxy"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.
