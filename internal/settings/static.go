@@ -29,6 +29,7 @@ import (
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/iprose"
 	"github.com/vpnhouse/tunnel/internal/proxy"
+	"github.com/vpnhouse/tunnel/internal/reverseproxy"
 	"github.com/vpnhouse/tunnel/internal/stats"
 	"github.com/vpnhouse/tunnel/internal/wireguard"
 	"go.uber.org/zap"
@@ -110,6 +111,7 @@ type Config struct {
 	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
 	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
 	EnableActionRules  bool                        `yaml:"enable_action_rules"`
+	ReverseProxy       *reverseproxy.Config        `yaml:"reverse_proxy"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.

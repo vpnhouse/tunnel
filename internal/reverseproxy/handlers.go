@@ -9,23 +9,34 @@ import (
 	"go.uber.org/zap"
 )
 
-func RegisterHandlers(r chi.Router, paths []string, target string) {
-	targetURL, err := url.Parse(target)
-	if err != nil {
-		zap.L().Error("SKipping invalid target URL", zap.Error(err), zap.String("target", target))
-		return
-	}
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+type Target struct {
+	URL      string   `yaml:"url"`
+	Patterns []string `yaml:"patterns"`
+}
 
-	originalDirector := proxy.Director
-	proxy.Director = func(req *http.Request) {
-		originalDirector(req)
-		req.Header.Set("X-Forwarded-Host", req.Host)
-		req.Host = targetURL.Host
-	}
-	for _, path := range paths {
-		r.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
-			proxy.ServeHTTP(w, req)
-		})
+type Config struct {
+	Targets []*Target `yaml:"targets"`
+}
+
+func RegisterHandlers(r chi.Router, config *Config) {
+	for _, target := range config.Targets {
+		targetURL, err := url.Parse(target.URL)
+		if err != nil {
+			zap.L().Error("SKipping invalid target URL", zap.Error(err), zap.String("target", target.URL))
+			return
+		}
+		proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+		originalDirector := proxy.Director
+		proxy.Director = func(req *http.Request) {
+			originalDirector(req)
+			req.Header.Set("X-Forwarded-Host", req.Host)
+			req.Host = targetURL.Host
+		}
+		for _, path := range target.Patterns {
+			r.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
+				proxy.ServeHTTP(w, req)
+			})
+		}
 	}
 }
