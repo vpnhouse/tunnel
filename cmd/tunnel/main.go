@@ -296,7 +296,9 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		iproseServer.RegisterHandlers(xHttpServer.Router())
 	}
 
-	reverseproxy.RegisterHandlers(xHttpServer.Router(), runtime.Settings.ReverseProxy)
+	if runtime.Settings.ReverseProxy != nil {
+		reverseproxy.RegisterHandlers(xHttpServer.Router(), runtime.Settings.ReverseProxy)
+	}
 
 	runtime.ExternalStats.Run()
 	runtime.Services.RegisterService("externalStats", runtime.ExternalStats)
