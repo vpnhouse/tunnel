@@ -110,6 +110,7 @@ type Config struct {
 	Statistics         StatisticsConfig            `yaml:"statistics,omitempty"`
 	CDN                CDNConfig                   `yaml:"cdn,omitempty"`
 	EnableActionRules  bool                        `yaml:"enable_action_rules"`
+	ReverseProxy       []*xhttp.ReverseConfig      `yaml:"reverse_proxy"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.

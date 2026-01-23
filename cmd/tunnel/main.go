@@ -183,6 +183,14 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		}
 	}
 
+	var reverseHandlers []*xhttp.HandleStruct
+	if runtime.Settings.ReverseProxy != nil {
+		reverseHandlers, err = xhttp.MakeReverseHandlers(runtime.Settings.ReverseProxy)
+		if err != nil {
+			return err
+		}
+	}
+
 	var iproseServer *iprose.Instance
 	if runtime.Features.WithIPRose() {
 		if err != nil {
@@ -193,6 +201,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			jwtAuthorizer,
 			statService,
 			geoipResolver,
+			reverseHandlers,
 		)
 		if err != nil {
 			return err
@@ -234,7 +243,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 	tunnelAPI := httpapi.NewTunnelHandlers(runtime, sessionManager, adminJWT, jwtAuthorizer, dataStorage, keyStore, ipv4am, statService)
 
 	xHttpAddr := runtime.Settings.HTTP.ListenAddr
-	xhttpOpts := []xhttp.Option{xhttp.WithLogger()}
+	xhttpOpts := []xhttp.Option{xhttp.WithLogger(), xhttp.WithHandlers(reverseHandlers...)}
 	if runtime.Settings.HTTP.Prometheus {
 		xhttpOpts = append([]xhttp.Option{xhttp.WithMetrics()}, xhttpOpts...)
 	}

@@ -61,6 +61,7 @@ func New(
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	statsService *stats.Service,
 	geoipResolver *geoip.Resolver,
+	ghostHandlers []*xhttp.HandleStruct,
 ) (*Instance, error) {
 	zap.L().Info("Starting iprose service",
 		zap.Int("trusted tokens", len(config.PersistentTokens)),
@@ -111,6 +112,7 @@ func New(
 		config.ProxyConnLimit,
 		instance.statsReporter, // safe to pass nil
 		ghosts,
+		ghostHandlers,
 	)
 	if err != nil {
 		zap.L().Error("Can't start iprose service", zap.Error(err))
