@@ -22,6 +22,7 @@ func (tun *TunnelAPI) FederationPing(w http.ResponseWriter, r *http.Request) {
 		global, _ := tun.stats.Stats()
 
 		return mgmtAPI.PingResponse{
+			Id:          tun.runtime.Settings.InstanceID,
 			PeersTotal:  global.PeersTotal,
 			PeersActive: global.PeersActive,
 			TxBytes:     int64(global.UpstreamBytes),
