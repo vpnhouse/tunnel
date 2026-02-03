@@ -756,6 +756,8 @@ github.com/sirupsen/logrus v1.7.0/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic
 github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
 github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c/go.mod h1:sUM3LWHvSMaG192sy56D9F7CNvL7jUJVXoqM1QKLnog=
+github.com/slok/go-http-metrics v0.10.0 h1:rh0LaYEKza5eaYRGDXujKrOln57nHBi4TtVhmNEpbgM=
+github.com/slok/go-http-metrics v0.10.0/go.mod h1:lFqdaS4kWMfUKCSukjC47PdCeTk+hXDUVm8kLHRqJ38=
 github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d/go.mod h1:OnSkiWE9lh6wB0YB77sQom3nweQdgAjqCqsofrRNTgc=
 github.com/smartystreets/assertions v1.0.1/go.mod h1:kHHU4qYBaI3q23Pp3VPrmWhuIUrLW/7eUrw0BU5VaoM=
 github.com/smartystreets/go-aws-auth v0.0.0-20180515143844-0c1422d1fdb9/go.mod h1:SnhjPscd9TpLiy1LpzGSKh3bXCfxxXuqd9xmQJy3slM=
@@ -828,8 +830,8 @@ github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df h1:OviZH7qLw/7Zo
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
 github.com/vpnhouse/api v0.0.0-20251030084646-ea0cd033b859 h1:854OuZ3xW9Oz82F3Hm5zX0tjKhG/FSyl7JBD1+633lU=
 github.com/vpnhouse/api v0.0.0-20251030084646-ea0cd033b859/go.mod h1:qeAZBOFAiz7FiTG49UremjHQExCUPui2tTdn1NMDn1s=
-github.com/vpnhouse/common-lib-go v0.0.0-20260203052347-5f9e2de60c6f h1:Nq3a9I7pJ00rTkhtRLpn3cFlMVHxFZQ7d9omjxfRH00=
-github.com/vpnhouse/common-lib-go v0.0.0-20260203052347-5f9e2de60c6f/go.mod h1:krAKChmKHC9ECivvOmgr1wTDo7aJuwawEHIt8qM9WYQ=
+github.com/vpnhouse/common-lib-go v0.0.0-20260203060352-06633411d8af h1:jm7CtiYHRxYENAdyMH/EODFKN0v8ILJU4jIuwYx0pvc=
+github.com/vpnhouse/common-lib-go v0.0.0-20260203060352-06633411d8af/go.mod h1:krAKChmKHC9ECivvOmgr1wTDo7aJuwawEHIt8qM9WYQ=
 github.com/vpnhouse/iprose-go v0.3.0-rc1.0.20251202142040-b23c7394b797 h1:Tqz0J7pIrK0v2v5bjst6xcquZwX2YfhLtRp+6eU5xSI=
 github.com/vpnhouse/iprose-go v0.3.0-rc1.0.20251202142040-b23c7394b797/go.mod h1:JqeiA8pXPX3Aj2vRdiYTlQ0dzKDwufeFnrByqnZFCm0=
 github.com/vultr/govultr/v2 v2.7.1/go.mod h1:BvOhVe6/ZpjwcoL6/unkdQshmbS9VGbowI4QT+3DGVU=
