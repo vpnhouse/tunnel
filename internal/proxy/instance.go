@@ -67,6 +67,7 @@ func (transport *transport) HttpClient() *http.Client {
 }
 
 func New(
+	instanceID string,
 	config *Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	myDomains []string,
@@ -110,8 +111,12 @@ func New(
 	}
 
 	instance := &Instance{
-		config:         config,
-		authorizer:     authorizer.WithEntitlement(jwtAuthorizer, entitlements.Proxy),
+		config: config,
+		authorizer: authorizer.WithEntitlement(
+			jwtAuthorizer,
+			authorizer.Entitlement(entitlements.Proxy),
+			authorizer.Restriction(instanceID),
+		),
 		users:          xlimits.NewBlocker(config.ConnLimit),
 		myDomains:      domains,
 		markHeaderName: markHeaderName,

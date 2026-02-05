@@ -20,6 +20,7 @@ type (
 var DefaultConfig = Config{}
 
 func New(
+	instanceID string,
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	statsService *stats.Service,
