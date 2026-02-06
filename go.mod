@@ -15,8 +15,8 @@ require (
 	github.com/spf13/afero v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
-	github.com/vpnhouse/api v0.0.0-20251030084646-ea0cd033b859
-	github.com/vpnhouse/common-lib-go v0.0.0-20260115051717-a70f60584f32
+	github.com/vpnhouse/api v0.0.0-20260130071030-279c9cfb556d
+	github.com/vpnhouse/common-lib-go v0.0.0-20260203060352-06633411d8af
 	github.com/vpnhouse/iprose-go v0.3.0-rc1.0.20251202142040-b23c7394b797
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
@@ -97,6 +97,7 @@ require (
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/refraction-networking/utls v1.8.0 // indirect
+	github.com/slok/go-http-metrics v0.10.0 // indirect
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
