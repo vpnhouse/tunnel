@@ -37,12 +37,6 @@ type Config struct {
 	GhostConfigPath  string        `yaml:"ghosts_config_path"`
 }
 
-type GhostConfig struct {
-	Cert       string `json:"cert" yaml:"cert"`
-	Key        string `json:"key" yaml:"key"`
-	PrivateKey string `json:"private_key" yaml:"private_key"`
-}
-
 var DefaultConfig = Config{
 	QueueSize:      DefaultQueueSize,
 	SessionTimeout: DefaultSessionTimeout,

@@ -53,7 +53,6 @@ func (manager *Manager) restorePeers() {
 		}
 
 		_ = manager.wireguard.SetPeer(peer)
-		allPeersGauge.Inc()
 	}
 }
 
@@ -66,8 +65,6 @@ func (manager *Manager) unsetPeer(peer *types.PeerInfo) error {
 
 	err = manager.ip4am.Unset(*peer.Ipv4)
 	errs = multierr.Append(errs, err)
-
-	allPeersGauge.Dec()
 	return errs
 }
 
@@ -132,7 +129,6 @@ func (manager *Manager) setPeer(peer *types.PeerInfo) error {
 		return err
 	}
 
-	allPeersGauge.Inc()
 	return nil
 }
 
@@ -253,17 +249,7 @@ func (manager *Manager) findPeerByIdentifiers(identifiers *types.PeerIdentifiers
 }
 
 func (manager *Manager) sync() {
-	manager.syncLinkStats()
 	manager.syncPeerStats()
-}
-
-func (manager *Manager) syncLinkStats() {
-	linkStats, err := manager.wireguard.GetLinkStatistic()
-	if err == nil {
-		// non-nil error will be logged
-		// by the common.Error inside the method.
-		updatePrometheusFromLinkStats(linkStats)
-	}
 }
 
 func (manager *Manager) background() {
