@@ -6,6 +6,7 @@ package iprose
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/common-lib-go/geoip"
+	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/tunnel/internal/authorizer"
 	"github.com/vpnhouse/tunnel/internal/stats"
 )
@@ -24,6 +25,7 @@ func New(
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	statsService *stats.Service,
 	geoipResolver *geoip.Resolver,
+	ghostHandlers []*xhttp.HandleStruct,
 ) (*Instance, error) {
 	return &Instance{}, nil
 }
