@@ -17,7 +17,7 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vpnhouse/api v0.0.0-20260206081137-3a096cf07168
 	github.com/vpnhouse/common-lib-go v0.0.0-20260210094919-42f2e06b2fcb
-	github.com/vpnhouse/iprose-go v0.3.0-rc1.0.20260210105845-a153bd002d1b
+	github.com/vpnhouse/iprose-go v0.3.0-rc2
 	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.25.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
