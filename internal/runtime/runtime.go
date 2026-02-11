@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vpnhouse/common-lib-go/control"
 	"github.com/vpnhouse/common-lib-go/xap"
+	"github.com/vpnhouse/common-lib-go/xhttp"
 	"github.com/vpnhouse/tunnel/internal/extstat"
 	"github.com/vpnhouse/tunnel/internal/settings"
 	"go.uber.org/zap"
@@ -33,7 +34,8 @@ type TunnelRuntime struct {
 	// external stats tracker,
 	// must not be nil, but may be backed by
 	// the no-op reporting client
-	ExternalStats *extstat.Service
+	ExternalStats   *extstat.Service
+	ReverseHandlers []*xhttp.HandleStruct
 
 	// must point to the http (NOT httpS) router instance
 	HttpRouter chi.Router
@@ -53,12 +55,13 @@ func (runtime *TunnelRuntime) EventChannel() chan control.Event {
 
 func New(static *settings.Config, starter ServicesInitFunc) *TunnelRuntime {
 	return &TunnelRuntime{
-		Features:      NewFeatureSet(),
-		Settings:      static,
-		Events:        control.NewEventManager(),
-		Services:      control.NewServiceMap(),
-		ExternalStats: extstat.New(static.InstanceID, static.ExternalStats),
-		starter:       starter,
+		Features:        NewFeatureSet(),
+		Settings:        static,
+		Events:          control.NewEventManager(),
+		Services:        control.NewServiceMap(),
+		ExternalStats:   extstat.New(static.InstanceID, static.ExternalStats),
+		starter:         starter,
+		ReverseHandlers: MakeReverseHandlers(static.ReverseProxy),
 	}
 }
 

@@ -68,6 +68,11 @@ type CDNConfig struct {
 	} `yaml:"secrets"`
 }
 
+type ReverseConfig struct {
+	URL      string   `json:"url" yaml:"url"`
+	Patterns []string `json:"patterns" yaml:"patterns"`
+}
+
 func (s *CDNConfig) SecretsMap() map[string]string {
 	if s == nil || len(s.Secrets) == 0 {
 		return nil
@@ -112,6 +117,7 @@ type Config struct {
 	EnableActionRules  bool                        `yaml:"enable_action_rules"`
 	MetricsListenAddr  string                      `yaml:"metrics_listen_addr"`
 	MetricsLabels      map[string]string           `yaml:"metrics_labels"`
+	ReverseProxy       []*ReverseConfig            `yaml:"reverse_proxy"`
 
 	// path to the config file, or default path in case of safe defaults.
 	// Used to override config via the admin API.

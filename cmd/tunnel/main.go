@@ -202,6 +202,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			jwtAuthorizer,
 			statService,
 			geoipResolver,
+			runtime.ReverseHandlers,
 		)
 		if err != nil {
 			return err
@@ -244,6 +245,10 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 
 	xHttpAddr := runtime.Settings.HTTP.ListenAddr
 	xhttpOpts := []xhttp.Option{}
+
+	for _, handler := range runtime.ReverseHandlers {
+		xhttpOpts = append(xhttpOpts, xhttp.WithHandler(handler))
+	}
 
 	xhttpOpts = append([]xhttp.Option{xhttp.WithLogger()}, xhttpOpts...)
 	if runtime.Settings.HTTP.CORS {
