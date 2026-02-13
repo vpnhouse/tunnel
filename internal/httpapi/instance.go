@@ -49,15 +49,19 @@ func NewTunnelHandlers(
 	stats *stats.Service,
 ) *TunnelAPI {
 	instance := &TunnelAPI{
-		runtime:    runtime,
-		manager:    manager,
-		adminJWT:   adminJWT,
-		authorizer: authorizer.WithEntitlement(jwtAuthorizer, entitlements.Wireguard),
-		storage:    storage,
-		keystore:   keystore,
-		ippool:     ip4am,
-		stats:      stats,
-		running:    true,
+		runtime:  runtime,
+		manager:  manager,
+		adminJWT: adminJWT,
+		authorizer: authorizer.WithEntitlement(
+			jwtAuthorizer,
+			authorizer.Entitlement(entitlements.Wireguard),
+			authorizer.Restriction(runtime.Settings.InstanceID),
+		),
+		storage:  storage,
+		keystore: keystore,
+		ippool:   ip4am,
+		stats:    stats,
+		running:  true,
 	}
 
 	return instance

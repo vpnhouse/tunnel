@@ -51,6 +51,7 @@ type Instance struct {
 }
 
 func New(
+	instanceID string,
 	config Config,
 	jwtAuthorizer authorizer.JWTAuthorizer,
 	statsService *stats.Service,
@@ -63,7 +64,11 @@ func New(
 		zap.Duration("session timeout", config.SessionTimeout))
 
 	instance := &Instance{
-		authorizer:    authorizer.WithEntitlement(jwtAuthorizer, entitlements.IPRose),
+		authorizer: authorizer.WithEntitlement(
+			jwtAuthorizer,
+			authorizer.Entitlement(entitlements.IPRose),
+			authorizer.Restriction(instanceID),
+		),
 		config:        config,
 		geoipResolver: geoipResolver,
 	}

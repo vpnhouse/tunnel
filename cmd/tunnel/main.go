@@ -198,6 +198,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 			return err
 		}
 		iproseServer, err = iprose.New(
+			runtime.Settings.InstanceID,
 			runtime.Settings.IPRose,
 			jwtAuthorizer,
 			statService,
@@ -226,6 +227,7 @@ func initServices(runtime *runtime.TunnelRuntime) error {
 		domains = append(domains, runtime.Settings.Domain.ExtraNames...)
 		domains = append(domains, runtime.Settings.Domain.ForeignNames...)
 		proxyServer, err = proxy.New(
+			runtime.Settings.InstanceID,
 			runtime.Settings.Proxy,
 			jwtAuthorizer,
 			domains,
